@@ -437,11 +437,83 @@ console.log('\n— Week / Insights / Mind (mobile) —')
   await page.goto(`${BASE}/#/insights`, { waitUntil: 'networkidle0' })
   await sleep(1200) // charts animate in
   const insightsText = await page.evaluate(() => document.body.textContent)
-  check('insights KPIs render with real numbers', /30-day completion/.test(insightsText) && /Best streak/.test(insightsText))
+  check('insights hero grid renders', await page.evaluate(() => !!document.querySelector('.insights-grid')))
+  check('insights KPIs render (best streak + active habits + total check-ins)',
+    /Best streak/.test(insightsText) && /Active habits/.test(insightsText) && /Total check-ins/.test(insightsText))
+  check('insights hero has 4 stat tiles', await page.evaluate(() => document.querySelectorAll('.insights-stat').length === 4))
+  check('insights hero ring is present', await page.evaluate(() => !!document.querySelector('.insights-ring .ring-wrap')))
+
+  check('trend-chart renders', await page.evaluate(() => !!document.querySelector('.trend-chart svg')))
+  check('trend range has 4 options', await page.evaluate(() => document.querySelectorAll('#insights-screen .seg-btn').length === 4))
+  check('trend defaults to 30D', await page.evaluate(() => document.querySelector('#insights-screen .seg-btn.active')?.textContent === '30D'))
+  const trendLabel30 = await page.evaluate(() => document.querySelector('.trend-chart svg')?.getAttribute('aria-label') || '')
+  await clickByText(page, '7D', 'button')
+  await sleep(300)
+  check('trend switches to 7D', await page.evaluate(() => document.querySelector('#insights-screen .seg-btn.active')?.textContent === '7D'))
+  check('trend aria-label reflects selected range', await page.evaluate((prev) => (document.querySelector('.trend-chart svg')?.getAttribute('aria-label') || '') !== prev, trendLabel30))
+  await clickByText(page, '90D', 'button')
+  await sleep(300)
+  check('trend switches to 90D', await page.evaluate(() => document.querySelector('#insights-screen .seg-btn.active')?.textContent === '90D'))
+  await clickByText(page, '1Y', 'button')
+  await sleep(300)
+  check('trend switches to 1Y', await page.evaluate(() => document.querySelector('#insights-screen .seg-btn.active')?.textContent === '1Y'))
+  check('trend y-axis spans 0–100', await page.evaluate(() => {
+    const labels = [...document.querySelectorAll('.trend-chart svg text')].map((t) => t.textContent)
+    return labels.includes('0') && labels.includes('100')
+  }))
+
+  check('this-week-vs-last renders', await page.evaluate(() => !!document.querySelector('.vs')))
+  check('vs shows this week + last week + change', await page.evaluate(() => {
+    const blocks = [...document.querySelectorAll('.vs-block')]
+    return blocks.length === 3 && /This week/.test(blocks[0].textContent) && /Last week/.test(blocks[1].textContent) && /Change/.test(blocks[2].textContent)
+  }))
+  check('vs change shows a signed direction', await page.evaluate(() => {
+    const delta = document.querySelector('.vs-delta')
+    return !!delta && (delta.classList.contains('up') || delta.classList.contains('down') || delta.classList.contains('none'))
+  }))
+
+  check('habit performance renders 5 rows', await page.evaluate(() => document.querySelectorAll('.perf-row:not(.perf-head)').length === 5))
+  check('performance rows show done/eligible', await page.evaluate(() => /\/\d+/.test(document.querySelector('.perf-row:not(.perf-head)')?.textContent || '')))
+  const perfFirst = () => page.evaluate(() => document.querySelector('.perf-row:not(.perf-head) .perf-name-text')?.textContent)
+  const beforeName = await perfFirst()
+  await page.evaluate(() => document.querySelector('[aria-label="Sort by habit name"]').click())
+  await sleep(300)
+  check('performance sorts by name (desc)', (await perfFirst()) === 'Read 20 pages', `first=${await perfFirst()}`)
+  await page.evaluate(() => document.querySelector('[aria-label="Sort by 30 day rate"]').click())
+  await sleep(300)
+  check('performance sorts by 30-day rate', (await perfFirst()) !== 'Read 20 pages', `first=${await perfFirst()}`)
+  await page.evaluate(() => document.querySelector('[aria-label="Sort by current streak"]').click())
+  await sleep(300)
+  check('performance sorts by current streak', await page.evaluate(() => /[↑↓]/.test(document.querySelector('[aria-label="Sort by current streak"]').textContent)))
+
+  check('heatmap renders with day cells', await page.evaluate(() => document.querySelectorAll('.hm-day').length >= 350))
+  check('heatmap has ≥52 week columns', await page.evaluate(() => document.querySelectorAll('.hm-col').length >= 52))
+  check('heatmap has weekday gutter', await page.evaluate(() => document.querySelectorAll('.hm-gutter span').length === 7))
+  check('heatmap month labels render', await page.evaluate(() => document.querySelectorAll('.hm-months span').length >= 10))
+  check('heatmap future days are flagged', await page.evaluate(() => !!document.querySelector('.hm-day.future')))
+  const heatTip = await page.evaluate(() => {
+    const day = document.querySelector('.hm-day:not(.future)')
+    if (!day) return false
+    day.click()
+    return true
+  })
+  await sleep(250)
+  check('heatmap tap shows tooltip', heatTip && await page.evaluate(() => /\d{4}-\d{2}-\d{2}/.test(document.querySelector('.heatmap-tip')?.textContent || '')))
+  check('heatmap tooltip shows completion', await page.evaluate(() => /(done|No data)/.test(document.querySelector('.heatmap-tip')?.textContent || '')))
+
+  check('habit × day matrix renders', await page.evaluate(() => !!document.querySelector('.habit-matrix')))
+  check('matrix has 28 day columns', await page.evaluate(() => (document.querySelector('.hmx-grid')?.style.gridTemplateColumns || '').includes('repeat(28')))
+  check('matrix renders a row per habit', await page.evaluate(() => document.querySelectorAll('.hmx-name').length === 5))
+  check('matrix name column is sticky', await page.evaluate(() => getComputedStyle(document.querySelector('.hmx-name')).position === 'sticky'))
+
   check('year overview renders 12 mini-months', await page.evaluate(() => document.querySelectorAll('.mini-month').length === 12))
   check('achievements render 4 badges', await page.evaluate(() => document.querySelectorAll('img[src^="art/badge-"]').length === 4))
+  check('achievements show next badge hint', await page.evaluate(() => !!document.querySelector('.next-badge')))
+  check('mood-and-habits link renders', await page.evaluate(() => /Mood and habits/.test(document.body.textContent)))
   await shot(page, '11-insights')
   await overflowCheck(page, 'insights')
+  await tapTargetCheck(page, 'insights')
+  await contrastCheck(page, 'insights')
 
   // verify a displayed number against a recomputed value (data integrity spot check)
   const integrity = await page.evaluate(() => {
@@ -468,6 +540,7 @@ console.log('\n— Week / Insights / Mind (mobile) —')
     return parseInt(el?.textContent) || null
   })
   check('insights 30-day completion matches independent recomputation', shown === integrity, `shown=${shown} computed=${integrity}`)
+  await noConsoleErrors(page, 'insights')
 
   // tap a mini-month → navigates to calendar at that month
   await page.evaluate(() => document.querySelectorAll('.mini-month')[new Date().getMonth()].click())
@@ -490,6 +563,70 @@ console.log('\n— Week / Insights / Mind (mobile) —')
     return s.moods[key]?.score === 5
   }))
   await noConsoleErrors(page, 'week-insights-mind')
+  await page.close()
+}
+
+/* ============================================================
+   PART 4b — Calendar range modes (Month / 90 days / Year)
+   ============================================================ */
+console.log('\n— Calendar range modes —')
+{
+  const page = await newPage(browser, VIEWPORTS.mobile)
+  await seedAndGoto(page, seededState(), 'calendar', BASE)
+  await sleep(300)
+  const calTitle = () => page.evaluate(() => document.querySelector('.card-title')?.textContent || '')
+  const activeMode = () => page.evaluate(() => document.querySelector('#calendar-screen .seg-btn.active')?.textContent || '')
+
+  check('calendar has 3 range modes', await page.evaluate(() => document.querySelectorAll('#calendar-screen .seg-btn').length === 3))
+  check('calendar defaults to Month', (await activeMode()) === 'Month')
+  check('month mode shows week bands', await page.evaluate(() => document.querySelectorAll('.cal-band-label').length >= 4))
+  const monthTitle = await calTitle()
+
+  await clickByText(page, '90 days', 'button')
+  await sleep(400)
+  check('calendar switches to 90 days', (await activeMode()) === '90 days')
+  check('90 days title is a date range', (await calTitle()).includes('–'), `title=${await calTitle()}`)
+  check('90 days keeps week bands', await page.evaluate(() => document.querySelectorAll('.cal-band-label').length >= 13))
+  check('90 days grid scrolls horizontally', await page.evaluate(() => {
+    const wrap = document.querySelector('.cal-wrap')
+    return !!wrap && wrap.scrollWidth > wrap.clientWidth
+  }))
+
+  await clickByText(page, 'Year', 'button')
+  await sleep(400)
+  check('calendar switches to Year', (await activeMode()) === 'Year')
+  check('year title is the current year', (await calTitle()) === String(new Date().getFullYear()), `title=${await calTitle()}`)
+  check('year grid scrolls horizontally', await page.evaluate(() => {
+    const wrap = document.querySelector('.cal-wrap')
+    return !!wrap && wrap.scrollWidth > wrap.clientWidth
+  }))
+  check('year mode still logs a past day', await page.evaluate(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    const el = [...document.querySelectorAll('.cal-cell')].find((b) => (b.getAttribute('aria-label') || '').startsWith('Mark') && (b.getAttribute('aria-label') || '').endsWith(label))
+    if (el) { el.click(); return true }
+    return false
+  }))
+
+  await clickByText(page, 'Month', 'button')
+  await sleep(400)
+  check('calendar returns to Month', (await activeMode()) === 'Month')
+  await page.evaluate(() => document.querySelector('[aria-label="Previous range"]').click())
+  await sleep(400)
+  check('month previous changes the title', (await calTitle()) !== monthTitle, `title=${await calTitle()}`)
+  check('Today button appears after navigating away', await page.evaluate(() => {
+    const btns = [...document.querySelectorAll('button')]
+    return btns.some((b) => b.textContent.trim() === 'Today')
+  }))
+  await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Today')
+    if (btn) btn.click()
+  })
+  await sleep(400)
+  check('Today returns to the current month', (await calTitle()) === monthTitle)
+  await shot(page, '14-calendar-modes')
+  await noConsoleErrors(page, 'calendar-modes')
   await page.close()
 }
 
@@ -741,6 +878,30 @@ console.log('\n— Empty states —')
   }
   await noConsoleErrors(page, 'empty-states')
   await page.close()
+}
+
+/* ============================================================
+   PART 11 — Viewport sweep 320–414px (zero horizontal overflow)
+   ============================================================ */
+console.log('\n— Viewport sweep 320–414px —')
+{
+  for (const width of [320, 360, 390, 414]) {
+    const page = await newPage(browser, { width, height: 800, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+    await seedAndGoto(page, seededState(), 'insights', BASE)
+    await sleep(350)
+    if (width === 320) check('[320] insights renders trend-chart', await page.evaluate(() => !!document.querySelector('.trend-chart svg')))
+    await overflowCheck(page, `insights-${width}`)
+    await page.goto(`${BASE}/#/calendar`, { waitUntil: 'networkidle0' })
+    await sleep(350)
+    await overflowCheck(page, `calendar-${width}`)
+    await page.goto(`${BASE}/#/today`, { waitUntil: 'networkidle0' })
+    await sleep(350)
+    await overflowCheck(page, `today-${width}`)
+    await page.goto(`${BASE}/#/week`, { waitUntil: 'networkidle0' })
+    await sleep(350)
+    await overflowCheck(page, `week-${width}`)
+    await page.close()
+  }
 }
 
 await browser.close()

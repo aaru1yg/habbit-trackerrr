@@ -40,7 +40,7 @@ function ProjectDonut({ percent, color, size = 130, stroke = 12 }) {
   )
 }
 
-export default function MasterPie() {
+export default function MasterPie({ onAdd }) {
   const { state } = useStore()
   const projects = state.habits.filter((h) => !h.isDaily)
   const data = projects.map((h) => ({
@@ -53,7 +53,8 @@ export default function MasterPie() {
   if (!projects.length) {
     return (
       <div className="glass" style={{ padding: 26, textAlign: 'center', color: 'var(--muted)' }}>
-        No projects yet. Add a non-daily activity to track big goals 🎯
+        <div>No projects yet. Add a big goal (portfolio, exam, launch…) and track it 0→100% 🎯</div>
+        {onAdd && <button className="btn primary" style={{ marginTop: 12 }} onClick={onAdd}>🚀 New project</button>}
       </div>
     )
   }

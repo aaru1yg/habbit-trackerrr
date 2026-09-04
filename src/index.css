@@ -181,14 +181,19 @@ select.field { appearance: none; background-image: url("data:image/svg+xml,%3Csv
 }
 
 /* responsive grid helpers */
-.split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 24; align-items: start; }
-.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24; }
-.stack { display: flex; flex-direction: column; gap: 18; }
+.split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.stack { display: flex; flex-direction: column; gap: 18px; }
 
 @media (max-width: 980px) {
   .split { grid-template-columns: 1fr; }
-  .duo { grid-template-columns: 1fr; }
+  .duo { grid-template-columns: 1fr !important; }
+  .weekboard-head { grid-template-columns: 1fr !important; }
 }
+
+/* calendar horizontal scroller */
+.cal-scroll { scrollbar-width: thin; }
+.cal-scroll::-webkit-scrollbar { height: 8px; }
 
 @media (max-width: 720px) {
   .app-shell { padding: 18px 12px 80px; }

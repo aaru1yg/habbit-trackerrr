@@ -16,7 +16,7 @@ function ProjectCard({ habit, index }) {
 
   const setPct = (v) => dispatch({ type: 'SET_PROJECT_PERCENT', habitId: habit.id, percent: v })
 
-  const milestoneData = (project.milestones || []).map((m) => ({ ...m, label: m.date.slice(5) }))
+  const milestoneData = (project.milestones || []).length ? (project.milestones || []).map((m) => ({ ...m, label: m.date.slice(5) })) : [{ date: habit.startDate, label: habit.startDate.slice(5), percent: 0 }]
   const pieData = [{ name: 'Done', value: pct, fill: habit.color }, { name: 'Remaining', value: 100 - pct, fill: 'rgba(255,255,255,0.08)' }]
 
   const end = habit.endDate
@@ -34,7 +34,7 @@ function ProjectCard({ habit, index }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700 }}>{habit.name}</div>
           <div style={{ color: 'var(--muted)', fontSize: '0.78rem', marginTop: 3 }}>
-            {daysLeft !== null && daysLeft >= 0 ? `⏳ ${daysLeft}d left` : '⚡ only today'} · started {habit.startDate.slice(5)}
+            {daysLeft === null ? '♾️ open-ended' : daysLeft > 0 ? `⏳ ${daysLeft}d left` : daysLeft === 0 ? '⚡ due today' : `⌛ ${Math.abs(daysLeft)}d overdue`} · started {habit.startDate.slice(5)}
           </div>
         </div>
         <div style={{ fontWeight: 800, fontFamily: 'Space Grotesk', fontSize: '1.3rem', color: habit.color }}>{pct}%</div>
@@ -110,7 +110,7 @@ function ProjectCard({ habit, index }) {
   )
 }
 
-export default function ProjectTracker() {
+export default function ProjectTracker({ onAdd }) {
   const { state } = useStore()
   const projects = state.habits.filter((h) => !h.isDaily)
   if (!projects.length) return null
@@ -120,6 +120,7 @@ export default function ProjectTracker() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '28px 0 14px' }}>
         <h2 style={{ fontSize: '1.2rem' }}>Custom project tracker</h2>
         <span className="chip" style={{ color: 'var(--muted)' }}>pick a % · own graph & pie each</span>
+        {onAdd && <button className="btn ghost" style={{ marginLeft: 'auto', padding: '6px 12px', fontSize: '0.8rem' }} onClick={onAdd}>🚀 New project</button>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
         {projects.map((h, i) => <ProjectCard key={h.id} habit={h} index={i} />)}

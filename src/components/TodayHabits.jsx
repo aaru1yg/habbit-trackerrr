@@ -100,16 +100,17 @@ export function HabitRow({ habit, index, onFire }) {
   )
 }
 
-export default function TodayHabits({ onFire }) {
+export default function TodayHabits({ onFire, onAdd }) {
   const { state } = useStore()
   const today = todayStr()
   const daily = state.habits.filter((h) => h.isDaily)
-  const active = daily.filter((h) => !h.startDate || today >= h.startDate)
+  const active = daily.filter((h) => (!h.startDate || today >= h.startDate) && (!h.endDate || today <= h.endDate))
 
   if (!active.length) {
     return (
       <div className="glass" style={{ padding: 26, textAlign: 'center', color: 'var(--muted)' }}>
-        No daily habits yet — create your first habit! 🎯
+        <div>No daily habits yet — create your first habit! 🎯</div>
+        {onAdd && <button className="btn primary" style={{ marginTop: 12 }} onClick={onAdd}>＋ New habit</button>}
       </div>
     )
   }

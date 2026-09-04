@@ -54,3 +54,40 @@ npm run test     # run the smoke tests
 ```
 
 Made for Aaru 💜 — now go keep the streak alive. 🔥
+
+## 📲 Install it like a real app (PWA)
+
+Aaru's tracker is a full **Progressive Web App**. On your phone (or any device):
+
+- Open the site in Chrome/Safari/Edge.
+- Use **"Add to Home screen"** (or tap **📲 Install app** in the header on the web).
+- It launches full-screen, works **offline**, and saves all your data **on the device** (localStorage).
+- Use **📤 Export / 📥 Import** to back up or move your data between devices.
+
+## 🚀 Host it for free (GitHub Pages)
+
+A ready-made **GitHub Actions** deploy workflow (`.github/workflows/deploy.yml`) builds the site with the correct base path and publishes it to `https://aaru1yg.github.io/habbit-trackerrr/`.
+
+**To go live (one-time, ~30 seconds):**
+
+1. Open the repo → **Settings → Pages**.
+2. Under **Build and deployment → Source**, pick **GitHub Actions**.
+3. That's it — the site deploys automatically (or push any change / run the "Deploy to GitHub Pages" workflow manually).
+
+Because the repo is **public**, the site is free and live over the internet with no hosting bill.
+
+> ⚠️ If your GitHub account ever changes, just enable Pages the same way — the workflow handles the rest.
+
+### Alternative (no GitHub)
+
+Build once with `GH_PAGES=true npm run build`, then drag the `dist/` folder into **Netlify Drop** or **Cloudflare Pages** for an instant free URL.
+
+## 🎨 Futuristic extras
+
+- Animated **starfield** canvas + drifting aurora + glowing **neon gradient card borders**
+- **Sci-fi numbers** (Orbitron font) and a **XP / Level** system in the Insights panel
+- **Accent theme switcher**: Aurora 🔮 / Cyber 🌸 / Emerald 🌿 / Violet 💜 / Azure 💙
+- Daily **trend**, **best day of week**, **active days**, **top vs weakest habit**
+- Offline/online device indicator + **install button**
+
+## 🛠️ Tech

@@ -9,3 +9,6 @@ yarn-error.log*
 .env.*
 coverage
 .vitest
+
+# netlify deploy bundle (local only)
+*.tar.gz

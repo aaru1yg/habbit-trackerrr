@@ -1,31 +1,43 @@
 name: Deploy to GitHub Pages
+
 on:
   push:
-    branches: ['main', 'arena/01a06d6a-habbit-trackerrr']
+    branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
-      - name: Build (GitHub Pages base)
-        run: GH_PAGES=true npm run build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (Pages subpath base)
+        run: npm run build
+        env:
+          GH_PAGES: 'true'
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -33,5 +45,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4

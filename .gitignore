@@ -12,3 +12,7 @@ coverage
 
 # netlify deploy bundle (local only)
 *.tar.gz
+
+# QA generated artifacts (regenerable)
+qa/shots/
+qa/gen/

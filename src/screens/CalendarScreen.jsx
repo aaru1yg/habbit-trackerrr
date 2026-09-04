@@ -3,7 +3,7 @@ import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
-import { todayStr, monthDays, monthWeekBands, monthLabel, weekdayInitial, dayNum, isFuture, prettyDate } from '../lib/dates.js'
+import { todayStr, monthDays, monthLabel, weekdayInitial, dayNum, isFuture, prettyDate, shortDate, addDaysStr, subDaysStr } from '../lib/dates.js'
 import { isScheduled, categoryOf } from '../lib/schedule.js'
 import { activeHabits, isDone, checkinOf, habitRate } from '../lib/stats.js'
 import { IconChevronLeft, IconChevronRight, IconCalendar, IconCheck } from '../lib/icons.jsx'
@@ -11,39 +11,112 @@ import { IconChevronLeft, IconChevronRight, IconCalendar, IconCheck } from '../l
 const NAME_COL = 116
 const CELL = 44
 
+const MODES = [
+  { id: 'month', label: 'Month' },
+  { id: '90d', label: '90 days' },
+  { id: 'year', label: 'Year' },
+]
+
 function parseYmParam(p) {
   if (!p || !/^\d{4}-(0[1-9]|1[0-2])$/.test(p)) return null
   const [y, m] = p.split('-').map(Number)
   return { y, m: m - 1 }
 }
 
+const localDate = (s) => new Date(`${s}T12:00:00`)
+
 export default function CalendarScreen({ ymParam }) {
   const { state, dispatch } = useStore()
   const now = new Date()
-  const initial = parseYmParam(ymParam) || { y: now.getFullYear(), m: now.getMonth() }
-  const [ym, setYm] = useState(initial)
-
-  // navigating from the year overview (e.g. #/calendar/2026-03) while mounted
-  useEffect(() => {
-    const parsed = parseYmParam(ymParam)
-    if (parsed) setYm(parsed)
-  }, [ymParam])
-  const [noteFor, setNoteFor] = useState(null) // { habit, date }
+  const [mode, setMode] = useState('month')
+  const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })
+  const [anchor90, setAnchor90] = useState(todayStr()) // 90d window ends at this date
+  const [year, setYear] = useState(now.getFullYear())
+  const [noteFor, setNoteFor] = useState(null)
   const [noteDraft, setNoteDraft] = useState('')
   const longPressRef = useRef(0)
   const today = todayStr()
 
-  const days = useMemo(() => monthDays(ym.y, ym.m), [ym])
-  const bands = useMemo(() => monthWeekBands(days), [days])
-  const monthStart = days[0].date
-  const monthEnd = days[days.length - 1].date
+  // navigating from the year overview (e.g. #/calendar/2026-03) → month mode at that month
+  useEffect(() => {
+    const parsed = parseYmParam(ymParam)
+    if (parsed) {
+      setYm(parsed)
+      setMode('month')
+    }
+  }, [ymParam])
+
+  const days = useMemo(() => {
+    if (mode === 'month') return monthDays(ym.y, ym.m)
+    if (mode === '90d') {
+      const end = anchor90
+      const start = subDaysStr(end, 89)
+      const out = []
+      let c = start
+      while (c <= end) {
+        out.push({ day: localDate(c).getDate(), date: c, weekday: localDate(c).getDay() })
+        c = addDaysStr(c, 1)
+      }
+      return out
+    }
+    // year
+    const start = `${year}-01-01`
+    const end = `${year}-12-31`
+    const out = []
+    let c = start
+    while (c <= end) {
+      out.push({ day: localDate(c).getDate(), date: c, weekday: localDate(c).getDay() })
+      c = addDaysStr(c, 1)
+    }
+    return out
+  }, [mode, ym, anchor90, year])
+
+  const bands = useMemo(() => {
+    const out = []
+    for (let i = 0; i < days.length; i += 7) {
+      out.push({ index: i / 7, label: `Week ${i / 7 + 1}`, days: days.slice(i, i + 7) })
+    }
+    return out
+  }, [days])
+
+  const bandIdx = useMemo(() => {
+    const m = new Map()
+    for (const b of bands) for (const d of b.days) m.set(d.date, b.index)
+    return m
+  }, [bands])
+
+  const rangeStart = days[0]?.date
+  const rangeEnd = days[days.length - 1]?.date
 
   const habits = activeHabits(state).filter((h) => days.some((d) => isScheduled(h, d.date)))
 
-  const isCurrentMonth = ym.y === now.getFullYear() && ym.m === now.getMonth()
-  const prev = () => setYm(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 }))
-  const next = () => setYm(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }))
-  const goToday = () => setYm({ y: now.getFullYear(), m: now.getMonth() })
+  const title = useMemo(() => {
+    if (mode === 'month') return monthLabel(ym.y, ym.m)
+    if (mode === '90d') return `${shortDate(rangeStart)} – ${shortDate(rangeEnd)}`
+    return `${year}`
+  }, [mode, ym, rangeStart, rangeEnd, year])
+
+  const isCurrentView = useMemo(() => {
+    if (mode === 'month') return ym.y === now.getFullYear() && ym.m === now.getMonth()
+    if (mode === '90d') return anchor90 === today
+    return year === now.getFullYear()
+  }, [mode, ym, anchor90, year, today, now])
+
+  const prev = () => {
+    if (mode === 'month') setYm(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 }))
+    else if (mode === '90d') setAnchor90((a) => subDaysStr(a, 30))
+    else setYear((y) => y - 1)
+  }
+  const next = () => {
+    if (mode === 'month') setYm(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }))
+    else if (mode === '90d') setAnchor90((a) => addDaysStr(a, 30))
+    else setYear((y) => y + 1)
+  }
+  const goToday = () => {
+    setYm({ y: now.getFullYear(), m: now.getMonth() })
+    setAnchor90(today)
+    setYear(now.getFullYear())
+  }
 
   useEffect(() => {
     const onKey = (e) => {
@@ -54,7 +127,7 @@ export default function CalendarScreen({ ymParam }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [noteFor])
+  }, [noteFor, mode])
 
   const startLongPress = (habit, date) => {
     longPressRef.current = setTimeout(() => {
@@ -82,10 +155,10 @@ export default function CalendarScreen({ ymParam }) {
     setNoteFor(null)
   }
 
-  const rates = useMemo(
-    () => habits.map((h) => ({ habit: h, ...habitRate(state, h, monthStart, monthEnd > today ? today : monthEnd) })),
-    [state, habits, monthStart, monthEnd, today]
-  )
+  const rates = useMemo(() => {
+    const endCap = rangeEnd > today ? today : rangeEnd
+    return habits.map((h) => ({ habit: h, ...habitRate(state, h, rangeStart, endCap) }))
+  }, [state, habits, rangeStart, rangeEnd, today])
 
   return (
     <div className="screen" id="calendar-screen">
@@ -97,19 +170,33 @@ export default function CalendarScreen({ ymParam }) {
       </header>
 
       <div className="stack">
+        <div className="seg seg-wide" role="group" aria-label="Calendar range">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className={`seg-btn${mode === m.id ? ' active' : ''}`}
+              aria-pressed={mode === m.id}
+              onClick={() => setMode(m.id)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
         <SectionCard className="pad" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: 'var(--sp-4) var(--sp-4) var(--sp-3)' }}>
-            <CardHead title={monthLabel(ym.y, ym.m)}>
+            <CardHead title={title}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                {!isCurrentMonth && <button className="btn ghost sm" onClick={goToday}>Today</button>}
-                <button className="btn icon" onClick={prev} aria-label="Previous month"><IconChevronLeft size={18} /></button>
-                <button className="btn icon" onClick={next} aria-label="Next month"><IconChevronRight size={18} /></button>
+                {!isCurrentView && <button className="btn ghost sm" onClick={goToday}>Today</button>}
+                <button className="btn icon" onClick={prev} aria-label="Previous range"><IconChevronLeft size={18} /></button>
+                <button className="btn icon" onClick={next} aria-label="Next range"><IconChevronRight size={18} /></button>
               </div>
             </CardHead>
           </div>
 
           {habits.length === 0 ? (
-            <EmptyState icon={<IconCalendar size={40} />} title="No habits this month">
+            <EmptyState icon={<IconCalendar size={40} />} title="No habits in this range">
               Add a habit and its calendar will appear here.
             </EmptyState>
           ) : (
@@ -118,7 +205,6 @@ export default function CalendarScreen({ ymParam }) {
                 className="cal-grid"
                 style={{ gridTemplateColumns: `${NAME_COL}px repeat(${days.length}, ${CELL}px)`, minWidth: NAME_COL + days.length * CELL }}
               >
-                {/* band label row */}
                 <div className="cal-corner">Habit</div>
                 {bands.map((b) => (
                   <div
@@ -129,14 +215,13 @@ export default function CalendarScreen({ ymParam }) {
                     {b.label}
                   </div>
                 ))}
-                {/* day header row */}
                 <div className="cal-corner">Day</div>
                 {days.map((d) => (
                   <div
                     key={d.date}
                     className="cal-head-cell"
                     style={{
-                      ...(Math.floor((d.day - 1) / 7) % 2 === 1 ? { background: 'var(--surface-2)' } : {}),
+                      ...(bandIdx.get(d.date) % 2 === 1 ? { background: 'var(--surface-2)' } : {}),
                       ...(d.date === today ? { color: 'var(--accent-2)', fontWeight: 800 } : {}),
                     }}
                   >
@@ -145,7 +230,6 @@ export default function CalendarScreen({ ymParam }) {
                     <span className="sr-only">{prettyDate(d.date)}</span>
                   </div>
                 ))}
-                {/* habit rows */}
                 {habits.map((h) => (
                   <div key={h.id} style={{ display: 'contents' }}>
                     <div className="cal-name">
@@ -157,7 +241,7 @@ export default function CalendarScreen({ ymParam }) {
                       const future = isFuture(d.date)
                       const done = isDone(state, h.id, d.date)
                       const note = checkinOf(state, h.id, d.date)?.note
-                      const bandOdd = Math.floor((d.day - 1) / 7) % 2 === 1
+                      const bandOdd = bandIdx.get(d.date) % 2 === 1
                       if (!scheduled) {
                         return (
                           <div key={d.date} className="cal-cell off" style={{ ...(bandOdd ? { background: 'var(--surface-2)' } : {}) }}>
@@ -193,10 +277,9 @@ export default function CalendarScreen({ ymParam }) {
           )}
         </SectionCard>
 
-        {/* month consistency per habit */}
         {habits.length > 0 && (
           <SectionCard className="pad">
-            <CardHead title="This month" />
+            <CardHead title="In this view" />
             <div className="stack" style={{ gap: 12 }}>
               {rates.map(({ habit, rate, done, eligible }) => (
                 <div key={habit.id}>
@@ -217,7 +300,6 @@ export default function CalendarScreen({ ymParam }) {
         )}
       </div>
 
-      {/* Note dialog (long press) */}
       <Sheet open={!!noteFor} onClose={() => setNoteFor(null)} title={noteFor ? `Note — ${noteFor.habit.name}` : 'Note'} labelledBy="note-title">
         {noteFor && (
           <div className="stack">

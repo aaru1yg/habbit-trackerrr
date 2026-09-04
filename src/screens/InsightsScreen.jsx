@@ -1,22 +1,26 @@
 import { useMemo, useState } from 'react'
-import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, Cell,
-} from 'recharts'
 import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import MiniMonth from '../components/ui/MiniMonth.jsx'
-import { todayStr, subDaysStr, weekDays, shortDate, weekdayShort } from '../lib/dates.js'
+import ProgressRing from '../components/ui/ProgressRing.jsx'
+import { TrendChart, Heatmap, HabitMatrix } from '../components/charts/chartKit.jsx'
+import { todayStr, subDaysStr, shortDate } from '../lib/dates.js'
 import {
-  activeHabits, dayStats, weekStats, topStreak, achievements, yearOverview,
-  habitRate, rankHabits, moodStats, moodHabitLink,
+  activeHabits, topStreak, achievements, yearOverview, moodHabitLink,
+  trendSeries, heatmapSeries, habitMatrix, weekComparison, habitPerformance,
 } from '../lib/stats.js'
-import { categoryOf } from '../lib/schedule.js'
 import { navigate } from '../lib/router.jsx'
-import { IconInsights, IconAward, IconTrendUp } from '../lib/icons.jsx'
+import { IconInsights, IconTrendUp, IconTrendDown, IconFlame } from '../lib/icons.jsx'
 
 const YEAR = new Date().getFullYear()
+const RANGES = [
+  { id: '7d', label: '7D', days: 7 },
+  { id: '30d', label: '30D', days: 30 },
+  { id: '90d', label: '90D', days: 90 },
+  { id: '1y', label: '1Y', days: 365 },
+]
 
 export default function InsightsScreen() {
   const { state } = useStore()
@@ -25,68 +29,76 @@ export default function InsightsScreen() {
 
   const hasData = habits.length > 0 && Object.values(state.checkins || {}).some((days) => Object.keys(days || {}).length > 0)
 
-  // ---- KPIs ----
+  // ---- hero: 30-day ring + streaks ----
   const last30 = useMemo(() => {
-    let done = 0, total = 0
-    for (let i = 0; i < 30; i++) {
-      const s = dayStats(state, subDaysStr(today, i))
-      done += s.done
-      total += s.total
+    let done = 0
+    let total = 0
+    for (const r of trendSeries(state, 30)) {
+      done += r.done
+      total += r.total
     }
     return total ? Math.round((done / total) * 100) : null
-  }, [state, today])
+  }, [state])
 
   const totalCheckins = useMemo(
     () => Object.values(state.checkins || {}).reduce((n, days) => n + Object.values(days || {}).filter((c) => c?.done).length, 0),
     [state]
   )
   const best = achievements(state)
-  const mood = useMemo(() => moodStats(state, 30), [state])
-  const moodLink = useMemo(() => moodHabitLink(state, 30), [state])
+  const top = topStreak(state)
 
-  // ---- weekly trend (12 weeks, recharts) ----
-  const weekly = useMemo(() => {
-    const rows = []
-    for (let w = 11; w >= 0; w--) {
-      const ws = weekStats(state, weekDays(subDaysStr(today, w * 7)))
-      rows.push({
-        label: shortDate(weekDays(subDaysStr(today, w * 7))[0]).replace(/,.*/, ''),
-        short: weekdayShort(weekDays(subDaysStr(today, w * 7))[0]),
-        pct: ws.total ? ws.pct : null,
-      })
+  // ---- trend (range switch) ----
+  const [range, setRange] = useState('30d')
+  const rangeDays = RANGES.find((r) => r.id === range).days
+  const trend = useMemo(() => trendSeries(state, rangeDays), [state, rangeDays])
+
+  // ---- this week vs last ----
+  const cmp = useMemo(() => weekComparison(state), [state])
+
+  // ---- sortable habit performance ----
+  const [sort, setSort] = useState({ key: 'rate', dir: 'desc' })
+  const perf = useMemo(() => {
+    const rows = habitPerformance(state, subDaysStr(today, 29), today)
+    const dir = sort.dir === 'asc' ? 1 : -1
+    const value = (r) => {
+      if (sort.key === 'name') return r.habit.name.toLowerCase()
+      if (sort.key === 'streak') return r.streak
+      if (sort.key === 'best') return r.best
+      return r.rate ?? -1
     }
-    return rows
-  }, [state, today])
+    return [...rows].sort((a, b) => {
+      const va = value(a)
+      const vb = value(b)
+      if (va < vb) return -1 * dir
+      if (va > vb) return 1 * dir
+      return 0
+    })
+  }, [state, today, sort])
 
-  // ---- 90-day daily trend (area) ----
-  const daily = useMemo(() => {
-    const rows = []
-    for (let i = 29; i >= 0; i--) {
-      const d = subDaysStr(today, i)
-      const s = dayStats(state, d)
-      rows.push({ date: shortDate(d), pct: s.total ? s.pct : null })
+  const toggleSort = (key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }))
+
+  // ---- heatmap (GitHub-style) ----
+  const weeks = useMemo(() => heatmapSeries(state, 52), [state])
+
+  // ---- habit × day matrix (last 28 days) ----
+  const matrixDays = useMemo(() => {
+    const out = []
+    for (let i = 27; i >= 0; i--) out.push(subDaysStr(today, i))
+    return out
+  }, [today])
+  const matrixRows = useMemo(() => habitMatrix(state, matrixDays), [state, matrixDays])
+  const weekLabels = useMemo(() => {
+    const out = []
+    for (let i = 0; i < matrixDays.length; i += 7) {
+      out.push({ label: shortDate(matrixDays[i]), span: Math.min(7, matrixDays.length - i) })
     }
-    return rows
-  }, [state, today])
+    return out
+  }, [matrixDays])
 
-  // ---- per-habit rates (30d) ----
-  const habitRanks = useMemo(() => rankHabits(state, subDaysStr(today, 29), today, 3), [state, today])
-
-  // ---- category balance (30d) ----
-  const byCategory = useMemo(() => {
-    const map = {}
-    for (const h of habits) {
-      const r = habitRate(state, h, subDaysStr(today, 29), today)
-      const c = categoryOf(h.category)
-      if (!map[c.id]) map[c.id] = { label: c.label, cssVar: c.cssVar, done: 0, total: 0 }
-      map[c.id].done += r.done
-      map[c.id].total += r.eligible
-    }
-    return Object.values(map).filter((c) => c.total > 0)
-  }, [state, habits, today])
-
+  // ---- year overview / mood ----
   const year = useMemo(() => yearOverview(state, YEAR), [state])
   const yearsWithData = year.some((m) => m.anyEligible)
+  const moodLink = useMemo(() => moodHabitLink(state, 30), [state])
 
   if (!habits.length) {
     return (
@@ -116,190 +128,192 @@ export default function InsightsScreen() {
       </header>
 
       <div className="stack">
-        {/* KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-          <SectionCard className="pad" style={{ padding: 16 }}>
-            <p className="eyebrow">30-day completion</p>
-            <p className="stat-value" style={{ marginTop: 6 }}>
-              {last30 == null ? '—' : <><AnimatedNumber value={last30} />%</>}
-            </p>
-          </SectionCard>
-          <SectionCard className="pad" style={{ padding: 16 }} delay={0.04}>
-            <p className="eyebrow">Best streak</p>
-            <p className="stat-value" style={{ marginTop: 6 }}>
-              <AnimatedNumber value={best.best} /> <span style={{ fontSize: '0.95rem', color: 'var(--text-2)' }}>days</span>
-            </p>
-          </SectionCard>
-          <SectionCard className="pad" style={{ padding: 16 }} delay={0.08}>
-            <p className="eyebrow">Active habits</p>
-            <p className="stat-value" style={{ marginTop: 6 }}><AnimatedNumber value={habits.length} /></p>
-          </SectionCard>
-          <SectionCard className="pad" style={{ padding: 16 }} delay={0.12}>
-            <p className="eyebrow">Total check-ins</p>
-            <p className="stat-value" style={{ marginTop: 6 }}><AnimatedNumber value={totalCheckins} /></p>
-          </SectionCard>
-        </div>
-
-        {/* weekly trend */}
+        {/* Hero: ring + streaks */}
         <SectionCard className="pad">
-          <CardHead title="Weekly completion" />
-          {hasData ? (
-            <div style={{ width: '100%', height: 200 }}>
-              <ResponsiveContainer>
-                <BarChart data={weekly} margin={{ top: 8, right: 4, left: -22, bottom: 0 }}>
-                  <CartesianGrid stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="short" tick={{ fill: 'var(--text-3)', fontSize: 11 }} axisLine={false} tickLine={false} interval={1} />
-                  <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-3)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    formatter={(v) => (v == null ? 'no data' : `${v}%`)}
-                    labelFormatter={(l, payload) => payload?.[0]?.payload?.label ? `Week of ${payload[0].payload.label}` : l}
-                    contentStyle={{ background: 'var(--surface-solid)', border: '1px solid var(--border-2)', borderRadius: 12, fontSize: 12, color: 'var(--text)' }}
-                    cursor={{ fill: 'var(--surface-3)' }}
-                  />
-                  <Bar dataKey="pct" radius={[5, 5, 0, 0]} maxBarSize={26}>
-                    {weekly.map((w, i) => (
-                      <Cell key={i} fill={w.pct == null ? 'var(--track)' : i === weekly.length - 1 ? 'var(--accent-2)' : 'var(--accent-1)'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', padding: '12px 0' }}>
-              No check-ins yet — this chart fills in as you go.
-            </p>
-          )}
-        </SectionCard>
-
-        {/* 30-day trend */}
-        <SectionCard className="pad">
-          <CardHead title="Last 30 days" />
-          {hasData ? (
-            <div style={{ width: '100%', height: 180 }}>
-              <ResponsiveContainer>
-                <AreaChart data={daily} margin={{ top: 8, right: 4, left: -22, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="insight-area" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--accent-2)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="var(--accent-2)" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="var(--border)" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fill: 'var(--text-3)', fontSize: 10 }} axisLine={false} tickLine={false} interval={5} />
-                  <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-3)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    formatter={(v) => (v == null ? 'no data' : `${v}%`)}
-                    contentStyle={{ background: 'var(--surface-solid)', border: '1px solid var(--border-2)', borderRadius: 12, fontSize: 12, color: 'var(--text)' }}
-                  />
-                  <Area type="monotone" dataKey="pct" stroke="var(--accent-2)" strokeWidth={2} fill="url(#insight-area)" connectNulls />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', padding: '12px 0' }}>
-              Nothing logged in the last 30 days.
-            </p>
-          )}
-        </SectionCard>
-
-        {/* habit consistency */}
-        {habitRanks.length > 0 && (
-          <SectionCard className="pad">
-            <CardHead title="Habit consistency" />
-            <p style={{ color: 'var(--text-3)', fontSize: 'var(--fs-xs)', marginBottom: 12 }}>Last 30 days · habits with at least 3 scheduled days</p>
-            <div className="stack" style={{ gap: 12 }}>
-              {habitRanks.map(({ habit, rate, done, eligible }) => (
-                <div key={habit.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-sm)', marginBottom: 5 }}>
-                    <span style={{ fontWeight: 600 }}>{habit.name}</span>
-                    <span className="tnum" style={{ color: 'var(--text-2)' }}>{Math.round(rate * 100)}% <span style={{ color: 'var(--text-3)' }}>({done}/{eligible})</span></span>
-                  </div>
-                  <div style={{ height: 6, borderRadius: 999, background: 'var(--track)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${Math.round(rate * 100)}%`, borderRadius: 999, background: 'linear-gradient(90deg, var(--accent-1), var(--accent-2))' }} />
-                  </div>
+          <div className="insights-grid">
+            <div className="insights-ring">
+              <ProgressRing pct={last30} size={148} stroke={11} label={last30 == null ? 'No completion data yet' : `${last30} percent completion over 30 days`}>
+                <div>
+                  <p className="eyebrow">30-day</p>
+                  <p className="stat-value" style={{ marginTop: 2 }}>
+                    {last30 == null ? '—' : <><AnimatedNumber value={last30} />%</>}
+                  </p>
                 </div>
-              ))}
+              </ProgressRing>
             </div>
-          </SectionCard>
-        )}
-
-        {/* category balance */}
-        {byCategory.length > 0 && (
-          <SectionCard className="pad">
-            <CardHead title="Where your effort goes" />
-            <div className="stack" style={{ gap: 10 }}>
-              {byCategory.map((c) => {
-                const pct = Math.round((c.done / c.total) * 100)
-                return (
-                  <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span className="dot" style={{ width: 8, height: 8, borderRadius: 99, background: `var(${c.cssVar})`, flex: 'none' }} />
-                    <span style={{ width: 72, fontSize: 'var(--fs-sm)', fontWeight: 600, flex: 'none' }}>{c.label}</span>
-                    <div style={{ flex: 1, height: 6, borderRadius: 999, background: 'var(--track)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: `var(${c.cssVar})` }} />
-                    </div>
-                    <span className="tnum" style={{ width: 38, textAlign: 'right', fontSize: 'var(--fs-sm)', color: 'var(--text-2)' }}>{pct}%</span>
-                  </div>
-                )
-              })}
+            <div className="insights-stat">
+              <p className="eyebrow">Best streak</p>
+              <p className="insights-stat-value"><AnimatedNumber value={best.best} /><span className="u">days</span></p>
             </div>
-          </SectionCard>
-        )}
+            <div className="insights-stat">
+              <p className="eyebrow">Current streak</p>
+              <p className="insights-stat-value">
+                {top.habit ? <><AnimatedNumber value={top.streak} /><span className="u">days</span></> : '—'}
+              </p>
+              {top.habit && <p className="insights-stat-sub">{top.habit.name}</p>}
+            </div>
+            <div className="insights-stat">
+              <p className="eyebrow">Active habits</p>
+              <p className="insights-stat-value"><AnimatedNumber value={habits.length} /></p>
+            </div>
+            <div className="insights-stat">
+              <p className="eyebrow">Total check-ins</p>
+              <p className="insights-stat-value"><AnimatedNumber value={totalCheckins} /></p>
+            </div>
+          </div>
+        </SectionCard>
 
-        {/* year overview */}
+        {/* Trend */}
+        <SectionCard className="pad">
+          <CardHead title="Completion trend" />
+          <div className="seg seg-wide" role="group" aria-label="Trend range">
+            {RANGES.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className={`seg-btn${range === r.id ? ' active' : ''}`}
+                aria-pressed={range === r.id}
+                onClick={() => setRange(r.id)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          {hasData ? (
+            <TrendChart data={trend} />
+          ) : (
+            <p className="empty-note">No check-ins yet — this chart fills in as you go.</p>
+          )}
+        </SectionCard>
+
+        {/* This week vs last week */}
+        <SectionCard className="pad">
+          <CardHead title="This week vs last week" />
+          <div className="vs">
+            <div className="vs-block">
+              <p className="vs-label">This week</p>
+              <p className="vs-value">{cmp.thisWeek.total ? `${cmp.thisWeek.pct}%` : '—'}</p>
+              <p className="vs-sub">{cmp.thisWeek.done} of {cmp.thisWeek.total} done</p>
+            </div>
+            <div className="vs-block">
+              <p className="vs-label">Last week</p>
+              <p className="vs-value">{cmp.lastWeek.total ? `${cmp.lastWeek.pct}%` : '—'}</p>
+              <p className="vs-sub">{cmp.lastWeek.done} of {cmp.lastWeek.total} done</p>
+            </div>
+            <div className={`vs-block vs-delta ${cmp.delta == null ? 'none' : cmp.delta >= 0 ? 'up' : 'down'}`}>
+              <p className="vs-label">Change</p>
+              <p className="vs-value">
+                {cmp.delta == null ? '—' : (
+                  <>
+                    {cmp.delta >= 0 ? <IconTrendUp size={18} /> : <IconTrendDown size={18} />}
+                    {Math.abs(cmp.delta)}%
+                  </>
+                )}
+              </p>
+              <p className="vs-sub">{cmp.delta == null ? 'not enough data' : cmp.delta >= 0 ? 'up from last week' : 'down from last week'}</p>
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Sortable habit performance */}
+        <SectionCard className="pad">
+          <CardHead title="Habit performance">
+            <span className="perf-window">last 30 days</span>
+          </CardHead>
+          <div className="perf" aria-label="Habit performance">
+            <div className="perf-row perf-head">
+              <button type="button" className="perf-cell perf-name" aria-label="Sort by habit name" onClick={() => toggleSort('name')}>
+                Habit{sort.key === 'name' ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
+              </button>
+              <button type="button" className="perf-cell tnum" aria-label="Sort by 30 day rate" onClick={() => toggleSort('rate')}>
+                30d{sort.key === 'rate' ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
+              </button>
+              <button type="button" className="perf-cell tnum" aria-label="Sort by current streak" onClick={() => toggleSort('streak')}>
+                Streak{sort.key === 'streak' ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
+              </button>
+              <button type="button" className="perf-cell tnum" aria-label="Sort by best streak" onClick={() => toggleSort('best')}>
+                Best{sort.key === 'best' ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
+              </button>
+            </div>
+            {perf.map(({ habit, rate, done, eligible, streak, best }) => (
+              <div className="perf-row" key={habit.id}>
+                <div className="perf-cell perf-name">
+                  <span className="perf-bar" style={{ width: `${Math.round((rate ?? 0) * 100)}%` }} aria-hidden="true" />
+                  <span className="perf-name-text">{habit.name}</span>
+                </div>
+                <div className="perf-cell tnum">
+                  {rate == null ? '—' : `${Math.round(rate * 100)}%`}
+                  <span className="perf-sub">{done}/{eligible}</span>
+                </div>
+                <div className="perf-cell tnum"><IconFlame size={13} /> {streak}</div>
+                <div className="perf-cell tnum">{best}</div>
+              </div>
+            ))}
+            {perf.length === 0 && <p className="empty-note">No habits with enough history yet.</p>}
+          </div>
+        </SectionCard>
+
+        {/* Heatmap */}
+        <SectionCard className="pad">
+          <CardHead title="Activity heatmap" />
+          <p className="card-blurb">Tap any day for details.</p>
+          <Heatmap weeks={weeks} />
+        </SectionCard>
+
+        {/* Habit × day matrix */}
+        <SectionCard className="pad">
+          <CardHead title="Habit × day" />
+          <p className="card-blurb">Last 28 days · tap is read-only on this screen.</p>
+          <HabitMatrix rows={matrixRows} days={matrixDays} weekLabels={weekLabels} />
+        </SectionCard>
+
+        {/* Year overview */}
         <SectionCard className="pad">
           <CardHead title={`${YEAR} at a glance`} />
           {yearsWithData ? (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(112px, 1fr))', gap: 10 }}>
+              <div className="mini-grid">
                 {year.map((m) => (
                   <MiniMonth key={m.month} year={YEAR} month={m.month} cells={m.cells} onSelect={(y, mo) => navigate(`calendar/${y}-${String(mo + 1).padStart(2, '0')}`)} />
                 ))}
               </div>
-              <p style={{ color: 'var(--text-3)', fontSize: 'var(--fs-xs)', marginTop: 12 }}>Tap a month to open it in the calendar.</p>
+              <p className="card-blurb" style={{ marginTop: 12 }}>Tap a month to open it in the calendar.</p>
             </>
           ) : (
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', padding: '8px 0' }}>
-              Your {YEAR} heatmap appears once you start checking off habits.
-            </p>
+            <p className="empty-note">Your {YEAR} heatmap appears once you start checking off habits.</p>
           )}
         </SectionCard>
 
-        {/* achievements */}
+        {/* Achievements */}
         <SectionCard className="pad">
           <CardHead title="Achievements" />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+          <div className="badge-grid">
             {best.badges.map((b) => (
               <div
                 key={b.id}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '12px 12px', borderRadius: 14,
-                  background: b.earned ? 'var(--accent-soft)' : 'var(--surface-2)',
-                  border: `1px solid ${b.earned ? 'transparent' : 'var(--border)'}`,
-                  opacity: b.earned ? 1 : 0.7,
-                }}
+                className={`badge ${b.earned ? 'earned' : ''}`}
               >
                 <BadgeArt id={b.id} earned={b.earned} />
                 <div style={{ minWidth: 0 }}>
-                  <p style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', fontFamily: 'var(--font-display)' }}>{b.label}</p>
-                  <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>{b.earned ? 'Earned' : b.blurb}</p>
+                  <p className="badge-title">{b.label}</p>
+                  <p className="badge-sub">{b.earned ? 'Earned' : b.blurb}</p>
                 </div>
               </div>
             ))}
           </div>
           {best.next && (
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <p className="next-badge">
               <IconTrendUp size={14} />
               {best.next.threshold - best.best} more streak day{best.next.threshold - best.best === 1 ? '' : 's'} to reach {best.next.label}.
             </p>
           )}
         </SectionCard>
 
-        {/* mood link */}
+        {/* Mood link */}
         {moodLink && (
           <SectionCard className="pad">
             <CardHead title="Mood and habits" />
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>
+            <p className="card-blurb">
               On days you felt good, you completed <b className="tnum" style={{ color: 'var(--good)' }}>{moodLink.goodPct}%</b> of your habits.
               On low days, <b className="tnum" style={{ color: 'var(--warn)' }}>{moodLink.lowPct}%</b>. (Last 30 days.)
             </p>
@@ -317,10 +331,8 @@ function BadgeArt({ id, earned }) {
     return (
       <span
         aria-hidden="true"
-        style={{
-          width: 34, height: 34, borderRadius: 999, flex: 'none',
-          background: earned ? 'linear-gradient(135deg, var(--accent-1), var(--accent-2))' : 'var(--surface-3)',
-        }}
+        className="badge-fallback"
+        style={{ background: earned ? 'linear-gradient(135deg, var(--accent-1), var(--accent-2))' : 'var(--surface-3)' }}
       />
     )
   }
@@ -333,7 +345,8 @@ function BadgeArt({ id, earned }) {
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
-      style={{ width: 34, height: 34, borderRadius: 99, objectFit: 'cover', flex: 'none', filter: earned ? 'none' : 'grayscale(0.9) opacity(0.6)' }}
+      className="badge-img"
+      style={{ filter: earned ? 'none' : 'grayscale(0.9) opacity(0.6)' }}
     />
   )
 }

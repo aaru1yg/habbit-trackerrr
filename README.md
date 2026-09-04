@@ -9,10 +9,21 @@ Aaru's personal, next-level habit tracker. Dark, glassy, heavily animated, and p
 - Animated counters, animated circular gauges, animated dash-offset donuts
 - Confetti + toast feedback whenever you smash a habit
 
+## 🆕 What's new (v2)
+
+- **Zero fake data.** The app starts completely empty — no seeded habits, no invented check-ins. Every number on screen is yours. (Storage key bumped to `v2`; the old demo data is simply ignored.)
+- **Auto monthly calendar** 🗓️ — a Google-Sheets-style grid that builds itself for any month: colour-coded **Week 1…Week 5** bands, weekday + date headers, one glowing checkbox per habit per day, a per-day **Progress / Done / Not Done** roll-up, an animated completion sparkline and an **Analysis** panel with per-habit consistency bars (e.g. `56.67%`). Future days are locked; use the arrows to browse months.
+- **Weekly Task Tracker board** — *Week Start Date* pill, a bar chart of done-per-day, a big overall donut (`7 / 44 Completed`) and one card per weekday with its own animated donut + task list you can tick straight from the board.
+- **Mental State** 🧠 — log **Mood** and **Motivation** (1–10) daily → animated dual-line graph for the month + weekly **Mindset Score** bars.
+- **Adding stuff is now obvious**: a Quick-Add bar at the top (type a name → Enter), one-tap preset chips (Wake up at 05:00, Gym, Cold Shower, …), **📅 New habit / 🚀 New project** buttons, and a floating **＋** button that follows you down the page.
+
 ## 📈 Graphs & visualizations
 
 | Panel | What it shows |
 |---|---|
+| **Auto monthly calendar** | Self-building habit grid with weekly colour bands, per-day roll-ups, sparkline & per-habit analysis bars |
+| **Task Tracker (week board)** | Weekly overview: bar chart, overall donut, one donut + checklist per weekday |
+| **Mental State** | Mood vs Motivation line graph + weekly mindset score bars |
 | **Today's completion** | Animated circular gauge + count of habits done |
 | **Last 7 days** | Animated completion bar chart |
 | **Consistency heatmap** | GitHub-style week grid (starts on Sunday), hover for details, 12/16/24-week toggle |
@@ -32,7 +43,7 @@ Aaru's personal, next-level habit tracker. Dark, glassy, heavily animated, and p
 - **Streaks & best streaks 🔥** with achievement badges (3-day, 7-day, 30-day, perfect day, etc.).
 - **Habit library** — manage, edit, delete, and inspect every tracker; per-habit sparkline chart + metrics.
 - **Search / filter** daily vs projects in the library tab.
-- **Export / Import** your data as JSON, and **reset** to fresh demo data.
+- **Export / Import** your data as JSON, and **🔄 reset** wipes everything for a fresh start (no demo data).
 - Everything persists automatically to `localStorage`.
 
 ## 🛠️ Tech

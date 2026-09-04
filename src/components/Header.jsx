@@ -92,7 +92,7 @@ export default function Header({ onAdd, onExport, onImport, onReset }) {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <button className="btn ghost icon" title="Import data" onClick={onImport}>📥</button>
           <button className="btn ghost icon" title="Export data" onClick={onExport}>📤</button>
-          <button className="btn ghost icon" title="Reset demo data" onClick={onReset}>🔄</button>
+          <button className="btn ghost icon" title="Erase all data & start fresh" onClick={onReset}>🔄</button>
           <span className={`chip`} style={{ fontSize: '0.74rem', color: online ? 'var(--good)' : 'var(--warn)' }}>
             <span className="dot" style={{ background: online ? 'var(--good)' : 'var(--warn)' }} />
             {online ? 'Online' : 'Offline mode'}

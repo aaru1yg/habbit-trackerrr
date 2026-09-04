@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useStore, PALETTE, EMOJI, todayStr } from '../store.jsx'
+import { useStore, PALETTE, EMOJI, PRESETS, todayStr, uid } from '../store.jsx'
 
 const UNIT_OPTIONS = [
   { value: 'times', label: 'Times' },
@@ -23,13 +23,20 @@ const blank = () => ({
   note: '',
 })
 
-export default function HabitModal({ open, onClose, editing }) {
-  const { dispatch } = useStore()
+export default function HabitModal({ open, onClose, editing, initialType }) {
+  const { state, dispatch } = useStore()
   const [form, setForm] = useState(null)
 
   useEffect(() => {
-    if (open) setForm(editing ? { ...editing } : blank())
-  }, [open, editing])
+    if (open) {
+      if (editing) setForm({ ...editing })
+      else {
+        const b = blank()
+        if (initialType === 'project') Object.assign(b, { isDaily: false, durationType: 'shortterm', targetUnit: 'percent', targetValue: 100 })
+        setForm(b)
+      }
+    }
+  }, [open, editing, initialType])
 
   // Guard: never render with a null form (avoids a flash on first open).
   if (!open) return null
@@ -50,7 +57,7 @@ export default function HabitModal({ open, onClose, editing }) {
       targetUnit: f.durationType === 'oneday' ? (f.isDaily ? 'times' : 'percent') : f.targetUnit,
     }
     if (editing) dispatch({ type: 'UPDATE_HABIT', id: editing.id, patch: payload })
-    else dispatch({ type: 'ADD_HABIT', habit: { ...payload, id: Math.random().toString(36).slice(2, 10) } })
+    else dispatch({ type: 'ADD_HABIT', habit: { ...payload, id: uid() } })
     onClose()
   }
 
@@ -86,7 +93,7 @@ export default function HabitModal({ open, onClose, editing }) {
           onClick={(e) => e.stopPropagation()}
           className="glass" style={{ width: 'min(560px, 100%)', maxHeight: '90vh', overflowY: 'auto', padding: 26 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-            <h2 style={{ fontSize: '1.3rem' }}>{editing ? 'Edit' : 'New'} habit</h2>
+            <h2 style={{ fontSize: '1.3rem' }}>{editing ? 'Edit' : 'New'} {isProject ? 'project' : 'habit'}</h2>
             <button className="btn ghost icon" onClick={onClose}>✕</button>
           </div>
 
@@ -95,6 +102,22 @@ export default function HabitModal({ open, onClose, editing }) {
             <button className={f.isDaily ? 'active' : ''} onClick={() => onTypeClick(true)} style={{ flex: 1 }}>📅 Daily habit</button>
             <button className={!f.isDaily ? 'active' : ''} onClick={() => onTypeClick(false)} style={{ flex: 1 }}>🚀 Project / activity</button>
           </div>
+
+          {!editing && f.isDaily && (
+            <div style={{ marginBottom: 14 }}>
+              <div className="label">Quick pick (tap to fill)</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {PRESETS.filter((p) => !state.habits.some((h) => h.name.toLowerCase() === p.name.toLowerCase())).map((p) => (
+                  <button key={p.name} type="button" onClick={() => setForm((prev) => ({ ...(prev || blank()), name: p.name, emoji: p.emoji, color: p.color }))}
+                    style={{
+                      padding: '6px 10px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 600,
+                      border: `1px solid ${f.name === p.name ? p.color : 'var(--border)'}`,
+                      background: f.name === p.name ? `${p.color}33` : 'rgba(255,255,255,0.03)', color: 'var(--text)',
+                    }}>{p.emoji} {p.name}</button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="label">Name</div>
           <input className="field" placeholder={isProject ? 'e.g. Build portfolio site' : 'e.g. Drink water'} value={f.name}
@@ -175,7 +198,7 @@ export default function HabitModal({ open, onClose, editing }) {
 
           <div style={{ display: 'flex', gap: 12, marginTop: 22, justifyContent: 'flex-end' }}>
             <button className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" onClick={save}>{editing ? 'Save changes' : 'Create habit'} ✨</button>
+            <button className="btn primary" onClick={save} disabled={!f.name.trim()}>{editing ? 'Save changes' : isProject ? 'Create project' : 'Create habit'} ✨</button>
           </div>
         </motion.div>
       </motion.div>

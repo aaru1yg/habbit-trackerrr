@@ -17,11 +17,16 @@ import HabitModal from './components/HabitModal.jsx'
 import Confetti from './components/Confetti.jsx'
 import Starfield from './components/Starfield.jsx'
 import Insights from './components/Insights.jsx'
+import MonthCalendar from './components/MonthCalendar.jsx'
+import WeekBoard from './components/WeekBoard.jsx'
+import MentalState from './components/MentalState.jsx'
+import QuickAdd, { Fab } from './components/QuickAdd.jsx'
 
 export default function App() {
   const { state, dispatch } = useStore()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [initialType, setInitialType] = useState('habit')
   const [fire, setFire] = useState(0)
   const [toast, setToast] = useState(null)
 
@@ -34,7 +39,7 @@ export default function App() {
     setFire((f) => f + 1)
   }
 
-  const openAdd = () => { setEditing(null); setModalOpen(true) }
+  const openAdd = (type = 'habit') => { setEditing(null); setInitialType(typeof type === 'string' ? type : 'habit'); setModalOpen(true) }
   const openEdit = (h) => { setEditing(h); setModalOpen(true) }
 
   const onDelete = (id) => {
@@ -75,9 +80,9 @@ export default function App() {
   }
 
   const onReset = () => {
-    if (!window.confirm('Reset to fresh demo data? Your current data will be replaced.')) return
+    if (!window.confirm('Erase everything and start fresh? This removes all habits, check-ins and mood logs.')) return
     dispatch({ type: 'RESET_ALL' })
-    showToast('🔄 Demo data loaded')
+    showToast('🧹 Fresh start — everything cleared')
   }
 
   return (
@@ -86,7 +91,13 @@ export default function App() {
       <Starfield />
       <div className="grid-overlay" />
 
-      <Header onAdd={openAdd} onExport={onExport} onImport={onImport} onReset={onReset} />
+      <Header onAdd={() => openAdd('habit')} onExport={onExport} onImport={onImport} onReset={onReset} />
+
+      <QuickAdd onOpenModal={openAdd} onToast={showToast} />
+
+      <MonthCalendar onAdd={() => openAdd('habit')} onFire={onFire} />
+
+      <WeekBoard onAdd={() => openAdd('habit')} onFire={onFire} />
 
       <Insights />
 
@@ -94,7 +105,7 @@ export default function App() {
 
       <div className="split" style={{ marginBottom: 24 }}>
         <div className="stack">
-          <TodayHabits onFire={onFire} />
+          <TodayHabits onFire={onFire} onAdd={() => openAdd('habit')} />
         </div>
         <div className="stack">
           <WeekBars />
@@ -102,9 +113,11 @@ export default function App() {
         </div>
       </div>
 
+      <MentalState />
+
       <MasterGraph />
-      <MasterPie />
-      <ProjectTracker />
+      <MasterPie onAdd={() => openAdd('project')} />
+      <ProjectTracker onAdd={() => openAdd('project')} />
 
       <div className="duo" style={{ marginTop: 24 }}>
         <BalanceRadar />
@@ -119,7 +132,9 @@ export default function App() {
         <Achievements />
       </div>
 
-      <HabitModal open={modalOpen} onClose={() => setModalOpen(false)} editing={editing} />
+      <HabitModal open={modalOpen} onClose={() => setModalOpen(false)} editing={editing} initialType={initialType} />
+
+      <Fab onClick={() => openAdd('habit')} />
 
       <Confetti fire={fire} />
 

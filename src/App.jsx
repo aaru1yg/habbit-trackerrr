@@ -15,6 +15,8 @@ import Achievements from './components/Achievements.jsx'
 import HabitsList from './components/HabitsList.jsx'
 import HabitModal from './components/HabitModal.jsx'
 import Confetti from './components/Confetti.jsx'
+import Starfield from './components/Starfield.jsx'
+import Insights from './components/Insights.jsx'
 
 export default function App() {
   const { state, dispatch } = useStore()
@@ -80,10 +82,13 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="aurora"><span className="blob1" /><span className="blob2" /><span className="blob3" /></div>
+      <div className="aurora"><span className="blob1" /><span className="blob2" /><span className="blob3" /><span className="blob4" /></div>
+      <Starfield />
       <div className="grid-overlay" />
 
       <Header onAdd={openAdd} onExport={onExport} onImport={onImport} onReset={onReset} />
+
+      <Insights />
 
       <StatCards />
 

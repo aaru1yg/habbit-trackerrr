@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@500;700;900&display=swap');
 
 :root {
   --bg: #070a14;
@@ -19,6 +19,21 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Futuristic accent themes (toggle via body[data-accent]) */
+body[data-accent='cyber'] {
+  --accent: #ff5d8f; --accent-2: #ffb703; --aurora1: #ff3cac; --aurora2: #ff9a3c; --aurora3: #ff5d8f;
+}
+body[data-accent='emerald'] {
+  --accent: #10b981; --accent-2: #22d3ee; --aurora1: #10b981; --aurora2: #22d3ee; --aurora3: #34d399;
+}
+body[data-accent='violet'] {
+  --accent: #a855f7; --accent-2: #ec4899; --aurora1: #a855f7; --aurora2: #ec4899; --aurora3: #8b5cf6;
+}
+body[data-accent='azure'] {
+  --accent: #38bdf8; --accent-2: #818cf8; --aurora1: #38bdf8; --aurora2: #818cf8; --aurora3: #22d3ee;
+}
+body { --aurora1: #5b3df5; --aurora2: #16d5e8; --aurora3: #ff5d8f; }
 
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; min-height: 100%; }
@@ -48,9 +63,11 @@ button { font-family: inherit; cursor: pointer; }
   opacity: 0.55;
   mix-blend-mode: screen;
 }
-.aurora .blob1 { width: 38vw; height: 38vw; background: radial-gradient(circle, #5b3df5, transparent 62%); top: -8vw; left: -6vw; animation: drift1 24s ease-in-out infinite; }
-.aurora .blob2 { width: 34vw; height: 34vw; background: radial-gradient(circle, #16d5e8, transparent 62%); bottom: -10vw; right: -6vw; animation: drift2 30s ease-in-out infinite; }
-.aurora .blob3 { width: 30vw; height: 30vw; background: radial-gradient(circle, #ff5d8f, transparent 62%); top: 42%; left: 48%; animation: drift3 34s ease-in-out infinite; }
+.aurora .blob1 { width: 38vw; height: 38vw; background: radial-gradient(circle, var(--aurora1), transparent 62%); top: -8vw; left: -6vw; animation: drift1 24s ease-in-out infinite; }
+.aurora .blob2 { width: 34vw; height: 34vw; background: radial-gradient(circle, var(--aurora2), transparent 62%); bottom: -10vw; right: -6vw; animation: drift2 30s ease-in-out infinite; }
+.aurora .blob3 { width: 30vw; height: 30vw; background: radial-gradient(circle, var(--aurora3), transparent 62%); top: 42%; left: 48%; animation: drift3 34s ease-in-out infinite; }
+.aurora .blob4 { width: 44vw; height: 44vw; background: radial-gradient(circle, rgba(124,92,255,0.4), transparent 60%); top: 60%; left: 20%; animation: drift1 40s ease-in-out infinite reverse; }
+.starfield { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
 .grid-overlay {
   position: fixed;
   inset: 0;
@@ -65,15 +82,39 @@ button { font-family: inherit; cursor: pointer; }
 
 .app-shell { position: relative; max-width: 1280px; margin: 0 auto; padding: 28px 22px 90px; }
 
-/* Glass cards */
+/* Animated neon gradient border via @property angle (modern browsers) */
+@property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
 .glass {
+  position: relative;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--rad);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
+  transition: transform 0.3s ease, box-shadow 0.35s ease;
 }
+.glass::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: var(--rad);
+  padding: 1px;
+  background: conic-gradient(from var(--angle), transparent 0%, var(--accent) 12%, transparent 30%, var(--accent-2) 45%, transparent 62%, var(--accent) 80%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0.4;
+  animation: borderSpin 7s linear infinite;
+  pointer-events: none;
+}
+@keyframes borderSpin { to { --angle: 360deg; } }
+.glass:hover::before { opacity: 0.95; }
+.glass:hover { box-shadow: 0 22px 60px rgba(0,0,0,0.55), 0 0 30px rgba(124,92,255,0.14); }
+
+/* Display font for big numbers */
+.futuristic { font-family: 'Orbitron', 'Space Grotesk', sans-serif; letter-spacing: 0.04em; }
+
+.title-glow { text-shadow: 0 0 24px rgba(124,92,255,0.5); }
 
 /* Buttons */
 .btn {

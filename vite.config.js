@@ -1,9 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Bind to all interfaces so the sandbox preview proxy can reach the dev server.
+// When deploying to GitHub Pages (subpath URL), build with a base of '/habbit-trackerrr/'.
+// Dev / preview (the sandbox live preview) uses the root base so nothing breaks.
+const base = process.env.GH_PAGES === 'true' ? '/habbit-trackerrr/' : '/'
+
 export default defineConfig({
   plugins: [react()],
+  base,
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -17,5 +21,8 @@ export default defineConfig({
     port: 4173,
     strictPort: true,
     allowedHosts: ['.e2b.app', 'localhost', '127.0.0.1'],
+  },
+  build: {
+    chunkSizeWarningLimit: 900,
   },
 })

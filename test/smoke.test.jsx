@@ -36,7 +36,7 @@ describe('Aaru habit tracker', () => {
 
   it('opens the add-habit modal with type + duration options', () => {
     renderApp()
-    fireEvent.click(screen.getByText('＋ New habit'))
+    fireEvent.click(screen.getByText('＋ New'))
     expect(screen.getByText(/What kind is this/)).toBeTruthy()
     // daily + project toggle present
     expect(screen.getByText(/Daily habit/)).toBeTruthy()

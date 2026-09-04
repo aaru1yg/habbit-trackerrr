@@ -64,7 +64,7 @@ html[data-theme='midnight'] {
   --surface-3: rgba(44, 52, 82, 0.55);
   --text: #f3f1ec;
   --text-2: #a3adc2;
-  --text-3: #7d879e;
+  --text-3: #8f9ab5;
   --border: rgba(255, 255, 255, 0.07);
   --border-2: rgba(255, 255, 255, 0.13);
   --accent-1: #6d4aff;
@@ -99,7 +99,7 @@ html[data-theme='ember'] {
   --surface-3: rgba(74, 51, 63, 0.5);
   --text: #f5f0ec;
   --text-2: #b8a5ac;
-  --text-3: #a3919b;
+  --text-3: #b3a2ac;
   --border: rgba(255, 255, 255, 0.07);
   --border-2: rgba(255, 255, 255, 0.13);
   --accent-1: #e0476c;
@@ -134,7 +134,7 @@ html[data-theme='verdant'] {
   --surface-3: rgba(42, 64, 52, 0.5);
   --text: #eef4ef;
   --text-2: #a3baab;
-  --text-3: #7e9989;
+  --text-3: #93ab9e;
   --border: rgba(255, 255, 255, 0.07);
   --border-2: rgba(255, 255, 255, 0.13);
   --accent-1: #0fa971;

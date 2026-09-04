@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
 
-// jsdom lacks these; stub them so framer-motion + recharts can mount.
+// jsdom lacks these; stub them so framer-motion + the SVG chart kit can mount.
 global.ResizeObserver = class {
   observe() {}
   unobserve() {}

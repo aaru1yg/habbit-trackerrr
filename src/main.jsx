@@ -12,8 +12,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 )
 
-// Offline + installable PWA support. Only on the production (hosted) build so
-// the sandbox live preview stays fully live-reloadable.
+// Offline + installable PWA support. Registered only on the production
+// (hosted) build so the sandbox live preview stays fully live-reloadable.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   let swRegistration = null
   let didReload = false
@@ -27,19 +27,18 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
       if (swRegistration.waiting) {
         swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' })
       }
-    } catch (err) {
-      // Ignore SW failures; the app still works without it.
+    } catch {
+      // SW failures are non-fatal; the app still works without it.
     }
   }
 
   window.addEventListener('load', updateServiceWorker)
 
-  // Re-check for a new service worker periodically so the app doesn't stay
-  // stuck on an old version until the next full visit.
+  // Re-check periodically so a deployed update reaches open tabs.
   setInterval(updateServiceWorker, 30 * 60 * 1000)
 
-  // When a new worker takes control, reload once so the current page uses the
-  // fresh app shell instead of the stale cached one.
+  // When a new worker takes control, reload once so the page uses the
+  // fresh shell instead of a stale cached one.
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (didReload) return
     didReload = true

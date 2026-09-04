@@ -7,7 +7,6 @@ global.ResizeObserver = class {
   disconnect() {}
 }
 
-// framer-motion's whileInView / useInView need IntersectionObserver.
 global.IntersectionObserver = class {
   constructor(cb) { this.cb = cb }
   observe() {}
@@ -32,7 +31,6 @@ if (!window.matchMedia) {
   })
 }
 
-// recharts uses getBoundingClientRect and element widths that are 0 in jsdom.
 if (!window.HTMLElement.prototype.getBoundingClientRect) {
   window.HTMLElement.prototype.getBoundingClientRect = () => ({
     width: 800, height: 400, top: 0, left: 0, bottom: 400, right: 800,
@@ -46,8 +44,10 @@ if (!window.requestAnimationFrame) {
 }
 
 if (!window.scrollTo) window.scrollTo = () => {}
+if (!window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = () => {}
+}
 
-// Empty localStorage for tests (store seeds from localStorage if present).
 if (!window.localStorage) {
   const store = {}
   window.localStorage = {

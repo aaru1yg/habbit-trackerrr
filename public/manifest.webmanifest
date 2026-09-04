@@ -1,17 +1,19 @@
 {
-  "name": "Aaru · Next-Level Habit Tracker",
+  "name": "Aaru Habits — calm habit tracking",
   "short_name": "Aaru Habits",
-  "description": "Aaru's personal next-level habit tracker. Graphs, gauges, radar, projects, streaks and more.",
+  "description": "A calm, private habit tracker. Check in daily, keep streaks honest, see your year at a glance.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#070a14",
-  "theme_color": "#070a14",
+  "background_color": "#0b0f1a",
+  "theme_color": "#0b0f1a",
   "lang": "en",
+  "categories": ["lifestyle", "productivity", "health"],
   "icons": [
-    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }
+    { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

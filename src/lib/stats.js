@@ -3,7 +3,7 @@
    stored data. No fabrication, ever: functions return null /
    { enough: false } when data is insufficient.
    ============================================================ */
-import { todayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr } from './dates.js'
+import { todayStr, dayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr } from './dates.js'
 import { isScheduled } from './schedule.js'
 
 export const activeHabits = (state) =>
@@ -360,4 +360,95 @@ export function projectStats(state) {
   const active = projects.filter((p) => !p.completedAt)
   const completed = projects.filter((p) => p.completedAt)
   return { active, completed, total: projects.length }
+}
+
+/* ============================================================
+   ANALYTICS (chart kit data) — pure, testable derivations.
+   Every series below is derived from real check-ins only.
+   ============================================================ */
+
+/** Daily completion series for the last `days` days (oldest → newest). */
+export function trendSeries(state, days) {
+  const today = todayStr()
+  const rows = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = subDaysStr(today, i)
+    const s = dayStats(state, d)
+    rows.push({ date: d, pct: s.pct, done: s.done, total: s.total })
+  }
+  return rows
+}
+
+/** Heat level 0..4 for a completion percentage (GitHub-style). */
+export const heatLevel = (pct) => {
+  if (pct == null) return 0
+  if (pct >= 90) return 4
+  if (pct >= 60) return 3
+  if (pct >= 30) return 2
+  if (pct > 0) return 1
+  return 0
+}
+
+/**
+ * GitHub-style heatmap: an array of weeks (Sun-first), oldest → newest.
+ * Each week is an array of 7 cells { date, weekday, pct, level, future }.
+ * Covers the trailing `weeks` weeks ending today.
+ */
+export function heatmapSeries(state, weeks) {
+  const today = todayStr()
+  const endDate = new Date(`${today}T12:00:00`)
+  // walk back to the most recent Sunday, then step forward by full weeks
+  const start = new Date(`${subDaysStr(today, weeks * 7 - 1)}T12:00:00`)
+  while (start.getDay() !== 0) start.setDate(start.getDate() - 1)
+  const cols = []
+  const cursor = new Date(start)
+  while (cursor <= endDate) {
+    const col = []
+    for (let wd = 0; wd < 7; wd++) {
+      const date = dayStr(cursor)
+      const future = date > today
+      const s = future ? { pct: null, total: 0 } : dayStats(state, date)
+      col.push({ date, weekday: wd, pct: s.pct, level: heatLevel(s.pct), future: future || s.total === 0 })
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    cols.push(col)
+  }
+  return cols
+}
+
+/** Habit × day matrix: one row per active habit, one cell per day (oldest → newest). */
+export function habitMatrix(state, days) {
+  const today = todayStr()
+  return activeHabits(state).map((habit) => ({
+    habit,
+    cells: days.map((d) => {
+      const future = d > today
+      const scheduled = eligibleOn(habit, d) && !future
+      return { date: d, scheduled, done: !future && isDone(state, habit.id, d), future }
+    }),
+  }))
+}
+
+/** This week vs last week roll-up + signed delta (null when either side lacks data). */
+export function weekComparison(state) {
+  const today = todayStr()
+  const thisWeek = weekStats(state, weekDays(today))
+  const lastWeek = weekStats(state, weekDays(subDaysStr(today, 7)))
+  const delta = thisWeek.total && lastWeek.total ? thisWeek.pct - lastWeek.pct : null
+  return { thisWeek, lastWeek, delta }
+}
+
+/** Per-habit performance rows (30d rate + current streak + best streak). */
+export function habitPerformance(state, from, to) {
+  return activeHabits(state).map((habit) => {
+    const r = habitRate(state, habit, from, to)
+    return {
+      habit,
+      rate: r.rate,
+      done: r.done,
+      eligible: r.eligible,
+      streak: habitStreak(state, habit),
+      best: habitBestStreak(state, habit),
+    }
+  })
 }

@@ -43,9 +43,17 @@ describe('analytics chart data', () => {
     expect(weeks.length).toBeGreaterThanOrEqual(4)
     expect(weeks[0]).toHaveLength(7)
     expect(new Date(`${weeks[0][0].date}T12:00:00`).getDay()).toBe(0) // starts Sunday
+    // Every column is a full Sun→Sat week, so the last cell is a Saturday.
+    const lastCol = weeks[weeks.length - 1]
+    expect(new Date(`${lastCol[6].date}T12:00:00`).getDay()).toBe(6)
+    // The grid always covers today, and anything after today is flagged future.
+    expect(weeks.flat().some((c) => c.date === today)).toBe(true)
     const futureCells = weeks.flat().filter((c) => c.date > today)
-    expect(futureCells.length).toBeGreaterThan(0)
     expect(futureCells.every((c) => c.future)).toBe(true)
+    // Date-robust: future cells exist on every day except Saturday.
+    const isSaturday = new Date(`${today}T12:00:00`).getDay() === 6
+    if (!isSaturday) expect(futureCells.length).toBeGreaterThan(0)
+    else expect(futureCells.length).toBe(0)
   })
 
   it('heatLevel buckets percentages GitHub-style', () => {

@@ -244,7 +244,7 @@ describe('import / export', () => {
     expect(clean.profile.onboarded).toBe(true)
     expect(clean.profile.name).toBe('Aaru')
     // still rejects an array of unparseable habits (junk, not empty)
-    expect(() => normalizeImport({ habits: [{ name: 42 }] })).toThrow(/No habits, projects, or moods/i)
+    expect(() => normalizeImport({ habits: [{ name: 42 }] })).toThrow(/No habits, projects, assignments, or moods/i)
   })
 
   it('drops invalid entries but keeps valid ones', () => {
@@ -280,7 +280,7 @@ describe('import / export', () => {
 
   it('handles wrong-typed fields safely (throws only the friendly "empty" error)', () => {
     const weird = { habits: [{ name: 123 }], checkins: [], moods: [], projects: {} }
-    expect(() => normalizeImport(weird)).toThrow(/No habits, projects, or moods found/i)
+    expect(() => normalizeImport(weird)).toThrow(/No habits, projects, assignments, or moods found/i)
     // one valid habit amid junk survives
     const mixed = { habits: [{ name: 123 }, { name: 'Fine' }], checkins: [], moods: [], projects: {} }
     const clean = normalizeImport(mixed)

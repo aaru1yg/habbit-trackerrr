@@ -77,14 +77,14 @@ describe('core flows', () => {
   it('adds a habit with a Mon/Wed/Fri schedule; only scheduled days count', async () => {
     await onboard()
     await addHabit('Gym', { weekdays: ['Mon', 'Wed', 'Fri'] })
-    await waitFor(() => expect(screen.getAllByText('Gym').length).toBeGreaterThan(0))
 
-    const weekday = new Date().getDay()
-    if ([1, 3, 5].includes(weekday)) {
-      // scheduled today: row present with schedule label
+    // Date-robust: Today only lists habits scheduled *today*.
+    const scheduledToday = [1, 3, 5].includes(new Date().getDay())
+    if (scheduledToday) {
+      await waitFor(() => expect(screen.getAllByText('Gym').length).toBeGreaterThan(0))
       expect(screen.getByText('Mon · Wed · Fri')).toBeTruthy()
     } else {
-      expect(screen.getByText(/Nothing scheduled today/i)).toBeTruthy()
+      await waitFor(() => expect(screen.getByText(/Nothing scheduled today/i)).toBeTruthy())
     }
   })
 

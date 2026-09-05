@@ -360,8 +360,14 @@ export function DonutStat({ pct, label, sub, size = 108, tone }) {
       <div className="ring-wrap" style={{ width: size, height: size, position: 'relative', flex: 'none' }} role="img"
         aria-label={label ? `${label}: ${Math.round(clamped)} percent` : `${Math.round(clamped)} percent`}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+          <defs>
+            <linearGradient id={`donut-${gid}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={color || 'var(--accent-1)'} />
+              <stop offset="100%" stopColor={tone === 'bad' ? 'var(--v3-pink, var(--bad))' : tone === 'warn' ? 'var(--v3-amber, var(--warn))' : tone === 'good' ? 'var(--v3-cyan, var(--good))' : 'var(--accent-2)'} />
+            </linearGradient>
+          </defs>
           <circle className="ring-track" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} />
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color || 'var(--accent-1)'} strokeWidth={stroke} strokeLinecap="round"
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#donut-${gid})`} strokeWidth={stroke} strokeLinecap="round"
             strokeDasharray={c} strokeDashoffset={c * (1 - clamped / 100)}
             style={{ transition: 'stroke-dashoffset 700ms cubic-bezier(0.22,1,0.36,1)' }} />
         </svg>

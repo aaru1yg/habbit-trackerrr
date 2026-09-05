@@ -125,7 +125,7 @@ export default function TodayScreen({ onFire }) {
         <SectionCard className="pad-lg today-hero" style={{ overflow: 'hidden' }}>
           <div className="today-hero-inner">
             <div className="today-ring">
-              <ProgressRing pct={stats.pct} size={132} stroke={12} label={stats.total ? `${stats.pct} percent complete today` : 'No habits yet'}>
+              <ProgressRing pct={stats.pct} size={156} stroke={12} label={stats.total ? `${stats.pct} percent complete today` : 'No habits yet'}>
                 <div>
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2rem', lineHeight: 1 }}>
                     <AnimatedNumber value={stats.pct ?? 0} format={(v) => `${Math.round(v)}`} />%

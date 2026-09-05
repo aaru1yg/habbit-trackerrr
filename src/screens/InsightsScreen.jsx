@@ -238,6 +238,16 @@ export default function InsightsScreen() {
               <p className="vs-sub">{cmp.delta == null ? 'not enough data' : cmp.delta >= 0 ? 'up from last week' : 'down from last week'}</p>
             </div>
           </div>
+          <div
+            className="compare-visual"
+            role="img"
+            aria-label={`Weekly comparison. This week ${cmp.thisWeek.total ? `${cmp.thisWeek.pct}%` : 'no data'}, last week ${cmp.lastWeek.total ? `${cmp.lastWeek.pct}%` : 'no data'}.`}
+          >
+            <div className="compare-visual-head"><span>Momentum</span><span>last 2 weeks</span></div>
+            <div className="compare-track"><i className="compare-bar last" style={{ width: `${cmp.lastWeek.total ? cmp.lastWeek.pct : 0}%` }} /><span className="compare-marker" style={{ left: `${cmp.lastWeek.total ? cmp.lastWeek.pct : 0}%` }} /></div>
+            <div className="compare-track"><i className="compare-bar current" style={{ width: `${cmp.thisWeek.total ? cmp.thisWeek.pct : 0}%` }} /><span className="compare-marker" style={{ left: `${cmp.thisWeek.total ? cmp.thisWeek.pct : 0}%` }} /></div>
+            <div className="compare-labels"><span>Last week</span><span>This week</span></div>
+          </div>
         </SectionCard>
 
         {/* Sortable habit performance */}

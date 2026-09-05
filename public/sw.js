@@ -2,7 +2,7 @@
    Strategy: network-first for the app shell so deployments are picked up
    immediately; cache-first only for immutable hashed build assets and
    same-origin fonts. Old caches are evicted on activate.
-   NOTE: __BUILD_ID__ is stamped per build by vite.config (aaru-build-identity),
+   NOTE: the cache name is stamped per build by vite.config (aaru-build-identity),
    so every deployment installs a fresh worker that evicts the previous build. */
 const CACHE = 'aaru-habits-v7-__BUILD_ID__'
 const CORE = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './icon-192.png', './icon-512.png', './icon-512-maskable.png']
@@ -35,7 +35,10 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return // fonts are bundled locally now
 
   const isNavigation = request.mode === 'navigate'
-  const isIndexHtml = url.pathname === '/' || url.pathname.endsWith('/index.html')
+  // Scope-aware: on GitHub Pages the app lives under /habbit-trackerrr/, so a
+  // bare '/' pathname check never matches — compare against our own scope root.
+  const scopeRoot = new URL('./', self.location).pathname.replace(/\/+$/, '')
+  const isIndexHtml = url.pathname === scopeRoot || url.pathname === `${scopeRoot}/` || url.pathname.endsWith('/index.html')
   const isHashedAsset = url.pathname.includes('/assets/')
 
   // Hashed /assets/* never change — cache-first.

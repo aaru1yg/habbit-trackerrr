@@ -8,7 +8,7 @@
    never fires confetti.
    ============================================================ */
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useStore } from '../../store.jsx'
 import { useToast } from '../ui/Toaster.jsx'
 import Confetti from '../ui/Confetti.jsx'
@@ -141,9 +141,8 @@ export default function WorkUIProvider({ children }) {
 
       <Confetti fire={fire} count={110} origin={{ x: 0.5, y: 0.42 }} />
 
-      <AnimatePresence>
-        {celebration && (
-          <motion.div
+      {celebration && (
+        <motion.div
             className="scrim"
             style={{ zIndex: 88, display: 'grid', placeItems: 'center', padding: 24 }}
             initial={{ opacity: 0 }}
@@ -183,9 +182,8 @@ export default function WorkUIProvider({ children }) {
                 </button>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>
+      )}
     </WorkUIContext.Provider>
   )
 }

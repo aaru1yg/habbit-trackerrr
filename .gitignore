@@ -16,3 +16,5 @@ coverage
 # QA generated artifacts (regenerable)
 qa/shots/
 qa/gen/
+
+qa/v3-final/

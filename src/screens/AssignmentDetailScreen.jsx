@@ -110,7 +110,7 @@ export default function AssignmentDetailScreen({ id }) {
 
       <div className="stack">
         {/* Countdown + progress hero */}
-        <SectionCard className="pad-lg">
+        <SectionCard className="pad-lg assignment-detail-hero">
           <div className="detail-hero">
             <div style={{ minWidth: 150 }}>
               <p className="eyebrow">Time left</p>

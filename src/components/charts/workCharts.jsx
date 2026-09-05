@@ -283,19 +283,26 @@ export function BucketColumns({ rows, height = 110, unit = '' }) {
    TimeVsWorkBars — % time elapsed vs % work completed (§69F)
    ------------------------------------------------------------ */
 export function TimeVsWorkBars({ elapsedPct, workPct, behind, ahead }) {
-  const rows = [
-    { label: 'Time elapsed', value: elapsedPct, tone: behind ? 'bad' : 'neutral' },
-    { label: 'Work completed', value: workPct, tone: ahead ? 'good' : behind ? 'warn' : 'good' },
-  ]
+  const elapsed = Math.max(0, Math.min(100, Math.round(elapsedPct ?? 0)))
+  const work = Math.max(0, Math.min(100, Math.round(workPct ?? 0)))
+  const delta = Math.abs(elapsed - work)
+  const tone = behind ? 'bad' : ahead ? 'good' : 'neutral'
   return (
-    <div>
-      <HBarList rows={rows} />
-      <p className="tiny muted" style={{ marginTop: 10 }}>
-        {behind
-          ? `Behind schedule — ${Math.abs(elapsedPct - workPct)} points of work left to catch up with the clock.`
-          : ahead
-            ? `Ahead of schedule by ${Math.abs(workPct - elapsedPct)} points.`
-            : 'On pace with the deadline.'}
+    <div className="time-vs-work" data-tone={tone} role="img" aria-label={`Time elapsed ${elapsed} percent. Work completed ${work} percent. ${behind ? 'Behind schedule' : ahead ? 'Ahead of schedule' : 'On pace'}`}>
+      <div className="time-vs-work-metrics">
+        <div>
+          <span className="tvw-label">Time elapsed</span>
+          <strong className="tvw-value" data-tone={behind ? 'bad' : undefined}>{elapsed}%</strong>
+          <span className="tvw-bar"><i style={{ width: `${elapsed}%` }} /></span>
+        </div>
+        <div>
+          <span className="tvw-label">Work complete</span>
+          <strong className="tvw-value" data-tone={ahead ? 'good' : behind ? 'bad' : undefined}>{work}%</strong>
+          <span className="tvw-bar"><i style={{ width: `${work}%`, background: behind ? 'var(--bad)' : 'var(--good)' }} /></span>
+        </div>
+      </div>
+      <p className="tvw-callout" data-tone={tone}>
+        {behind ? `→ BEHIND SCHEDULE · ${delta} points to catch up` : ahead ? `→ AHEAD OF SCHEDULE · ${delta} points ahead` : '→ ON PACE'}
       </p>
     </div>
   )
@@ -354,13 +361,13 @@ export function DonutStat({ pct, label, sub, size = 108, tone }) {
         aria-label={label ? `${label}: ${Math.round(clamped)} percent` : `${Math.round(clamped)} percent`}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
           <defs>
-            <linearGradient id={`ds${gid}`} x1="0" y1="0" x2="1" y2="1">
+            <linearGradient id={`donut-${gid}`} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor={color || 'var(--accent-1)'} />
-              <stop offset="100%" stopColor={color || 'var(--accent-2)'} />
+              <stop offset="100%" stopColor={tone === 'bad' ? 'var(--v3-pink, var(--bad))' : tone === 'warn' ? 'var(--v3-amber, var(--warn))' : tone === 'good' ? 'var(--v3-cyan, var(--good))' : 'var(--accent-2)'} />
             </linearGradient>
           </defs>
           <circle className="ring-track" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} />
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#ds${gid})`} strokeWidth={stroke} strokeLinecap="round"
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#donut-${gid})`} strokeWidth={stroke} strokeLinecap="round"
             strokeDasharray={c} strokeDashoffset={c * (1 - clamped / 100)}
             style={{ transition: 'stroke-dashoffset 700ms cubic-bezier(0.22,1,0.36,1)' }} />
         </svg>

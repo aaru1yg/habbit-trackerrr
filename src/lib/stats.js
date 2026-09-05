@@ -289,7 +289,7 @@ export function monthLevels(state, year, month) {
     const future = date > today
     const s = future ? { pct: null, total: 0 } : dayStats(state, date)
     if (!future && s.total > 0) anyEligible = true
-    cells.push({ date, day: d, pct: s.pct, future: future || s.total === 0 })
+    cells.push({ date, day: d, pct: s.pct, future, noData: !future && s.total === 0 })
   }
   return { cells, anyEligible }
 }

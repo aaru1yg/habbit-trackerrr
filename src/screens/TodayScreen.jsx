@@ -107,7 +107,7 @@ export default function TodayScreen({ onFire }) {
 
   return (
     <div className="screen" id="today-screen">
-      <header className="screen-head">
+      <header className="screen-head today-head">
         <div>
           <h1 className="screen-title">{greeting(name)}</h1>
           <p className="screen-sub">{prettyDate(today)}</p>
@@ -121,115 +121,59 @@ export default function TodayScreen({ onFire }) {
       </header>
 
       <div className="stack">
-        {/* Progress */}
-        <SectionCard className="pad-lg" style={{ overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-            <ProgressRing pct={stats.pct} size={132} stroke={12} label={stats.total ? `${stats.pct} percent complete today` : 'No habits yet'}>
-              <div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2rem', lineHeight: 1 }}>
-                  <AnimatedNumber value={stats.pct ?? 0} format={(v) => `${Math.round(v)}`} />%
+        {/* Today is deliberately one flow: what is due, how far through it, then context. */}
+        <SectionCard className="pad-lg today-hero" style={{ overflow: 'hidden' }}>
+          <div className="today-hero-inner">
+            <div className="today-ring">
+              <ProgressRing pct={stats.pct} size={156} stroke={12} label={stats.total ? `${stats.pct} percent complete today` : 'No habits yet'}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2rem', lineHeight: 1 }}>
+                    <AnimatedNumber value={stats.pct ?? 0} format={(v) => `${Math.round(v)}`} />%
+                  </div>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 4 }}>today</div>
                 </div>
-                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2 }}>today</div>
+              </ProgressRing>
+            </div>
+            <div className="today-hero-copy">
+              <p className="eyebrow today-kicker">Today’s focus</p>
+              <div className="today-summary">
+                <strong><span className="tnum">{stats.done}</span> of <span className="tnum">{stats.total}</span> complete</strong>
+                <span>{stats.total === 1 ? 'habit' : 'habits'} scheduled</span>
               </div>
-            </ProgressRing>
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--fs-h2)', lineHeight: 1.3 }}>
+              <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', marginTop: 7 }}>
                 {stats.total === 0
-                  ? 'No habits scheduled'
+                  ? 'No habits scheduled for today.'
                   : stats.done === stats.total
-                    ? 'Everything done. Enjoy the rest of your day.'
-                    : <><AnimatedNumber value={stats.done} /> of <AnimatedNumber value={stats.total} /> complete</>}
+                    ? 'Everything done. Keep the rest of the day open.'
+                    : left === 1 ? 'One small finish left.' : `${left} small finishes left.`}
+                {top.streak >= 3 ? ` Best streak: ${top.streak} days on ${top.habit?.name || 'a habit'}.` : ''}
               </p>
-              {stats.total > 0 && (
-                <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>
-                  {left === 0 ? '' : left === 1 ? 'One habit left.' : `${left} habits left.`}
-                  {top.streak >= 3 ? ` Best streak: ${top.streak} days${top.habit ? ` on ${top.habit.name}` : ''}.` : ''}
-                </p>
-              )}
               {atRisk && (
-                <p className="pace-note" data-tone="warn" style={{ marginTop: 12 }}>
+                <p className="pace-note" data-tone="warn">
                   <IconAlert size={14} />
                   Your {atRisk.streak}-day streak on {atRisk.habit.name} is at risk tonight.
                 </p>
               )}
               {!atRisk && nearMilestone && (
-                <p className="pace-note" data-tone="good" style={{ marginTop: 12 }}>
+                <p className="pace-note" data-tone="good">
                   <IconFlame size={14} />
                   {nearMilestone.away === 1
                     ? `One more completion gives ${nearMilestone.habit.name} a ${nearMilestone.target}-day streak.`
                     : `${nearMilestone.away} completions away from a ${nearMilestone.target}-day streak on ${nearMilestone.habit.name}.`}
                 </p>
               )}
+              <div className="today-stats" aria-label="Today at a glance">
+                <div className="today-stat"><strong>{stats.done}</strong><span>completed</span></div>
+                <div className="today-stat"><strong>{left}</strong><span>remaining</span></div>
+                <div className="today-stat"><strong>{top.streak || 0}</strong><span>day streak</span></div>
+              </div>
             </div>
           </div>
         </SectionCard>
 
-        {/* Priority work — contextual layer, habits stay primary (§82) */}
-        {hasPriority && (
-          <SectionCard className="pad" delay={0.04}>
-            <CardHead title="Priority work">
-              <Link to="workload" className="btn ghost sm">Workload <IconChevronRight size={14} /></Link>
-            </CardHead>
-            <div className="deadline-strip">
-              {[...priority.overdue, ...priority.dueToday, ...priority.upcoming].slice(0, 3).map((o) => (
-                <WorkRow key={`${o.kind}-${o.item.id}`} kind={o.kind} item={o.item} status={o.status} progressPct={o.status.pct} />
-              ))}
-            </div>
-          </SectionCard>
-        )}
-
-        {/* One daily insight */}
-        {insight && (
-          <SectionCard className="pad" delay={0.06}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <span style={{ color: 'var(--accent-2)', marginTop: 2 }}><IconSparkle size={18} /></span>
-              <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', lineHeight: 1.55 }}>{insight.text}</p>
-            </div>
-          </SectionCard>
-        )}
-
-        {/* Missed days you can still log */}
-        {overdue.length > 0 && (
-          <SectionCard className="pad" delay={0.08}>
-            <CardHead title="Missed recently">
-              <Link to="calendar" className="btn ghost sm">Log in calendar</Link>
-            </CardHead>
-            <div className="wrap-gap" style={{ gap: 6 }}>
-              {overdue.map(({ habit, date }) => (
-                <Link key={`${habit.id}-${date}`} to="calendar" className="btn sm" style={{ borderRadius: 999 }}>
-                  {habit.name} · {date.slice(5).replace('-', '/')}
-                </Link>
-              ))}
-            </div>
-          </SectionCard>
-        )}
-
-        {/* Weekly review (Sundays) */}
-        {showReview && (
-          <SectionCard className="pad" delay={0.1}>
-            <CardHead title={review.enough ? 'Your week in review' : 'Weekly review'}>
-              <button className="btn ghost sm" onClick={dismissReview}>Dismiss</button>
-            </CardHead>
-            {review.enough ? (
-              <div className="stack" style={{ gap: 8 }}>
-                {review.lines.map((l, i) => (
-                  <p key={i} style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)' }}>· {l}</p>
-                ))}
-                {review.suggestion && (
-                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text)', background: 'var(--accent-soft)', borderRadius: 12, padding: '10px 12px', marginTop: 4 }}>
-                    {review.suggestion}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)' }}>{review.text}</p>
-            )}
-          </SectionCard>
-        )}
-
         {/* Today's habits */}
-        <SectionCard className="pad" delay={0.12}>
-          <CardHead title="Today">
+        <SectionCard className="pad today-section" delay={0.12}>
+          <CardHead title="What needs to be done">
             <button className="btn sm" onClick={habitUI.openAdd}>
               <IconPlus size={15} /> Add
             </button>
@@ -273,6 +217,73 @@ export default function TodayScreen({ onFire }) {
             </>
           )}
         </SectionCard>
+
+
+        {/* Priority work — contextual layer; habits stay primary (§82) */}
+        {hasPriority && (
+          <SectionCard className="pad today-work" delay={0.04}>
+            <CardHead title="Priority work">
+              <Link to="workload" className="btn ghost sm">Workload <IconChevronRight size={14} /></Link>
+            </CardHead>
+            <div className="deadline-strip">
+              {[...priority.overdue, ...priority.dueToday, ...priority.upcoming].slice(0, 3).map((o) => (
+                <WorkRow key={`${o.kind}-${o.item.id}`} kind={o.kind} item={o.item} status={o.status} progressPct={o.status.pct} />
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* One daily insight */}
+        {insight && (
+          <SectionCard className="pad today-insight" delay={0.06}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{ color: 'var(--accent-2)', marginTop: 2 }}><IconSparkle size={18} /></span>
+              <div>
+                <span className="insight-label">One useful insight</span>
+                <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', lineHeight: 1.55 }}>{insight.text}</p>
+              </div>
+            </div>
+          </SectionCard>
+        )}
+
+        {/* Missed days you can still log */}
+        {overdue.length > 0 && (
+          <SectionCard className="pad today-missed" delay={0.08}>
+            <CardHead title="Missed recently">
+              <Link to="calendar" className="btn ghost sm">Log in calendar</Link>
+            </CardHead>
+            <div className="wrap-gap" style={{ gap: 6 }}>
+              {overdue.map(({ habit, date }) => (
+                <Link key={`${habit.id}-${date}`} to="calendar" className="btn sm" style={{ borderRadius: 999 }}>
+                  {habit.name} · {date.slice(5).replace('-', '/')}
+                </Link>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* Weekly review (Sundays) */}
+        {showReview && (
+          <SectionCard className="pad" delay={0.1}>
+            <CardHead title={review.enough ? 'Your week in review' : 'Weekly review'}>
+              <button className="btn ghost sm" onClick={dismissReview}>Dismiss</button>
+            </CardHead>
+            {review.enough ? (
+              <div className="stack" style={{ gap: 8 }}>
+                {review.lines.map((l, i) => (
+                  <p key={i} style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)' }}>· {l}</p>
+                ))}
+                {review.suggestion && (
+                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text)', background: 'var(--accent-soft)', borderRadius: 12, padding: '10px 12px', marginTop: 4 }}>
+                    {review.suggestion}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)' }}>{review.text}</p>
+            )}
+          </SectionCard>
+        )}
 
         {/* Routines (habit stacking) */}
         {routinesToday.length > 0 && (

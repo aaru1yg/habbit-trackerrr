@@ -37,7 +37,7 @@ export function ProjectCard({ project, now = new Date(), showStepper = true }) {
   const linked = (project.linkedHabitIds || []).length
 
   return (
-    <article className={`work-card${status.complete ? ' is-done' : ''}`} data-tone={status.tone} aria-label={`Project ${project.name}`}>
+    <article className={`work-card project-card${status.complete ? ' is-done' : ''}`} data-tone={status.tone} aria-label={`Project ${project.name}`}>
       <div className="work-top">
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="wrap-gap" style={{ gap: 6, marginBottom: 6 }}>
@@ -69,6 +69,28 @@ export function ProjectCard({ project, now = new Date(), showStepper = true }) {
       <div className="work-body">
         <Meter pct={status.pct} tone={status.tone} pace={status.elapsedPct}
           label={`${status.pct}% complete${status.elapsedPct != null ? `, pace marker at ${status.elapsedPct}%` : ''}`} />
+      </div>
+      <div className="project-facts" aria-label="Project facts">
+        <div className="work-fact">
+          <span className="work-fact-label">Deadline</span>
+          <strong className="work-fact-value">{status.hasDeadline ? deadlineText(project.deadline) : '—'}</strong>
+          <span className="work-fact-note">{status.hasDeadline ? 'target date' : 'No deadline'}</span>
+        </div>
+        <div className="work-fact">
+          <span className="work-fact-label">Days left</span>
+          <strong className="work-fact-value">{status.hasDeadline ? (status.complete ? 'Done' : `${Math.max(0, status.daysLeft ?? 0)}d`) : '—'}</strong>
+          <span className="work-fact-note">{status.hasDeadline && status.passed ? 'overdue' : 'on the clock'}</span>
+        </div>
+        <div className="work-fact">
+          <span className="work-fact-label">Tasks</span>
+          <strong className="work-fact-value">{progress.total ? `${progress.done}/${progress.total}` : '—'}</strong>
+          <span className="work-fact-note">{progress.total ? 'complete' : 'add tasks'}</span>
+        </div>
+        <div className="work-fact">
+          <span className="work-fact-label">Health</span>
+          <strong className="work-fact-value">{status.label}</strong>
+          <span className="work-fact-note">pace status</span>
+        </div>
       </div>
 
       {showStepper && track.length > 1 && (
@@ -116,7 +138,7 @@ export function AssignmentCard({ assignment, now = new Date() }) {
   const subsDone = subs.filter((s) => s.done).length
 
   return (
-    <article className={`work-card${status.complete ? ' is-done' : ''}`} data-tone={status.tone} aria-label={`Assignment ${assignment.name}`}>
+    <article className={`work-card assignment-card${status.complete ? ' is-done' : ''}`} data-tone={status.tone} aria-label={`Assignment ${assignment.name}`}>
       <div className="work-top">
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="wrap-gap" style={{ gap: 6, marginBottom: 6 }}>
@@ -152,6 +174,12 @@ export function AssignmentCard({ assignment, now = new Date() }) {
       <div className="work-body">
         <Meter pct={status.pct} tone={status.tone} pace={status.elapsedPct}
           label={`${status.pct}% complete${status.elapsedPct != null ? `, pace marker at ${status.elapsedPct}%` : ''}`} />
+        <div className="assignment-facts" aria-label="Assignment facts">
+          <div className="work-fact"><span className="work-fact-label">Progress</span><strong className="work-fact-value">{status.pct}%</strong><span className="work-fact-note">complete</span></div>
+          <div className="work-fact"><span className="work-fact-label">Due</span><strong className="work-fact-value">{status.hasDeadline ? (status.passed ? 'Past due' : status.dueText) : '—'}</strong><span className="work-fact-note">{status.hasDeadline ? deadlineText(assignment.deadline) : 'No deadline'}</span></div>
+          <div className="work-fact"><span className="work-fact-label">Time left</span><strong className="work-fact-value">{status.hasDeadline && !status.complete ? (status.hoursLeft < 48 ? `${Math.max(0, Math.round(status.hoursLeft))}h` : `${Math.max(0, status.daysLeft ?? 0)}d`) : status.complete ? 'Done' : '—'}</strong><span className="work-fact-note">countdown</span></div>
+          <div className="work-fact"><span className="work-fact-label">Status</span><strong className="work-fact-value">{status.label}</strong><span className="work-fact-note">urgency</span></div>
+        </div>
         <AnimatePresence initial={false}>
           {openProgress && (
             <motion.div

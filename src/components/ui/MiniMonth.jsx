@@ -2,37 +2,35 @@ import { monthLabel } from '../../lib/dates.js'
 
 /**
  * Compact month heatmap for the yearly overview.
- * cells: [{date, day, pct(0..100|null), future}] from stats.monthLevels.
+ * cells: [{date, day, pct(0..100|null), future, noData}] from stats.monthLevels.
+ * No-data and future are intentionally different states: an empty history is
+ * not a zero score, and a date that has not happened is not a missing record.
  */
 export default function MiniMonth({ year, month, cells, onSelect, interactive = true }) {
   const firstWeekday = new Date(year, month, 1).getDay()
+  const hasObservedDay = cells.some((c) => !c.future)
+  const hasRealData = cells.some((c) => !c.future && !c.noData)
+  const status = !hasObservedDay ? 'UPCOMING' : !hasRealData ? 'NO DATA' : null
   return (
     <button
       type="button"
       className="mini-month"
       onClick={interactive ? () => onSelect?.(year, month) : undefined}
       disabled={!interactive}
-      aria-label={`${monthLabel(year, month)} — open in calendar`}
-      style={{
-        display: 'flex', flexDirection: 'column', gap: 6,
-        padding: '9px 8px 8px', borderRadius: 14,
-        background: 'var(--surface-2)', border: '1px solid var(--border)',
-        cursor: interactive ? 'pointer' : 'default',
-        textAlign: 'left',
-      }}
+      aria-label={`${monthLabel(year, month)} — ${status ? status.toLowerCase() : 'open in calendar'}`}
     >
-      <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-2)' }}>
-        {new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short' })}
+      <span className="mini-month-head">
+        <span className="mini-month-name">{new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short' })}</span>
+        {status && <span className="mini-month-state">{status}</span>}
       </span>
-      <span style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2 }}>
+      <span className="mini-month-grid">
         {/* leading blanks so the 1st lands on its weekday (Sun-first) */}
-        {Array.from({ length: firstWeekday }).map((_, i) => <i key={`b${i}`} style={{ aspectRatio: '1' }} />)}
+        {Array.from({ length: firstWeekday }).map((_, i) => <i key={`b${i}`} className="mini-month-blank" />)}
         {cells.map((c) => (
           <i
             key={c.date}
-            title={`${c.date}${c.pct != null ? ` — ${c.pct}%` : ''}`}
-            className={`hm-cell ${c.future ? 'empty' : levelClass(c.pct)}`}
-            style={{ borderRadius: 2.5 }}
+            title={`${c.date} — ${c.future ? 'future' : c.noData ? 'NO DATA' : c.pct == null ? 'NO DATA' : `${c.pct}%`}`}
+            className={`hm-cell ${c.future ? 'future' : c.noData ? 'no-data' : levelClass(c.pct)}`}
           />
         ))}
       </span>
@@ -41,10 +39,10 @@ export default function MiniMonth({ year, month, cells, onSelect, interactive = 
 }
 
 function levelClass(pct) {
-  if (pct == null) return ''
+  if (pct == null) return 'no-data'
   if (pct >= 90) return 'l4'
   if (pct >= 60) return 'l3'
   if (pct >= 30) return 'l2'
   if (pct > 0) return 'l1'
-  return ''
+  return 'zero'
 }

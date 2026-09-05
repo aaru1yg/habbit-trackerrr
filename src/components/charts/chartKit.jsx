@@ -60,8 +60,13 @@ export function TrendChart({ data, className = '' }) {
       >
         <defs>
           <linearGradient id={`t${gid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent-2)" stopOpacity="0.32" />
+            <stop offset="0%" stopColor="var(--accent-2)" stopOpacity="0.38" />
             <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0.02" />
+          </linearGradient>
+          <linearGradient id={`tline${gid}`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--accent-1)" />
+            <stop offset="52%" stopColor="var(--accent-2)" />
+            <stop offset="100%" stopColor="var(--v3-pink, var(--accent-1))" />
           </linearGradient>
         </defs>
         {/* grid + y labels */}
@@ -77,7 +82,7 @@ export function TrendChart({ data, className = '' }) {
         ))}
         {/* area + line */}
         {area && <path d={area} fill={`url(#t${gid})`} />}
-        {line && <path d={line} fill="none" stroke="var(--accent-2)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
+        {line && <path d={line} fill="none" stroke={`url(#tline${gid})`} strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 4px rgba(34, 211, 238, .32))' }} />}
         {/* interactive points */}
         {points.map((p) => (
           <g key={p.i}>

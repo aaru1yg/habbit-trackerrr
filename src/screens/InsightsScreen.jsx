@@ -134,8 +134,8 @@ export default function InsightsScreen() {
         </div>
       </header>
 
-      <div className="stack">
-        <div className="seg seg-wide" role="group" aria-label="Insights view">
+      <div className="stack insights-layout">
+        <div className="seg seg-wide insights-switch" role="group" aria-label="Insights view">
           {INSIGHT_VIEWS.map((v) => (
             <button
               key={v.id}
@@ -154,7 +154,7 @@ export default function InsightsScreen() {
         {view === 'overview' && (
         <>
         {/* Hero: ring + streaks */}
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-hero">
           <div className="insights-grid">
             <div className="insights-ring">
               <ProgressRing pct={last30} size={148} stroke={11} label={last30 == null ? 'No completion data yet' : `${last30} percent completion over 30 days`}>
@@ -189,7 +189,7 @@ export default function InsightsScreen() {
         </SectionCard>
 
         {/* Trend */}
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-trend">
           <CardHead title="Completion trend" />
           <div className="seg seg-wide" role="group" aria-label="Trend range">
             {RANGES.map((r) => (
@@ -212,7 +212,7 @@ export default function InsightsScreen() {
         </SectionCard>
 
         {/* This week vs last week */}
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-compare">
           <CardHead title="This week vs last week" />
           <div className="vs">
             <div className="vs-block">
@@ -238,10 +238,20 @@ export default function InsightsScreen() {
               <p className="vs-sub">{cmp.delta == null ? 'not enough data' : cmp.delta >= 0 ? 'up from last week' : 'down from last week'}</p>
             </div>
           </div>
+          <div
+            className="compare-visual"
+            role="img"
+            aria-label={`Weekly comparison. This week ${cmp.thisWeek.total ? `${cmp.thisWeek.pct}%` : 'no data'}, last week ${cmp.lastWeek.total ? `${cmp.lastWeek.pct}%` : 'no data'}.`}
+          >
+            <div className="compare-visual-head"><span>Momentum</span><span>last 2 weeks</span></div>
+            <div className="compare-track"><i className="compare-bar last" style={{ width: `${cmp.lastWeek.total ? cmp.lastWeek.pct : 0}%` }} /><span className="compare-marker" style={{ left: `${cmp.lastWeek.total ? cmp.lastWeek.pct : 0}%` }} /></div>
+            <div className="compare-track"><i className="compare-bar current" style={{ width: `${cmp.thisWeek.total ? cmp.thisWeek.pct : 0}%` }} /><span className="compare-marker" style={{ left: `${cmp.thisWeek.total ? cmp.thisWeek.pct : 0}%` }} /></div>
+            <div className="compare-labels"><span>Last week</span><span>This week</span></div>
+          </div>
         </SectionCard>
 
         {/* Sortable habit performance */}
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-performance">
           <CardHead title="Habit performance">
             <span className="perf-window">last 30 days</span>
           </CardHead>
@@ -263,8 +273,8 @@ export default function InsightsScreen() {
             {perf.map(({ habit, rate, done, eligible, streak, best }) => (
               <div className="perf-row" key={habit.id}>
                 <div className="perf-cell perf-name">
-                  <span className="perf-bar" style={{ width: `${Math.round((rate ?? 0) * 100)}%` }} aria-hidden="true" />
                   <span className="perf-name-text">{habit.name}</span>
+                  <span className="perf-bar-track" aria-hidden="true"><i style={{ width: `${Math.round((rate ?? 0) * 100)}%` }} /></span>
                 </div>
                 <div className="perf-cell tnum">
                   {rate == null ? '—' : `${Math.round(rate * 100)}%`}
@@ -279,21 +289,21 @@ export default function InsightsScreen() {
         </SectionCard>
 
         {/* Heatmap */}
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-heatmap">
           <CardHead title="Activity heatmap" />
           <p className="card-blurb">Tap any day for details.</p>
           <Heatmap weeks={weeks} />
         </SectionCard>
 
         {/* Habit × day matrix */}
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-matrix">
           <CardHead title="Habit × day" />
           <p className="card-blurb">Last 28 days · tap is read-only on this screen.</p>
           <HabitMatrix rows={matrixRows} days={matrixDays} weekLabels={weekLabels} />
         </SectionCard>
 
         {/* Year overview */}
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-year">
           <CardHead title={`${YEAR} at a glance`} />
           {yearsWithData ? (
             <>
@@ -310,7 +320,7 @@ export default function InsightsScreen() {
         </SectionCard>
 
         {/* Achievements */}
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-achievements">
           <CardHead title="Achievements" />
           <div className="badge-grid">
             {best.badges.map((b) => (
@@ -336,7 +346,7 @@ export default function InsightsScreen() {
 
         {/* Mood link */}
         {moodLink && (
-          <SectionCard className="pad">
+          <SectionCard className="pad insights-mood">
             <CardHead title="Mood and habits" />
             <p className="card-blurb">
               On days you felt good, you completed <b className="tnum" style={{ color: 'var(--good)' }}>{moodLink.goodPct}%</b> of your habits.
@@ -345,7 +355,7 @@ export default function InsightsScreen() {
           </SectionCard>
         )}
 
-        <SectionCard className="pad">
+        <SectionCard className="pad insights-deep-link">
           <div className="row-between">
             <p className="card-blurb" style={{ margin: 0 }}>
               Weekday patterns, consistency scores, streak history and what tends to travel together.

@@ -69,6 +69,7 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
     <>
       {/* actions revealed on swipe-left */}
       <div
+        className="habit-actions"
         style={{
           position: 'absolute',
           top: 0, bottom: 0, right: 0,
@@ -92,6 +93,7 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
 
       <motion.div
         className={`habit-row ${done ? 'done' : ''}`}
+        data-category={habit.category || 'mind'}
         style={{ x, position: 'relative' }}
         drag={editing || reduced ? false : 'x'}
         dragDirectionLock

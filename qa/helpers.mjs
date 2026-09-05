@@ -109,7 +109,7 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 export async function setStoredState(page, state) {
   await page.evaluate((s) => {
     localStorage.clear()
-    localStorage.setItem('aaru.habits.v3', JSON.stringify(s))
+    localStorage.setItem('aaru.habits.v4', JSON.stringify(s))
   }, state)
 }
 
@@ -120,7 +120,7 @@ export async function seedAndGoto(page, state, route, base = 'http://localhost:4
   const handle = await page.evaluateOnNewDocument((s) => {
     try {
       localStorage.clear()
-      localStorage.setItem('aaru.habits.v3', JSON.stringify(s))
+      localStorage.setItem('aaru.habits.v4', JSON.stringify(s))
     } catch { /* ignore */ }
   }, state)
   try {

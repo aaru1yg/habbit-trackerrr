@@ -4,10 +4,11 @@ Aaru's personal, next-level habit tracker. Dark, glassy, heavily animated, and p
 
 ## ✨ The vibe
 
-- Glassmorphism cards over a slowly drifting aurora background
-- Springy framer-motion animations everywhere (cards, toggles, gauges, confetti on completion)
+- Quiet glass cards over a slowly drifting aurora + noise background
+- Springy framer-motion animations with one unified motion language (cards, toggles, gauges)
 - Animated counters, animated circular gauges, animated dash-offset donuts
-- Confetti + toast feedback whenever you smash a habit
+- Celebrations reserved for moments that matter — a project reaching 100%, a streak
+  milestone — never confetti per checkbox
 
 ## 🆕 What's new (v2)
 
@@ -46,13 +47,35 @@ Aaru's personal, next-level habit tracker. Dark, glassy, heavily animated, and p
 - **Export / Import** your data as JSON, and **🔄 reset** wipes everything for a fresh start (no demo data).
 - Everything persists automatically to `localStorage`.
 
+## 🏗️ The work layer — Projects & Assignments
+
+Habits are what you repeat. **Projects and Assignments are what you finish** — two separate,
+first-class systems with their own nav entries, dashboards, detail screens and analytics.
+
+- **Projects** — milestones on a stepper, tasks (TODO / IN PROGRESS / BLOCKED / DONE),
+  progress in honest steps (4 of 10 tasks = 40%), optional deadline with a pace line
+  ("behind the pace by 17 points"), burndown + velocity + time-vs-work charts, and linked habits
+  whose 30-day consistency is shown next to project progress (*correlation, not cause*).
+- **Assignments** — deadline-first cards with a live countdown and a computed status engine:
+  ON TRACK / AT RISK / URGENT / OVERDUE / COMPLETED, derived from real progress vs. time left.
+  An assignment can optionally belong to a project.
+- **Workload** — due-by-day bars so tomorrow's pile is visible today.
+- **Deadlines** — one timeline of every project and assignment, soonest first.
+- **Record** — log progress % and time spent on any project or assignment; every entry feeds the
+  charts. No invented numbers anywhere: empty states until you log something real.
+- **Celebrations** — a full-screen moment when a project hits 100%, a light toast for assignments.
+  Never per checkbox.
+- Today surfaces a small **Priority work** card (most urgent first) under your habits — work never
+  takes over the habit screen.
+
 ## 🛠️ Tech
 
 - React 18 + Vite 5
 - Framer Motion (animations)
-- Recharts (all the charts)
+- Hand-rolled SVG charts (no chart library) — every pixel is real data
 - date-fns (dates)
-- vitest + jsdom (a render smoke test suite)
+- Inter + Manrope (variable, self-hosted)
+- vitest + Testing Library (unit/render suite) and a puppeteer-driven real-browser QA pass
 
 ## 🚀 Run it
 
@@ -93,12 +116,27 @@ Because the repo is **public**, the site is free and live over the internet with
 
 Build once with `GH_PAGES=true npm run build`, then drag the `dist/` folder into **Netlify Drop** or **Cloudflare Pages** for an instant free URL.
 
-## 🎨 Futuristic extras
+## 🎨 Design system
 
-- Animated **starfield** canvas + drifting aurora + glowing **neon gradient card borders**
-- **Sci-fi numbers** (Orbitron font) and a **XP / Level** system in the Insights panel
-- **Accent theme switcher**: Aurora 🔮 / Cyber 🌸 / Emerald 🌿 / Violet 💜 / Azure 💙
-- Daily **trend**, **best day of week**, **active days**, **top vs weakest habit**
-- Offline/online device indicator + **install button**
+- Deep-space dark base (`#0B0F1A`) with a slow aurora drift + fine noise grain — the only
+  background ornament; content sits on quiet glass cards
+- Inter for UI, Manrope for display numbers; `tabular-nums` everywhere digits align
+- 8pt spacing scale, 16/20/24px radii, one unified motion language (respects
+  `prefers-reduced-motion`)
+- Five themes: **Aurora** (default), **Midnight**, **Ember**, **Verdant** and a WCAG-AA
+  **Daylight** mode
+- Mobile-first: bottom tab bar, swipe actions on habit rows, and a floating **+ Add habit**
+  button that stays reachable at every width from 320px up (P0, regression-tested)
+- Offline/online indicator + install button (PWA)
 
-## 🛠️ Tech
+## 🧪 Tests & browser QA
+
+```bash
+npm run test                 # vitest unit + render suite (store, analytics, work engine, import/export)
+node qa/e2e.mjs [base-url]   # real headless-Chromium pass: 300+ checks + screenshots into qa/shots/
+```
+
+The QA pass covers the full spec matrix: onboarding, habit recording, schedule-aware streaks,
+reminders, mood, insights, the projects/assignments/workload/deadlines/record screens,
+celebrations, export/import round-trips, persistence across reloads, navigation, horizontal
+overflow at 320–414px, tap-target sizes and text contrast.

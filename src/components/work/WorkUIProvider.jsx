@@ -7,7 +7,7 @@
    100%; assignments get a quiet confirmation. Ticking one task
    never fires confetti.
    ============================================================ */
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useStore } from '../../store.jsx'
 import { useToast } from '../ui/Toaster.jsx'
@@ -71,44 +71,53 @@ export default function WorkUIProvider({ children }) {
     })
   }, [dispatch, toast])
 
-  /* ---------- progress ---------- */
+  /* ---------- progress ----------
+     Celebrations are NOT fired from these handlers. They are derived from
+     real state transitions in the effect below, so rapid taps, bulk edits,
+     undo and imports all behave identically — and a stale prop can never
+     swallow (or double-fire) the moment. */
   const setAssignmentProgress = useCallback((assignment, pct) => {
-    const before = assignmentProgress(assignment).pct
     dispatch({ type: 'SET_ASSIGNMENT_PROGRESS', id: assignment.id, pct })
-    if (before < 100 && pct >= 100) celebrateAssignment({ ...assignment, progress: pct })
-  }, [dispatch, celebrateAssignment])
+  }, [dispatch])
 
   const toggleSubtask = useCallback((assignment, subtask) => {
-    const before = assignmentProgress(assignment).pct
-    const nextSubs = (assignment.subtasks || []).map((s) => (s.id === subtask.id ? { ...s, done: !s.done } : s))
-    const derived = assignment.progressMode === 'subtasks' && nextSubs.length
-      ? Math.round((nextSubs.filter((s) => s.done).length / nextSubs.length) * 100)
-      : null
-    if (derived != null) {
-      dispatch({ type: 'TOGGLE_SUBTASK', id: assignment.id, subtaskId: subtask.id })
-      if (before < 100 && derived >= 100) celebrateAssignment({ ...assignment, progress: derived })
-    } else {
-      dispatch({ type: 'TOGGLE_SUBTASK', id: assignment.id, subtaskId: subtask.id })
-    }
-  }, [dispatch, celebrateAssignment])
+    dispatch({ type: 'TOGGLE_SUBTASK', id: assignment.id, subtaskId: subtask.id })
+  }, [dispatch])
 
   const toggleTask = useCallback((project, milestone, task) => {
-    const before = projectProgress(project).pct
     dispatch({ type: 'TOGGLE_TASK', projectId: project.id, milestoneId: milestone.id, taskId: task.id })
-    const tasks = (project.milestones || []).flatMap((m) => (m.id === milestone.id
-      ? m.tasks.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t))
-      : m.tasks))
-    const total = tasks.length
-    const done = tasks.filter((t) => t.done).length
-    const after = total ? Math.round((done / total) * 100) : before
-    if (before < 100 && after >= 100) celebrateProject(project)
-  }, [dispatch, celebrateProject])
+  }, [dispatch])
 
   const setProjectPercent = useCallback((project, pct) => {
-    const before = projectProgress(project).pct
-    dispatch({ type: 'UPDATE_PROJECT', id: project.id, patch: { manualPercent: pct, completedAt: pct >= 100 ? (project.completedAt || new Date().toISOString()) : null } })
-    if (before < 100 && pct >= 100) celebrateProject(project)
-  }, [dispatch, celebrateProject])
+    dispatch({
+      type: 'UPDATE_PROJECT',
+      id: project.id,
+      patch: { manualPercent: pct, completedAt: pct >= 100 ? (project.completedAt || new Date().toISOString()) : null },
+    })
+  }, [dispatch])
+
+  /* ---------- completion detection (§27, §77, §84) ---------- */
+  const prevPct = useRef({ projects: {}, assignments: {} })
+  useEffect(() => {
+    const seen = prevPct.current
+    const nextProjects = {}
+    for (const pr of state.projects || []) {
+      const pct = projectProgress(pr).pct
+      const before = seen.projects[pr.id]
+      nextProjects[pr.id] = pct
+      // `before == null` means "first time we saw it" — never celebrate on load
+      if (before != null && before < 100 && pct >= 100) celebrateProject(pr)
+    }
+    const nextAssignments = {}
+    for (const a of state.assignments || []) {
+      const pct = assignmentProgress(a).pct
+      const before = seen.assignments[a.id]
+      nextAssignments[a.id] = pct
+      if (before != null && before < 100 && pct >= 100) celebrateAssignment(a)
+    }
+    seen.projects = nextProjects
+    seen.assignments = nextAssignments
+  }, [state.projects, state.assignments, celebrateProject, celebrateAssignment])
 
   const value = {
     newProject, editProject, closeProjectForm, projectFormOpen: projectForm.open,

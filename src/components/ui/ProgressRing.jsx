@@ -1,4 +1,3 @@
-import { useId } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 
 /**
@@ -7,7 +6,6 @@ import { motion, useReducedMotion } from 'framer-motion'
  */
 export default function ProgressRing({ pct, size = 120, stroke = 10, trackClass = 'ring-track', children, label }) {
   const reduced = useReducedMotion()
-  const gid = useId()
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const clamped = Math.max(0, Math.min(100, pct ?? 0))
@@ -21,12 +19,6 @@ export default function ProgressRing({ pct, size = 120, stroke = 10, trackClass 
       aria-label={label || `${Math.round(clamped)} percent complete`}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-        <defs>
-          <linearGradient id={gid} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--accent-1)" />
-            <stop offset="100%" stopColor="var(--accent-2)" />
-          </linearGradient>
-        </defs>
         <circle className={trackClass} cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} />
         {hasData && (
           <motion.circle
@@ -34,14 +26,14 @@ export default function ProgressRing({ pct, size = 120, stroke = 10, trackClass 
             cy={size / 2}
             r={r}
             fill="none"
-            stroke={`url(#${gid})`}
+            stroke="var(--accent-1)"
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={c}
             initial={false}
             animate={{ strokeDashoffset: c * (1 - clamped / 100) }}
             transition={reduced ? { duration: 0 } : { duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            style={{ filter: 'drop-shadow(0 0 6px var(--accent-soft))' }}
+            style={{ filter: 'none' }}
           />
         )}
       </svg>

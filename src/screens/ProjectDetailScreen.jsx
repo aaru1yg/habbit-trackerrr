@@ -105,7 +105,7 @@ export default function ProjectDetailScreen({ id }) {
       <div className="detail-layout">
       <div className="stack">
         {/* Progress hero */}
-        <SectionCard className="pad-lg">
+        <SectionCard className="pad-lg project-detail-hero">
           <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
             <DonutStat
               pct={status.pct}

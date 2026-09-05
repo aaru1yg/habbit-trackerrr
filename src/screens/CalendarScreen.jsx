@@ -88,6 +88,23 @@ export default function CalendarScreen({ ymParam }) {
     return m
   }, [bands])
 
+  // A second header layer makes long views legible: months are the outer
+  // grouping, weeks are the inner rhythm. The matrix remains one scrollable
+  // surface so the sticky habit labels never lose their context.
+  const monthBands = useMemo(() => {
+    const out = []
+    let current = null
+    for (const day of days) {
+      const key = day.date.slice(0, 7)
+      if (!current || current.key !== key) {
+        current = { key, label: monthLabel(day.date.slice(0, 4), Number(day.date.slice(5, 7)) - 1), days: [] }
+        out.push(current)
+      }
+      current.days.push(day)
+    }
+    return out
+  }, [days])
+
   const rangeStart = days[0]?.date
   const rangeEnd = days[days.length - 1]?.date
 
@@ -215,7 +232,7 @@ export default function CalendarScreen({ ymParam }) {
           ))}
         </div>
 
-        <SectionCard className="pad" style={{ padding: 0, overflow: 'hidden' }}>
+        <SectionCard className="pad calendar-matrix-card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: 'var(--sp-4) var(--sp-4) var(--sp-3)' }}>
             <CardHead title={title}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -234,9 +251,19 @@ export default function CalendarScreen({ ymParam }) {
             <div className="cal-wrap" data-testid="cal-scroll">
               <div
                 className="cal-grid"
-                style={{ gridTemplateColumns: `${NAME_COL}px repeat(${days.length}, ${CELL}px)`, minWidth: NAME_COL + days.length * CELL }}
+                style={{ gridTemplateColumns: `${NAME_COL}px repeat(${days.length}, var(--cal-cell, ${CELL}px))`, minWidth: 'max-content' }}
               >
                 <div className="cal-corner">Habit</div>
+                {monthBands.map((b) => (
+                  <div
+                    key={b.key}
+                    className="cal-month-label"
+                    style={{ gridColumn: `span ${b.days.length}` }}
+                  >
+                    {b.label}
+                  </div>
+                ))}
+                <div className="cal-corner">Week</div>
                 {bands.map((b) => (
                   <div
                     key={b.index}
@@ -323,6 +350,12 @@ export default function CalendarScreen({ ymParam }) {
                     })}
                   </div>
                 ))}
+              </div>
+              <div className="cal-legend" aria-label="Calendar legend">
+                <span><i className="done" /> Completed</span>
+                <span><i /> Scheduled</span>
+                <span><i className="off" /> Not scheduled</span>
+                <span><i className="today" /> Today</span>
               </div>
             </div>
           )}

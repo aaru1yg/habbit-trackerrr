@@ -46,15 +46,15 @@ export default function GoalsScreen() {
   const linkedIds = useMemo(() => new Set(projects.flatMap((p) => p.linkedHabitIds || [])), [projects])
   const unlinked = habits.filter((h) => !linkedIds.has(h.id))
 
-  const nextDeadline = open.find((o) => o.project.deadline && !o.status.complete)?.project || null
+  const nextRow = open.find((o) => o.project.deadline && !o.status.complete) || null
 
   const cells = [
     { label: 'Open goals', value: open.length, note: open.length === 1 ? 'project' : 'projects' },
     { label: 'Habits linked', value: habits.length - unlinked.length, note: `of ${habits.length}` },
     {
       label: 'Next deadline',
-      value: nextDeadline && nextDeadline.status.daysLeft != null ? `${nextDeadline.status.daysLeft}d` : '—',
-      note: nextDeadline ? nextDeadline.project.name : 'none set',
+      value: nextRow && nextRow.status.daysLeft != null ? `${nextRow.status.daysLeft}d` : '—',
+      note: nextRow ? nextRow.project.name : 'none set',
       small: true,
     },
     { label: 'Reached', value: reached.length, note: 'all time' },

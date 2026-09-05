@@ -582,7 +582,7 @@ export const MILESTONE_STREAKS = [3, 7, 14, 21, 30, 50, 100]
  */
 export function streakMilestone(state, habit) {
   if (!habit) return null
-  const streak = habitStreak(state, habit.id)
+  const streak = habitStreak(state, habit)
   const target = MILESTONE_STREAKS.find((m) => m > streak)
   if (target == null) return null
   return { current: streak, target, away: target - streak }
@@ -593,6 +593,7 @@ export function streakMilestone(state, habit) {
    ------------------------------------------------------------ */
 
 export function timelineEvents(state, limit = 60) {
+  const today = todayStr()
   const events = []
   const habits = state.habits || []
   const habitName = (id) => habits.find((h) => h.id === id)?.name || 'Habit'
@@ -670,6 +671,7 @@ export function searchAll(state, query, limit = 24) {
     const s = String(str || '').toLowerCase()
     return tokens.every((t) => s.includes(t))
   }
+  const habitName = (id) => (state.habits || []).find((h) => h.id === id)?.name || 'Habit'
   const groups = []
 
   const habits = (state.habits || []).filter((h) => hit(h.name) || hit(h.notes))
@@ -720,7 +722,23 @@ export function searchAll(state, query, limit = 24) {
       }
     }
   }
-  if (dateMatches.length) groups.push({ id: 'dates', label: 'Dates', items: dateMatches.slice(0, 8) })
+  // work deadlines are dates too — typing one lands the project/assignment
+  const dayHit = (iso) => {
+    const d = dayOf(iso)
+    if (!d) return false
+    return hit(d) || hit(shortDate(d)) || hit(new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }))
+  }
+  for (const pr of state.projects || []) {
+    if (pr.deadline && dayHit(pr.deadline)) {
+      dateMatches.push({ id: `p-${pr.id}`, type: 'date', title: `${shortDate(dayOf(pr.deadline))} · ${pr.name}`, sub: 'Project deadline', date: dayOf(pr.deadline) })
+    }
+  }
+  for (const a of state.assignments || []) {
+    if (a.deadline && dayHit(a.deadline)) {
+      dateMatches.push({ id: `a-${a.id}`, type: 'date', title: `${shortDate(dayOf(a.deadline))} · ${a.name}`, sub: 'Assignment deadline', date: dayOf(a.deadline) })
+    }
+  }
+  if (dateMatches.length) groups.push({ id: 'dates', label: 'Dates', items: dateMatches.slice(0, 10) })
 
   const badges = achievements(state).badges.filter((b) => hit(b.label) || hit(b.blurb))
   if (badges.length) groups.push({ id: 'achievements', label: 'Achievements', items: badges.map((b) => ({ id: b.id, type: 'achievement', title: b.label, sub: b.blurb })) })

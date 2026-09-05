@@ -2,7 +2,7 @@
    Strategy: network-first for the app shell so deployments are picked up
    immediately; cache-first only for immutable hashed build assets and
    same-origin fonts. Old caches are evicted on activate. */
-const CACHE = 'aaru-habits-v5'
+const CACHE = 'aaru-habits-v6'
 const CORE = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './icon-192.png', './icon-512.png', './icon-512-maskable.png']
 
 self.addEventListener('install', (e) => {

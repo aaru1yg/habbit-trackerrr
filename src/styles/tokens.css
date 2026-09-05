@@ -177,12 +177,13 @@ html[data-theme='daylight'] {
   --accent-soft: rgba(90, 61, 240, 0.1);
   --accent-ink: #ffffff;
   --focus: #5a3df0;
-  --good: #16a34a;
-  --good-soft: rgba(22, 163, 74, 0.1);
-  --warn: #b45309;
-  --warn-soft: rgba(180, 83, 9, 0.1);
-  --bad: #dc2626;
-  --bad-soft: rgba(220, 38, 38, 0.09);
+  /* darkened for WCAG AA on light surfaces (pills, pace notes, chips) */
+  --good: #14713a;
+  --good-soft: rgba(20, 113, 58, 0.12);
+  --warn: #8a4b08;
+  --warn-soft: rgba(138, 75, 8, 0.12);
+  --bad: #b3121b;
+  --bad-soft: rgba(179, 18, 27, 0.1);
   --aurora-a: #c9c2f5;
   --aurora-b: #b6ecf3;
   --aurora-c: #ded9fb;

@@ -19,6 +19,7 @@
   font-weight: 600;
   font-size: var(--fs-sm);
   letter-spacing: 0.01em;
+  text-decoration: none;
   transition: transform var(--dur-fast) var(--ease-out),
     background var(--dur-fast) ease, border-color var(--dur-fast) ease,
     box-shadow var(--dur-med) ease, opacity var(--dur-fast) ease;
@@ -383,7 +384,8 @@ html[data-theme='ember'] .toast-action { color: #7dd3fc; }
   -webkit-backdrop-filter: blur(18px);
   border-top: 1px solid var(--border);
 }
-.bottom-nav a {
+.bottom-nav a,
+.bottom-nav button {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -399,7 +401,8 @@ html[data-theme='ember'] .toast-action { color: #7dd3fc; }
   transition: color var(--dur-fast) ease;
   position: relative;
 }
-.bottom-nav a .nav-pill {
+.bottom-nav a .nav-pill,
+.bottom-nav button .nav-pill {
   position: relative;
   display: grid;
   place-items: center;

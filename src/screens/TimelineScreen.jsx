@@ -65,7 +65,6 @@ export default function TimelineScreen({ route = 'timeline' }) {
                         item={e.item}
                         status={e.status}
                         progressPct={e.status.pct}
-                        right={e.kind === 'project' && e.status.hasDeadline ? undefined : undefined}
                       />
                     ))}
                   </div>

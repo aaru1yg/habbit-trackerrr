@@ -123,7 +123,7 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
                 value={draft}
                 autoFocus
                 aria-label={`Rename ${habit.name}`}
-                style={{ minHeight: 36, padding: '4px 10px', fontSize: '0.95rem' }}
+                style={{ padding: '4px 10px', fontSize: '0.95rem' }}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={saveName}

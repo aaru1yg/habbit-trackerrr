@@ -139,7 +139,7 @@ export function AssignmentCard({ assignment, now = new Date() }) {
           <div className="meter-pct" style={{ fontSize: '1.5rem', lineHeight: 1 }}>{status.pct}%</div>
           <button
             className="btn ghost sm"
-            style={{ marginTop: 6, minHeight: 34 }}
+            style={{ marginTop: 6 }}
             aria-expanded={openProgress}
             aria-controls={`ap-${assignment.id}`}
             onClick={() => setOpenProgress((o) => !o)}

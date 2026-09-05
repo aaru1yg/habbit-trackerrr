@@ -105,13 +105,13 @@ export default function ProjectsScreen({ route = 'projects' }) {
                     placeholder="Search projects, tasks, notes…"
                     onChange={(e) => setQuery(e.target.value)}
                   />
-                  {query && <button className="btn ghost icon" style={{ width: 32, height: 32, minHeight: 32 }} aria-label="Clear search" onClick={() => setQuery('')}><IconX size={15} /></button>}
+                  {query && <button className="btn ghost icon" aria-label="Clear search" onClick={() => setQuery('')}><IconX size={15} /></button>}
                 </div>
                 <FilterBar filters={WORK_FILTERS} value={filter} onChange={setFilter} counts={counts} ariaLabel="Filter projects" />
                 <div className="row-between">
                   <span className="tiny muted">{visible.length} shown</span>
                   <label className="sr-only" htmlFor="project-sort">Sort projects</label>
-                  <select id="project-sort" className="status-select" value={sort} onChange={(e) => setSort(e.target.value)} style={{ minHeight: 36 }}>
+                  <select id="project-sort" className="status-select" value={sort} onChange={(e) => setSort(e.target.value)}>
                     {SORTS.map((s) => <option key={s.id} value={s.id}>Sort: {s.label}</option>)}
                   </select>
                 </div>

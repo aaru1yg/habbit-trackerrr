@@ -225,6 +225,7 @@
 /* ---------------- Progress meter ---------------- */
 
 .meter {
+  display: block;
   position: relative;
   height: 8px;
   border-radius: var(--r-pill);
@@ -479,7 +480,7 @@
 .tabbar button,
 .tabbar a {
   flex: 1 0 auto;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: 12px;
   font-size: var(--fs-sm);
@@ -781,6 +782,8 @@
 @media (min-width: 1024px) {
   .detail-layout { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
   .detail-layout .rail { position: sticky; top: var(--sp-4); }
+  /* the work hub tabs duplicate the sidebar on wide screens */
+  .tabbar { display: none; }
 }
 
 /* ---------------- Search palette (§30) ---------------- */
@@ -1565,4 +1568,60 @@
 
 @media (prefers-reduced-motion: reduce) {
   .chip-btn { transition: none; }
+}
+
+/* ------------------------------------------------------------
+   TOUCH TARGETS (§86) — on touch devices every interactive
+   control gets at least a 44×44 hit area, without changing the
+   visual density on desktop.
+   ------------------------------------------------------------ */
+@media (pointer: coarse) {
+  .btn.sm,
+  .btn.ghost.sm,
+  .chip-btn,
+  .filter-bar button,
+  .status-select,
+  .seg-btn,
+  .more-link,
+  .lb-n,
+  .field,
+  .check-box,
+  .toast-action {
+    min-height: 44px;
+  }
+
+  .seg-btn,
+  .filter-bar button,
+  .lb-n,
+  .check-box,
+  .btn.sm,
+  .toast-action {
+    min-width: 44px;
+  }
+
+  .lb-row {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .lb-n {
+    align-self: stretch;
+    display: grid;
+    place-items: center;
+  }
+
+  /* the card title is the primary target — grow its hit box, not the layout */
+  a.work-title,
+  button.work-title {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin-top: -12px;
+    margin-bottom: -12px;
+  }
+}
+
+/* button-style card titles stay flush on desktop */
+button.work-title {
+  padding-left: 0;
+  padding-right: 0;
 }

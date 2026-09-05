@@ -197,7 +197,7 @@ function HabitCard({ habit, index }) {
                 </span>
               )}
             </div>
-            <button className="work-title" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'var(--font-display)', width: '100%' }}
+            <button className="work-title" style={{ background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', fontFamily: 'var(--font-display)', width: '100%' }}
               onClick={() => habitUI.openDetail(habit)} aria-label={`Open ${habit.name}`}>
               {habit.name}
             </button>

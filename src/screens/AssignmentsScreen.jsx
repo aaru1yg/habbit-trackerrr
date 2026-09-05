@@ -119,7 +119,7 @@ export default function AssignmentsScreen({ route = 'assignments' }) {
                 <div className="row-between">
                   <span className="tiny muted">{visible.length} shown</span>
                   <label className="sr-only" htmlFor="assignment-sort">Sort assignments</label>
-                  <select id="assignment-sort" className="status-select" value={sort} onChange={(e) => setSort(e.target.value)} style={{ minHeight: 36 }}>
+                  <select id="assignment-sort" className="status-select" value={sort} onChange={(e) => setSort(e.target.value)}>
                     {SORTS.map((s) => <option key={s.id} value={s.id}>Sort: {s.label}</option>)}
                   </select>
                 </div>

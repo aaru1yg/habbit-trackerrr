@@ -11,7 +11,7 @@ import Onboarding from './components/Onboarding.jsx'
 import Confetti from './components/ui/Confetti.jsx'
 import { isSheetOpen } from './components/ui/Sheet.jsx'
 import TodayScreen from './screens/TodayScreen.jsx'
-import { checkReminders, notify } from './lib/reminders.js'
+import { checkReminders, notify, checkWorkReminders, notifyWork } from './lib/reminders.js'
 import { nowHHMM, todayStr } from './lib/dates.js'
 import { IconPlus, IconOffline, IconProjects, IconAssignment, IconStack } from './lib/icons.jsx'
 
@@ -218,11 +218,29 @@ function ReminderScheduler() {
   useEffect(() => {
     const tick = () => {
       const s = stateRef.current
-      if (!s?.habits?.length) return
-      const due = checkReminders(s, nowHHMM(), todayStr())
-      for (const h of due) {
-        const shown = notify(h)
-        if (!shown) toast.show(`Reminder: ${h.name}`)
+      if (!s) return
+      if (s.habits?.length) {
+        const due = checkReminders(s, nowHHMM(), todayStr())
+        for (const h of due) {
+          const shown = notify(h)
+          if (!shown) toast.show(`Reminder: ${h.name}`)
+        }
+      }
+      // Deadline alerts: one per tick (most urgent first) so opening the app
+      // never fires a burst of toasts. Each item alerts once per day.
+      if (s.profile?.workReminders) {
+        const due = checkWorkReminders(s, { thresholdHours: s.profile.workReminderHours || 24 })
+          .sort((a, b) => (a.status.hoursLeft ?? 0) - (b.status.hoursLeft ?? 0))
+        const next = due[0]
+        if (next) {
+          const shown = notifyWork(next.kind, next.item, next.status)
+          if (!shown) {
+            toast.show(`${next.item.name}: ${next.status.dueText || 'deadline approaching'}`, {
+              actionLabel: 'Open',
+              onAction: () => { window.location.hash = `#/${next.kind}s/${next.item.id}` },
+            })
+          }
+        }
       }
     }
     const id = setInterval(tick, 30000)

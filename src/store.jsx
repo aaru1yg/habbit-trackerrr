@@ -27,6 +27,7 @@ export const emptyState = () => ({
     lastBackupReminder: null,
     reminderNoteSeen: false,
     workReminders: true,
+    workReminderHours: 24,
   },
   habits: [],
   checkins: {},

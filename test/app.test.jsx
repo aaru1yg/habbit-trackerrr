@@ -237,6 +237,27 @@ describe('core flows', () => {
     await screen.findByRole('button', { name: /Mark Water complete/i })
   })
 
+  it('settings: deadline alerts toggle and window persist across a reload', async () => {
+    const ob = await onboard()
+    window.location.hash = '#/settings'
+    await screen.findByLabelText('Your name')
+
+    const sw = screen.getByRole('switch', { name: 'Deadline alerts' })
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+    fireEvent.change(screen.getByLabelText('Alert window'), { target: { value: '72' } })
+    fireEvent.click(sw)
+    expect(sw.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(sw)
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+
+    ob.unmount()
+    renderApp()
+    window.location.hash = '#/settings'
+    await screen.findByLabelText('Your name')
+    expect(screen.getByRole('switch', { name: 'Deadline alerts' }).getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByLabelText('Alert window').value).toBe('72')
+  })
+
   it('unknown hash falls back to Today', async () => {
     await onboard()
     window.location.hash = '#/nonsense'

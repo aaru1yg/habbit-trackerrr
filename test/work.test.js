@@ -14,6 +14,7 @@ import {
   urgencyOf, deadlineFromPreset, PROGRESS_STEPS,
 } from '../src/lib/work.js'
 import { addDaysStr, subDaysStr, todayStr, isoLocal } from '../src/lib/dates.js'
+import { checkWorkReminders, workAlertFired } from '../src/lib/reminders.js'
 
 const NOW = new Date('2026-09-05T09:00:00') // Saturday
 const TODAY = '2026-09-05'
@@ -518,5 +519,39 @@ describe('deadline presets', () => {
     expect(deadlineFromPreset('1d', NOW)).toBe('2026-09-06T09:00')
     expect(deadlineFromPreset('7d', NOW)).toBe('2026-09-12T09:00')
     expect(deadlineFromPreset('nope', NOW)).toBeNull()
+  })
+})
+
+describe('deadline alerts', () => {
+  it('flags open work inside the window, once per day, and never invents deadlines', () => {
+    localStorage.clear()
+    const state = stateOf(
+      [
+        project({ id: 'p-far', deadline: '2026-09-20T09:00' }),
+        project({ id: 'p-soon', deadline: '2026-09-05T20:00' }),
+        project({ id: 'p-done', deadline: '2026-09-05T20:00', completedAt: '2026-09-04T10:00' }),
+        project({ id: 'p-none', deadline: null }),
+      ],
+      [
+        assignment({ id: 'a-over', deadline: '2026-09-04T20:00' }),
+        assignment({ id: 'a-none', deadline: null }),
+      ],
+    )
+
+    const due = checkWorkReminders(state, { now: NOW, thresholdHours: 24 })
+    expect(due.map((d) => `${d.kind}:${d.item.id}`).sort()).toEqual(['assignment:a-over', 'project:p-soon'])
+    expect(workAlertFired('2026-09-05', 'project:p-soon')).toBe(true)
+
+    // the 30s tick stays quiet — each item alerts once per day
+    expect(checkWorkReminders(state, { now: NOW, thresholdHours: 24 })).toEqual([])
+
+    // a wider window adds the far project, but already-alerted items stay quiet
+    const wide = checkWorkReminders(state, { now: NOW, thresholdHours: 24 * 15 })
+    expect(wide.map((d) => d.item.id)).toEqual(['p-far'])
+
+    // the next day the window resets
+    const nextDay = new Date('2026-09-06T09:00:00')
+    const again = checkWorkReminders(state, { now: nextDay, thresholdHours: 24 })
+    expect(again.map((d) => d.item.id).sort()).toEqual(['a-over', 'p-soon'])
   })
 })

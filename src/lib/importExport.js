@@ -276,6 +276,7 @@ function coerceProfile(raw) {
     lastBackupReminder: day(p.lastBackupReminder),
     reminderNoteSeen: p.reminderNoteSeen === true,
     workReminders: p.workReminders !== false,
+    workReminderHours: [12, 24, 48, 72].includes(Number(p.workReminderHours)) ? Number(p.workReminderHours) : 24,
   }
 }
 

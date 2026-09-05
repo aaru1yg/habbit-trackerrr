@@ -571,6 +571,24 @@ function timeOfDayForHabit(state, habit, days = 90) {
 }
 
 /* ------------------------------------------------------------
+   STREAK MILESTONES — today intelligence (§28)
+   ------------------------------------------------------------ */
+
+export const MILESTONE_STREAKS = [3, 7, 14, 21, 30, 50, 100]
+
+/**
+ * Next meaningful streak milestone for a habit.
+ * @returns {{current:number, target:number, away:number}|null}
+ */
+export function streakMilestone(state, habit) {
+  if (!habit) return null
+  const streak = habitStreak(state, habit.id)
+  const target = MILESTONE_STREAKS.find((m) => m > streak)
+  if (target == null) return null
+  return { current: streak, target, away: target - streak }
+}
+
+/* ------------------------------------------------------------
    TIMELINE — the behavioural record, derived from real events
    ------------------------------------------------------------ */
 

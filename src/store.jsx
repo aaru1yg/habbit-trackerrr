@@ -456,6 +456,15 @@ function reducer(state, action) {
       return mapProject(state, action.projectId, (p) => settleProject(
         inMilestone(p, action.milestoneId, (m) => ({ ...m, tasks: m.tasks.filter((t) => t.id !== action.taskId) }))
       ))
+    case 'RESTORE_TASK':
+      return mapProject(state, action.projectId, (p) => settleProject(
+        inMilestone(p, action.milestoneId, (m) => {
+          const tasks = [...m.tasks]
+          const at = Math.max(0, Math.min(tasks.length, action.index ?? tasks.length))
+          tasks.splice(at, 0, action.task)
+          return { ...m, tasks }
+        })
+      ))
     case 'REORDER_TASKS':
       return mapProject(state, action.projectId, (p) => settleProject(
         inMilestone(p, action.milestoneId, (m) => {
@@ -509,6 +518,13 @@ function reducer(state, action) {
         ...a,
         subtasks: (a.subtasks || []).filter((s) => s.id !== action.subtaskId),
       }))
+    case 'RESTORE_SUBTASK':
+      return mapAssignment(state, action.id, (a) => {
+        const subtasks = [...(a.subtasks || [])]
+        const at = Math.max(0, Math.min(subtasks.length, action.index ?? subtasks.length))
+        subtasks.splice(at, 0, action.subtask)
+        return settleAssignment({ ...a, subtasks })
+      })
     case 'REORDER_SUBTASKS':
       return mapAssignment(state, action.id, (a) => {
         const pos = new Map(action.order.map((id, i) => [id, i]))

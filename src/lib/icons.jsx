@@ -152,3 +152,86 @@ export const IconClock = ({ size }) => wrap(<>
   <circle cx="12" cy="12" r="9" />
   <path d="M12 7v5l3.5 2" />
 </>, size)
+
+/* ---- Work system: projects, assignments, workload, timeline, search ---- */
+
+export const IconProjects = ({ size }) => wrap(<>
+  <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3l2 2.5h8A2.5 2.5 0 0 1 21 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5Z" />
+  <path d="M8 13.5h8" />
+</>, size)
+
+export const IconAssignment = ({ size }) => wrap(<>
+  <path d="M9 4h6v2.5H9z" />
+  <path d="M15 5.2h2.5A1.5 1.5 0 0 1 19 6.7v12.6a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.3V6.7a1.5 1.5 0 0 1 1.5-1.5H9" />
+  <path d="M8.5 11.5h7M8.5 15h4.5" />
+</>, size)
+
+export const IconWorkload = ({ size }) => wrap(<>
+  <path d="M3 20h18" />
+  <rect x="4" y="12" width="3.6" height="6" rx="1.2" />
+  <rect x="10.2" y="8" width="3.6" height="10" rx="1.2" />
+  <rect x="16.4" y="4" width="3.6" height="14" rx="1.2" />
+</>, size)
+
+export const IconTimeline = ({ size }) => wrap(<>
+  <path d="M6 3v18" />
+  <circle cx="6" cy="7.5" r="2" />
+  <circle cx="6" cy="16.5" r="2" />
+  <path d="M10 7.5h10M10 16.5h7" />
+</>, size)
+
+export const IconSearch = ({ size }) => wrap(<>
+  <circle cx="11" cy="11" r="6.5" />
+  <path d="M16 16l4.5 4.5" />
+</>, size)
+
+export const IconFlag = ({ size }) => wrap(<>
+  <path d="M6 21V4" />
+  <path d="M6 5h11l-2 3.5L17 12H6" />
+</>, size)
+
+export const IconLink = ({ size }) => wrap(<>
+  <path d="M10.5 13.5a3.5 3.5 0 0 0 5 0l3-3a3.54 3.54 0 0 0-5-5l-1.5 1.5" />
+  <path d="M13.5 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.54 3.54 0 0 0 5 5l1.5-1.5" />
+</>, size)
+
+export const IconAlert = ({ size }) => wrap(<>
+  <path d="M12 4.5 2.8 20h18.4Z" />
+  <path d="M12 10v4.2M12 17.2h.01" />
+</>, size)
+
+export const IconLayers = ({ size }) => wrap(<>
+  <path d="m12 3 9 5-9 5-9-5Z" />
+  <path d="m3.5 12.5 8.5 4.7 8.5-4.7" />
+  <path d="m3.5 16.8 8.5 4.7 8.5-4.7" />
+</>, size)
+
+export const IconTarget = ({ size }) => wrap(<>
+  <circle cx="12" cy="12" r="8.5" />
+  <circle cx="12" cy="12" r="4" />
+  <path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3" />
+</>, size)
+
+export const IconInbox = ({ size }) => wrap(<>
+  <path d="M3.5 13.5h4l1.5 2.5h6l1.5-2.5h4" />
+  <path d="M5.6 5.2h12.8l2.1 8.3v3.7a1.8 1.8 0 0 1-1.8 1.8H5.3a1.8 1.8 0 0 1-1.8-1.8v-3.7Z" />
+</>, size)
+
+export const IconMore = ({ size }) => wrap(<>
+  <circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+  <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+  <circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+</>, size)
+
+export const IconHourglass = ({ size }) => wrap(<>
+  <path d="M7 3h10M7 21h10" />
+  <path d="M8 3v3.5L12 12l-4 5.5V21M16 3v3.5L12 12l4 5.5V21" />
+</>, size)
+
+export const IconStack = ({ size }) => wrap(<>
+  <rect x="4" y="4" width="16" height="5" rx="2" />
+  <rect x="4" y="12" width="16" height="5" rx="2" />
+  <path d="M7 19.5h10" />
+</>, size)
+
+export const IconArrowUpRight = ({ size }) => wrap(<path d="M7 17 17 7M9 7h8v8" />, size)

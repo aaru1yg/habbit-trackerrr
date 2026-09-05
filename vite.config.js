@@ -64,9 +64,13 @@ function buildIdentity() {
 export default defineConfig({
   plugins: [react(), buildIdentity()],
   base,
+  // Only the commit SHA is inlined into JS: it is identical for every build of
+  // the same commit, so hashed asset filenames stay deterministic and a local
+  // build byte-matches the CI artifact. The wall-clock build time lives only
+  // in dist/index.html (<meta name="build-time">, unhashed) and is read back
+  // at runtime by src/lib/buildInfo.js.
   define: {
     __BUILD_ID__: JSON.stringify(BUILD_ID),
-    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
   },
   server: {
     host: '0.0.0.0',

@@ -15,6 +15,8 @@ import {
   timeVsWork, itemHistory, allTasks, TASK_STATUSES, PRIORITIES,
 } from '../lib/work.js'
 import { activeHabits, habitRate, habitStreak } from '../lib/stats.js'
+import { categoryOf } from '../lib/schedule.js'
+import { Link } from '../lib/router.jsx'
 import { todayStr, subDaysStr, shortDate, prettyDate, dayOf, minutesLabel, daysUntil, addDaysStr } from '../lib/dates.js'
 import {
   IconChevronLeft, IconPlus, IconTrash, IconPencil, IconProjects, IconGrip, IconCheck,
@@ -38,6 +40,7 @@ export default function ProjectDetailScreen({ id }) {
   const status = useMemo(() => (project ? projectStatus(project, now) : null), [project])
   const progress = useMemo(() => (project ? projectProgress(project) : null), [project])
   const track = useMemo(() => (project ? milestoneTrack(project) : []), [project])
+  const nextMilestone = useMemo(() => track.find((m) => !m.reached) || null, [track])
   const habits = activeHabits(state)
 
   if (!project) {
@@ -99,6 +102,7 @@ export default function ProjectDetailScreen({ id }) {
         </div>
       </header>
 
+      <div className="detail-layout">
       <div className="stack">
         {/* Progress hero */}
         <SectionCard className="pad-lg">
@@ -241,6 +245,52 @@ export default function ProjectDetailScreen({ id }) {
         {tab === 'timeline' && <ProjectTimeline project={project} status={status} track={track} />}
         {tab === 'analytics' && <ProjectAnalyticsDetail project={project} status={status} />}
       </div>
+
+      {/* Desktop rail (§81): the facts, always visible next to the work.
+          On mobile it stacks under the main column. */}
+      <aside className="rail stack" aria-label="Project details">
+        <SectionCard className="pad">
+          <CardHead title="Details" />
+          <dl className="kv">
+            <dt>Category</dt><dd>{categoryOf(project.category).label}</dd>
+            <dt>Priority</dt><dd>{PRIORITIES.find((x) => x.id === project.priority)?.label || 'Normal'}</dd>
+            <dt>Started</dt><dd className="tnum">{project.startDate ? prettyDate(project.startDate) : '—'}</dd>
+            <dt>Deadline</dt>
+            <dd className="tnum">
+              {project.deadline
+                ? `${prettyDate(dayOf(project.deadline))}${!status.complete && status.daysLeft != null ? ` · ${status.daysLeft}d left` : ''}`
+                : 'None set'}
+            </dd>
+            <dt>Tasks</dt><dd className="tnum">{progress.done} of {progress.total} done</dd>
+            {nextMilestone && (<><dt>Next milestone</dt><dd>{nextMilestone.name}</dd></>)}
+            {Number(project.estimateMin) > 0 && (<><dt>Estimated</dt><dd className="tnum">{minutesLabel(project.estimateMin)}</dd></>)}
+            {Number(project.actualMin) > 0 && (<><dt>Time logged</dt><dd className="tnum">{minutesLabel(project.actualMin)}</dd></>)}
+          </dl>
+        </SectionCard>
+
+        <SectionCard className="pad">
+          <CardHead title="Habits carrying this" />
+          {linkedHabits.length ? (
+            <div className="wrap-gap" style={{ gap: 6 }}>
+              {linkedHabits.map((h) => (
+                <Link key={h.id} to="library" className="chip">{h.name}</Link>
+              ))}
+            </div>
+          ) : (
+            <p className="empty-note">Link habits from Edit to see consistency next to progress.</p>
+          )}
+        </SectionCard>
+
+        <SectionCard className="pad">
+          <CardHead title="See it in context" />
+          <div className="stack" style={{ gap: 8 }}>
+            <Link to="workload" className="btn ghost sm">Workload</Link>
+            <Link to="timeline" className="btn ghost sm">All deadlines</Link>
+            <Link to="goals" className="btn ghost sm">Goals</Link>
+          </div>
+        </SectionCard>
+      </aside>
+      </div>
     </div>
   )
 }
@@ -347,7 +397,7 @@ function TaskRow({ task: t, project, milestone, expanded, setExpanded, dispatch,
           )}
           {t.priority === 'high' && <span className="chip tag-bad" style={{ minHeight: 22 }}>High</span>}
           {Number(t.estimateMin) > 0 && <span>~{minutesLabel(t.estimateMin)}</span>}
-          <button className="btn ghost sm" style={{ minHeight: 30, padding: '0 8px' }}
+          <button className="btn ghost sm" style={{ padding: '0 10px' }}
             aria-expanded={expanded === t.id} aria-label={`Details for task ${t.name}`}
             onClick={() => setExpanded(expanded === t.id ? null : t.id)}>
             {expanded === t.id ? 'Close' : 'Details'}

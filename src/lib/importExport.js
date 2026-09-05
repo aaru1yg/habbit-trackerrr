@@ -310,9 +310,13 @@ export function normalizeImport(parsed) {
   const habits = (Array.isArray(source.habits) ? source.habits : []).map(coerceHabit).filter(Boolean)
   const habitIds = new Set(habits.map((h) => h.id))
   const projectsRaw = Array.isArray(source.projects) ? source.projects : sourceProjectsFromLegacy(source, habits)
-  const projects = projectsRaw.map(coerceProject).filter(Boolean)
+  // NB: pass the id sets explicitly — Array#map would hand the coercers the
+  // raw array as their third argument and cross-linking would crash.
+  const projects = projectsRaw.map((raw, i) => coerceProject(raw, i, habitIds)).filter(Boolean)
   const projectIds = new Set(projects.map((p) => p.id))
-  const assignments = (Array.isArray(source.assignments) ? source.assignments : []).map(coerceAssignment).filter(Boolean)
+  const assignments = (Array.isArray(source.assignments) ? source.assignments : [])
+    .map((raw, i) => coerceAssignment(raw, i, projectIds))
+    .filter(Boolean)
   const routines = (Array.isArray(source.routines) ? source.routines : []).map((r, i) => coerceRoutine(r, i, habitIds)).filter(Boolean)
   const checkins = coerceCheckins(source.checkins)
   const moods = coerceMoods(source.moods ?? source.mood ?? {})

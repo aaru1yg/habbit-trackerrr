@@ -284,7 +284,7 @@
   .quick-pct { grid-template-columns: repeat(11, minmax(0, 1fr)); }
 }
 .quick-pct button {
-  min-height: 40px;
+  min-height: var(--touch);
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -801,6 +801,8 @@
 .search-field input {
   flex: 1;
   min-width: 0;
+  /* Fill the field so the whole 48px control is a tap target, not just the text line. */
+  align-self: stretch;
   background: none;
   border: none;
   outline: none;
@@ -1189,7 +1191,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 32px;
+  min-height: var(--touch);
   padding: 0 8px 0 2px;
   margin-left: -2px;
   border-radius: var(--r-pill);
@@ -1470,6 +1472,7 @@
   font-variant-numeric: tabular-nums;
   border-radius: 12px;
   padding: 9px 0;
+  min-height: var(--touch);
   cursor: pointer;
   transition: background 160ms var(--ease), color 160ms var(--ease), border-color 160ms var(--ease), transform 120ms var(--ease);
 }
@@ -1516,6 +1519,8 @@
 }
 
 .goal-name:hover { color: var(--accent-2); }
+/* Title links are primary navigation on touch: give them a full-height target. */
+a.goal-name { display: flex; align-items: center; min-height: var(--touch); }
 
 .chip-btn {
   display: inline-flex;
@@ -1624,4 +1629,21 @@
 button.work-title {
   padding-left: 0;
   padding-right: 0;
+}
+
+/* Compact icon buttons keep their 36px visual box but expand the hit area to
+   the 44px touch minimum via a centred pseudo-element. */
+.btn.icon.touch-pad {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+}
+.btn.icon.touch-pad::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: var(--touch);
+  height: var(--touch);
+  transform: translate(-50%, -50%);
 }

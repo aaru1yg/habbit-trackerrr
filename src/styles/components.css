@@ -152,6 +152,9 @@ html[data-theme='daylight'] .card {
   font-weight: 600;
   white-space: nowrap;
 }
+/* Static chips stay compact; interactive ones meet the touch minimum. */
+a.chip, button.chip { min-height: var(--touch); padding-inline: 12px; }
+
 .chip .dot {
   width: 8px;
   height: 8px;
@@ -774,7 +777,14 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
 .hm-cell.l2 { background: color-mix(in srgb, var(--good) 55%, var(--track)); }
 .hm-cell.l3 { background: color-mix(in srgb, var(--good) 80%, var(--track)); }
 .hm-cell.l4 { background: var(--good); }
-.hm-cell.empty { background: transparent; border: 1px dashed var(--border); }
+/* Reset the generic `.empty` empty-state rule, which otherwise pads these cells. */
+.hm-cell.empty {
+  display: block;
+  padding: 0;
+  gap: 0;
+  background: transparent;
+  border: 1px dashed var(--border);
+}
 .hm-cell.future { opacity: 0.35; }
 
 /* ---------------- Mood ---------------- */
@@ -1035,7 +1045,17 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
   text-align: left;
 }
 .perf-cell.tnum { font-variant-numeric: tabular-nums; }
-.perf-name { position: relative; overflow: hidden; }
+/* Name + strength bar stack vertically: the bar is a real rate gauge under the
+   label instead of a tint sliding out from behind the text. */
+.perf-name {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 5px;
+  overflow: hidden;
+}
 .perf-name-text {
   position: relative;
   z-index: 1;
@@ -1045,13 +1065,13 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
   white-space: nowrap;
 }
 .perf-bar {
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  z-index: 0;
-  border-radius: 6px;
-  background: var(--accent-soft);
+  position: relative;
+  display: block;
+  height: 4px;
+  min-width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  opacity: 0.9;
 }
 .perf-sub { font-size: var(--fs-xs); color: var(--text-3); }
 
@@ -1200,6 +1220,9 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
 
 /* Mini months + badges */
 .mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+/* Year overview: day cells are squares driven by column width, so the day grid
+   must not stretch them to fill leftover card height. */
+.mini-month > span:last-child { align-items: start; }
 .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .badge {
   display: flex;
@@ -1251,6 +1274,7 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
    SWITCH (settings)
    ------------------------------------------------------------ */
 .switch {
+  position: relative;
   flex: none;
   width: 48px;
   height: 28px;
@@ -1262,6 +1286,16 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
   display: flex;
   align-items: center;
   transition: background 180ms var(--ease), border-color 180ms var(--ease);
+}
+
+/* Keep the 28px look but expand the hit area to the 44px touch minimum. */
+.switch::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 100%;
+  height: var(--touch);
+  transform: translate(-50%, -50%);
 }
 
 .switch-knob {

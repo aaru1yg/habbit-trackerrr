@@ -263,8 +263,8 @@ export default function InsightsScreen() {
             {perf.map(({ habit, rate, done, eligible, streak, best }) => (
               <div className="perf-row" key={habit.id}>
                 <div className="perf-cell perf-name">
-                  <span className="perf-bar" style={{ width: `${Math.round((rate ?? 0) * 100)}%` }} aria-hidden="true" />
                   <span className="perf-name-text">{habit.name}</span>
+                  <span className="perf-bar" style={{ width: `${Math.round((rate ?? 0) * 100)}%` }} aria-hidden="true" />
                 </div>
                 <div className="perf-cell tnum">
                   {rate == null ? '—' : `${Math.round(rate * 100)}%`}

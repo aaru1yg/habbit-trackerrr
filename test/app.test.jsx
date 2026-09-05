@@ -77,14 +77,14 @@ describe('core flows', () => {
   it('adds a habit with a Mon/Wed/Fri schedule; only scheduled days count', async () => {
     await onboard()
     await addHabit('Gym', { weekdays: ['Mon', 'Wed', 'Fri'] })
-    await waitFor(() => expect(screen.getAllByText('Gym').length).toBeGreaterThan(0))
 
-    const weekday = new Date().getDay()
-    if ([1, 3, 5].includes(weekday)) {
-      // scheduled today: row present with schedule label
+    // Date-robust: Today only lists habits scheduled *today*.
+    const scheduledToday = [1, 3, 5].includes(new Date().getDay())
+    if (scheduledToday) {
+      await waitFor(() => expect(screen.getAllByText('Gym').length).toBeGreaterThan(0))
       expect(screen.getByText('Mon · Wed · Fri')).toBeTruthy()
     } else {
-      expect(screen.getByText(/Nothing scheduled today/i)).toBeTruthy()
+      await waitFor(() => expect(screen.getByText(/Nothing scheduled today/i)).toBeTruthy())
     }
   })
 
@@ -156,28 +156,67 @@ describe('core flows', () => {
     expect((await screen.findAllByText(/Solid focus/i)).length).toBeGreaterThan(0)
   })
 
-  it('goals: create → milestone → task → 100% completion state', async () => {
+  it('project progress is mathematical: 1 of 2 tasks = 50%, 2 of 2 = 100% + celebration', async () => {
     await onboard()
-    window.location.hash = '#/goals'
-    await screen.findByText(/No goals yet/i)
-
-    fireEvent.click(screen.getByRole('button', { name: /New goal/i }))
-    const form = await screen.findByRole('dialog')
-    fireEvent.change(within(form).getByLabelText(/^Goal/i), { target: { value: 'Ship v1' } })
-    fireEvent.click(within(form).getByRole('button', { name: /Create goal/i }))
+    window.location.hash = '#/projects'
+    await screen.findByText('No projects yet')
+    fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
+    const form = await screen.findByRole('dialog', { name: 'New project' })
+    fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Ship v1' } })
+    fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Scope\nBuild' } })
+    fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
     await screen.findByText('Ship v1')
 
-    fireEvent.click(screen.getByRole('button', { name: /Add milestone/i }))
-    fireEvent.change(screen.getByLabelText(/New milestone name/i), { target: { value: 'Scope' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    await screen.findByText('Scope')
+    // open the project and add one task per milestone
+    fireEvent.click(screen.getByRole('link', { name: /Open Ship v1/i }))
+    const scopeInput = await screen.findByRole('textbox', { name: /task to Scope/i })
+    fireEvent.change(scopeInput, { target: { value: 'Write spec' } })
+    fireEvent.submit(scopeInput.closest('form'))
+    const buildInput = await screen.findByRole('textbox', { name: /task to Build/i })
+    fireEvent.change(buildInput, { target: { value: 'Frontend' } })
+    fireEvent.submit(buildInput.closest('form'))
+    await screen.findByText('Write spec')
+    await screen.findByText('Frontend')
 
-    const taskInput = screen.getByRole('textbox', { name: /Add task to Scope/i })
-    fireEvent.change(taskInput, { target: { value: 'Write spec' } })
-    fireEvent.submit(taskInput.closest('form'))
+    // 1 of 2 tasks done is exactly 50%
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Write spec done' }))
+    await waitFor(() => expect(screen.getAllByText(textContentMatcher('50%')).length).toBeGreaterThan(0))
 
-    fireEvent.click(await screen.findByRole('checkbox'))
-    await waitFor(() => expect(screen.getAllByText(textContentMatcher('100%')).length).toBeGreaterThan(0))
+    // 2 of 2 is 100% and earns the big celebration (§84)
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Frontend done' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Project complete' })
+    expect(within(dialog).getByText('Ship v1')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: /Close it out/i }))
+  })
+
+  it('goals: direction links a habit to a project and shows the real 30-day rate', async () => {
+    await onboard()
+    await addHabit('Write')
+    fireEvent.click(await screen.findByRole('button', { name: /Mark Write complete/i }))
+
+    window.location.hash = '#/projects'
+    await screen.findByText('No projects yet')
+    fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
+    const form = await screen.findByRole('dialog', { name: 'New project' })
+    fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Write a novella' } })
+    fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Draft' } })
+    fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
+    await screen.findByText('Write a novella')
+
+    window.location.hash = '#/goals'
+    await screen.findByRole('heading', { name: 'Goals' })
+    await screen.findByText('Write a novella')
+    expect(screen.getByText(/Habits not tied to a goal/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Link habits/i }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Write' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    await waitFor(() => expect(screen.queryByText(/Habits not tied to a goal/)).toBeNull())
+    // a real completion today means a real rate, never a placeholder
+    expect(screen.getByText(/100% · 30d/)).toBeTruthy()
+    // the direction summary counts the link
+    expect(screen.getByText('Habits linked')).toBeTruthy()
   })
 
   it('settings: switch theme → persists; export/import round-trip via store', async () => {
@@ -198,27 +237,71 @@ describe('core flows', () => {
     await screen.findByRole('button', { name: /Mark Water complete/i })
   })
 
+  it('settings: deadline alerts toggle and window persist across a reload', async () => {
+    const ob = await onboard()
+    window.location.hash = '#/settings'
+    await screen.findByLabelText('Your name')
+
+    const sw = screen.getByRole('switch', { name: 'Deadline alerts' })
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+    fireEvent.change(screen.getByLabelText('Alert window'), { target: { value: '72' } })
+    fireEvent.click(sw)
+    expect(sw.getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(sw)
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+
+    ob.unmount()
+    renderApp()
+    window.location.hash = '#/settings'
+    await screen.findByLabelText('Your name')
+    expect(screen.getByRole('switch', { name: 'Deadline alerts' }).getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByLabelText('Alert window').value).toBe('72')
+  })
+
   it('unknown hash falls back to Today', async () => {
     await onboard()
     window.location.hash = '#/nonsense'
     await screen.findByText(/Start with one habit/i)
   })
 
-  it('bottom nav has exactly the five tabs and they navigate', async () => {
+  it('mobile nav shows the four primary tabs and More reveals the rest (§78)', async () => {
     await onboard()
     const nav = document.querySelector('.bottom-nav')
     expect(nav).toBeTruthy()
-    for (const label of ['Today', 'Calendar', 'Week', 'Insights', 'Mind']) {
+    for (const label of ['Today', 'Calendar', 'Work', 'Insights']) {
       expect(within(nav).getByText(label)).toBeTruthy()
     }
-    expect(within(nav).getAllByRole('link')).toHaveLength(5)
+    expect(within(nav).getAllByRole('link')).toHaveLength(4)
 
     fireEvent.click(within(nav).getByText('Calendar'))
     await screen.findByText(/Tap any past day to log it/i)
-    fireEvent.click(within(nav).getByText('Week'))
-    await screen.findByText(/No habits scheduled this week/i)
+    fireEvent.click(within(nav).getByText('Work'))
+    await screen.findByText('No projects yet')
     fireEvent.click(within(nav).getByText('Insights'))
     await screen.findByText(/Nothing to analyze yet/i)
+
+    // More sheet carries the secondary routes
+    fireEvent.click(within(nav).getByRole('button', { name: 'More sections' }))
+    const sheet = await screen.findByRole('dialog')
+    for (const label of ['Week', 'Mind', 'Workload', 'Deadlines', 'Habit library', 'Goals', 'Record', 'Settings']) {
+      expect(within(sheet).getByText(label)).toBeTruthy()
+    }
+    fireEvent.click(within(sheet).getByText('Week'))
+    await screen.findByText(/No habits scheduled this week/i)
+  })
+
+  it('desktop sidebar exposes every route and the search shortcut (§78, §30)', async () => {
+    await onboard()
+    const links = [...document.querySelectorAll('.sidebar-nav a, .sidebar-settings')].map((a) => a.getAttribute('href'))
+    for (const to of ['#/today', '#/calendar', '#/week', '#/projects', '#/assignments', '#/workload',
+      '#/timeline', '#/insights', '#/mind', '#/library', '#/goals', '#/record', '#/settings']) {
+      expect(links).toContain(to)
+    }
+    expect(document.querySelector('.sidebar-search')).toBeTruthy()
+
+    // '/' opens the palette anywhere
+    fireEvent.keyDown(window, { key: '/' })
+    await screen.findByRole('dialog', { name: 'Search' })
   })
 
   it('calendar: toggling a past day updates stats (data integrity)', async () => {
@@ -245,5 +328,107 @@ describe('core flows', () => {
       expect(el.textContent).toMatch(/^\d+ of \d+ check-ins$/)
       expect(Number(el.textContent.match(/^(\d+)/)[1])).toBeGreaterThanOrEqual(1)
     })
+  })
+})
+
+
+describe('work layer', () => {
+  it('every work route renders without crashing', async () => {
+    await onboard()
+    window.location.hash = '#/projects'
+    await screen.findByText('No projects yet')
+    window.location.hash = '#/assignments'
+    await screen.findByText('Nothing due yet')
+    window.location.hash = '#/workload'
+    await screen.findByText('No work scheduled')
+    window.location.hash = '#/timeline'
+    await screen.findByText('No deadlines in this view')
+    window.location.hash = '#/library'
+    await screen.findByText('No habits yet')
+    window.location.hash = '#/record'
+    await screen.findByText('Nothing recorded yet')
+  })
+
+  it('Work tab segments between Projects and Assignments', async () => {
+    await onboard()
+    window.location.hash = '#/projects'
+    await screen.findByText('No projects yet')
+    const seg = document.querySelector('.tabbar')
+    expect(seg).toBeTruthy()
+    fireEvent.click(within(seg).getByText('Assignments'))
+    await screen.findByText('Nothing due yet')
+    expect(window.location.hash).toBe('#/assignments')
+  })
+
+  it('creates a project from the Work FAB and shows it on the dashboard', async () => {
+    await onboard()
+    window.location.hash = '#/projects'
+    await screen.findByText('No projects yet')
+    fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
+    const form = await screen.findByRole('dialog', { name: 'New project' })
+    fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Portfolio site' } })
+    fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Plan\nBuild\nLaunch' } })
+    fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
+    await screen.findByText('Portfolio site')
+    // milestones drive the stepper; progress is honest at 0%
+    await screen.findByText('Next: Plan')
+    await screen.findByText('No tasks yet')
+  })
+
+  it('creates an assignment with a deadline and shows the countdown', async () => {
+    await onboard()
+    window.location.hash = '#/assignments'
+    await screen.findByText('Nothing due yet')
+    fireEvent.click(screen.getByRole('button', { name: /Create an assignment/i }))
+    const form = await screen.findByRole('dialog', { name: 'New assignment' })
+    fireEvent.change(within(form).getByLabelText(/^Assignment$/i), { target: { value: 'DS Lab 3' } })
+    fireEvent.change(within(form).getByLabelText(/^Subject/i), { target: { value: 'Data Structures' } })
+    fireEvent.click(within(form).getByRole('button', { name: /Create assignment/i }))
+    await screen.findByText('DS Lab 3')
+    await screen.findByText('Data Structures')
+  })
+
+  it('global search finds habits, projects and assignments (§30)', async () => {
+    await onboard()
+    await addHabit('Deep work')
+    await screen.findByRole('button', { name: /Mark Deep work complete/i })
+
+    window.location.hash = '#/projects'
+    await screen.findByText('No projects yet')
+    fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
+    const pform = await screen.findByRole('dialog', { name: 'New project' })
+    fireEvent.change(within(pform).getByLabelText(/^Project$/i), { target: { value: 'Thesis draft' } })
+    fireEvent.click(within(pform).getByRole('button', { name: /Create project/i }))
+    await screen.findByText('Thesis draft')
+
+    window.location.hash = '#/assignments'
+    await screen.findByText('Nothing due yet')
+    fireEvent.click(screen.getByRole('button', { name: /Create an assignment/i }))
+    const aform = await screen.findByRole('dialog', { name: 'New assignment' })
+    fireEvent.change(within(aform).getByLabelText(/^Assignment$/i), { target: { value: 'Physics problem set' } })
+    fireEvent.change(within(aform).getByLabelText(/^Subject/i), { target: { value: 'Physics' } })
+    fireEvent.click(within(aform).getByRole('button', { name: /Create assignment/i }))
+    await screen.findByText('Physics problem set')
+
+    // open the palette and search
+    fireEvent.keyDown(window, { key: '/' })
+    const sheet = await screen.findByRole('dialog', { name: 'Search' })
+    const input = within(sheet).getByLabelText(/Search everything/i)
+    fireEvent.change(input, { target: { value: 'thesis' } })
+    await waitFor(() => expect(within(sheet).getByText('Thesis draft')).toBeTruthy())
+    expect(within(sheet).getByText('Project')).toBeTruthy()
+
+    fireEvent.change(input, { target: { value: 'physics' } })
+    await waitFor(() => expect(within(sheet).getByText('Physics problem set')).toBeTruthy())
+    expect(within(sheet).getAllByText('Assignment').length).toBeGreaterThan(0)
+
+    fireEvent.change(input, { target: { value: 'deep' } })
+    await waitFor(() => expect(within(sheet).getByText('Deep work')).toBeTruthy())
+
+    // picking a result navigates to the entity
+    fireEvent.change(input, { target: { value: 'thesis' } })
+    await waitFor(() => expect(within(sheet).getByText('Thesis draft')).toBeTruthy())
+    fireEvent.click(within(sheet).getByText('Thesis draft'))
+    await waitFor(() => expect(window.location.hash).toMatch(/^#\/projects\//))
   })
 })

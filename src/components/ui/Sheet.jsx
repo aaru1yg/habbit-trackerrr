@@ -6,6 +6,18 @@ import { IconX } from '../../lib/icons.jsx'
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
 
+/* Authoritative "a sheet is open" flag — set on open, cleared on close,
+   even while the exit animation is still running. Global shortcuts read it. */
+let openSheets = 0
+function markSheet(open) {
+  openSheets = Math.max(0, openSheets + (open ? 1 : -1))
+  if (typeof document !== 'undefined') {
+    if (openSheets > 0) document.documentElement.setAttribute('data-sheet-open', 'true')
+    else document.documentElement.removeAttribute('data-sheet-open')
+  }
+}
+export const isSheetOpen = () => openSheets > 0
+
 /**
  * Bottom sheet (mobile) / centered dialog (≥640px).
  * Accessible: role=dialog, focus trap, Escape to close, focus restored.
@@ -17,6 +29,7 @@ export default function Sheet({ open, onClose, title, children, labelledBy }) {
 
   useEffect(() => {
     if (!open) return
+    markSheet(true)
     restoreRef.current = document.activeElement
     const panel = panelRef.current
     const focusables = () => Array.from(panel?.querySelectorAll(FOCUSABLE) || [])
@@ -48,6 +61,7 @@ export default function Sheet({ open, onClose, title, children, labelledBy }) {
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
+      markSheet(false)
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prevOverflow
       restoreRef.current?.focus?.()

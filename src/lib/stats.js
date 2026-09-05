@@ -345,21 +345,52 @@ export function moodHabitLink(state, days = 30) {
   }
 }
 
-/* ---------------- Projects ---------------- */
-
-export function projectProgress(project) {
-  if (!project) return 0
-  const tasks = (project.milestones || []).flatMap((m) => m.tasks || [])
-  if (!tasks.length) return project.legacyPercent ?? 0
-  const done = tasks.filter((t) => t.done).length
-  return Math.round((done / tasks.length) * 100)
-}
+/* ---------------- Work (projects / assignments) ----------------
+   The work engine lives in ./work.js — projects and assignments are a
+   separate system with their own deadline math. Re-exported here so
+   habit-side code has one import surface. */
+export { projectPercent as projectProgress, projectProgress as projectProgressDetail, assignmentProgress } from './work.js'
 
 export function projectStats(state) {
-  const projects = state.projects || []
+  const projects = (state.projects || []).filter((p) => !p.archived)
   const active = projects.filter((p) => !p.completedAt)
   const completed = projects.filter((p) => p.completedAt)
   return { active, completed, total: projects.length }
+}
+
+/* ---------------- Routines (habit stacking) ---------------- */
+
+export const activeRoutines = (state) =>
+  (state.routines || []).filter((r) => r.active !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+
+/** Routine completion on a date: only counts habits that exist, are in the
+ *  routine, and are scheduled that day. */
+export function routineStats(state, routine, date = todayStr()) {
+  const habits = (routine?.habitIds || [])
+    .map((id) => (state.habits || []).find((h) => h.id === id))
+    .filter((h) => h && !h.archived && eligibleOn(h, date))
+  const done = habits.filter((h) => isDone(state, h.id, date)).length
+  return { habits, done, total: habits.length, pct: habits.length ? Math.round((done / habits.length) * 100) : null }
+}
+
+/** How often a routine was fully completed over a window (real data only). */
+export function routineRate(state, routine, from, to) {
+  let days = 0
+  let full = 0
+  let done = 0
+  let total = 0
+  let cursor = from
+  while (cursor <= to) {
+    const s = routineStats(state, routine, cursor)
+    if (s.total > 0) {
+      days++
+      done += s.done
+      total += s.total
+      if (s.done === s.total) full++
+    }
+    cursor = addDaysStr(cursor, 1)
+  }
+  return { days, full, done, total, rate: total ? done / total : null, fullRate: days ? full / days : null }
 }
 
 /* ============================================================

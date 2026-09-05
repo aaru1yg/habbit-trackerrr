@@ -7,6 +7,9 @@ import { todayStr, monthDays, monthLabel, weekdayInitial, dayNum, isFuture, pret
 import { isScheduled, categoryOf } from '../lib/schedule.js'
 import { activeHabits, isDone, checkinOf, habitRate } from '../lib/stats.js'
 import { IconChevronLeft, IconChevronRight, IconCalendar, IconCheck } from '../lib/icons.jsx'
+import { calendarMarkers } from '../lib/work.js'
+import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
+import { Link } from '../lib/router.jsx'
 
 const NAME_COL = 116
 const CELL = 44
@@ -160,6 +163,34 @@ export default function CalendarScreen({ ymParam }) {
     return habits.map((h) => ({ habit: h, ...habitRate(state, h, rangeStart, endCap) }))
   }, [state, habits, rangeStart, rangeEnd, today])
 
+  // ---- work deadlines in this range (§71) ----
+  const markers = useMemo(() => calendarMarkers(state, days.map((d) => d.date)), [state, days])
+
+  const deadlineList = useMemo(() => {
+    const out = []
+    for (const [day, list] of markers) {
+      for (const m of list) {
+        if (m.kind === 'project-deadline' || m.kind === 'assignment-deadline') {
+          out.push({ day, kind: m.kind === 'project-deadline' ? 'project' : 'assignment', item: m.item, status: m.status })
+        }
+      }
+    }
+    out.sort((a, b) => a.day.localeCompare(b.day))
+    return out
+  }, [markers])
+
+  const markerLabel = (list) => list
+    .map((m) => {
+      if (m.kind === 'project-deadline') return `${m.item.name} due`
+      if (m.kind === 'assignment-deadline') return `${m.item.name} deadline`
+      if (m.kind === 'project-start') return `${m.item.name} starts`
+      if (m.kind === 'assignment-start') return `${m.item.name} assigned`
+      if (m.kind === 'milestone') return `Milestone: ${m.milestone.name}`
+      if (m.kind === 'task') return `Task: ${m.task.name}`
+      return m.item.name
+    })
+    .join(', ')
+
   return (
     <div className="screen" id="calendar-screen">
       <header className="screen-head">
@@ -228,6 +259,26 @@ export default function CalendarScreen({ ymParam }) {
                     <span aria-hidden="true" style={{ fontSize: '0.5625rem', lineHeight: 1 }}>{weekdayInitial(d.date)}</span>
                     <span className="tnum" style={{ fontSize: '0.8125rem', fontWeight: d.date === today ? 800 : 600 }}>{dayNum(d.date)}</span>
                     <span className="sr-only">{prettyDate(d.date)}</span>
+                    {(markers.get(d.date) || []).length > 0 && (
+                      <span
+                        className="cal-marks"
+                        title={markerLabel(markers.get(d.date))}
+                        aria-label={`Work on ${prettyDate(d.date)}: ${markerLabel(markers.get(d.date))}`}
+                      >
+                        {(markers.get(d.date) || []).slice(0, 3).map((m, i) => {
+                          const deadline = m.kind.endsWith('deadline')
+                          const tone = m.kind.startsWith('project') ? 'var(--accent-1)' : 'var(--accent-2)'
+                          return (
+                            <span
+                              key={i}
+                              className="cal-mark"
+                              data-deadline={deadline ? 'true' : 'false'}
+                              style={{ background: deadline ? tone : 'transparent', borderColor: tone }}
+                            />
+                          )
+                        })}
+                      </span>
+                    )}
                   </div>
                 ))}
                 {habits.map((h) => (
@@ -276,6 +327,32 @@ export default function CalendarScreen({ ymParam }) {
             </div>
           )}
         </SectionCard>
+
+        {deadlineList.length > 0 && (
+          <SectionCard className="pad">
+            <CardHead title="Deadlines in this view">
+              <Link to="timeline" className="btn ghost sm">All deadlines</Link>
+            </CardHead>
+            <div className="tl" data-compact="true">
+              {deadlineList.map(({ day, kind, item, status }) => (
+                <div key={`${kind}-${item.id}-${day}`} className="di-row">
+                  <div className="di-date" aria-hidden="true">
+                    <span className="tnum">{dayNum(day)}</span>
+                    <span className="tiny">{weekdayInitial(day)}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <WorkRow kind={kind} item={item} status={status} progressPct={workProgressOf(kind, item)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="tiny muted" style={{ marginTop: 10 }}>
+              <span className="sr-only">Calendar legend: </span>
+              Dots above the day numbers mark work — filled violet is a project deadline, filled cyan an assignment deadline,
+              hollow dots are starts, milestones and task due dates.
+            </p>
+          </SectionCard>
+        )}
 
         {habits.length > 0 && (
           <SectionCard className="pad">

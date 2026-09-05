@@ -19,6 +19,7 @@
   font-weight: 600;
   font-size: var(--fs-sm);
   letter-spacing: 0.01em;
+  text-decoration: none;
   transition: transform var(--dur-fast) var(--ease-out),
     background var(--dur-fast) ease, border-color var(--dur-fast) ease,
     box-shadow var(--dur-med) ease, opacity var(--dur-fast) ease;
@@ -383,7 +384,8 @@ html[data-theme='ember'] .toast-action { color: #7dd3fc; }
   -webkit-backdrop-filter: blur(18px);
   border-top: 1px solid var(--border);
 }
-.bottom-nav a {
+.bottom-nav a,
+.bottom-nav button {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -399,7 +401,8 @@ html[data-theme='ember'] .toast-action { color: #7dd3fc; }
   transition: color var(--dur-fast) ease;
   position: relative;
 }
-.bottom-nav a .nav-pill {
+.bottom-nav a .nav-pill,
+.bottom-nav button .nav-pill {
   position: relative;
   display: grid;
   place-items: center;
@@ -1225,3 +1228,65 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
 /* Shared note/blurb helpers */
 .card-blurb { color: var(--text-2); font-size: var(--fs-sm); margin-bottom: var(--sp-3); }
 .empty-note { color: var(--text-2); font-size: var(--fs-sm); padding: 12px 0; }
+
+/* Suspense fallback */
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2.5px solid var(--track);
+  border-top-color: var(--accent-2);
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+}
+
+/* ------------------------------------------------------------
+   SWITCH (settings)
+   ------------------------------------------------------------ */
+.switch {
+  flex: none;
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background 180ms var(--ease), border-color 180ms var(--ease);
+}
+
+.switch-knob {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--text-3);
+  transition: transform 200ms var(--ease), background 180ms var(--ease);
+}
+
+.switch[aria-checked='true'] {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  border-color: transparent;
+}
+
+.switch[aria-checked='true'] .switch-knob {
+  transform: translateX(20px);
+  background: #0b0f1a;
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch, .switch-knob { transition: none; }
+}

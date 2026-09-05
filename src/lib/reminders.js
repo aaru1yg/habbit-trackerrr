@@ -1,5 +1,6 @@
 /* Reminders — Web Notifications, permission asked only on explicit user intent.
    Notifications fire while the app is open (web platform limit, stated in UI). */
+import { projectStatus, assignmentStatus } from './work.js'
 
 export const notificationsSupported = () => typeof window !== 'undefined' && 'Notification' in window
 
@@ -73,4 +74,76 @@ export function checkReminders(state, nowTime, todayDate) {
     markFired(todayDate, h.id)
   }
   return due
+}
+
+/* ------------------------------------------------------------
+   WORK DEADLINE ALERTS
+   Only real deadlines on open items. Once per item per day.
+   ------------------------------------------------------------ */
+
+const WORK_FIRED_KEY = 'aaru.work.alerts'
+
+function workFiredMap() {
+  try {
+    return JSON.parse(localStorage.getItem(WORK_FIRED_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function markWorkFired(date, key) {
+  try {
+    const map = workFiredMap()
+    localStorage.setItem(WORK_FIRED_KEY, JSON.stringify({ [date]: [...new Set([...(map[date] || []), key])] }))
+  } catch { /* non-fatal */ }
+}
+
+export function workAlertFired(date, key) {
+  return (workFiredMap()[date] || []).includes(key)
+}
+
+export function notifyWork(kind, item, status) {
+  try {
+    const n = new Notification(`${item.name} — ${status.dueText || 'deadline approaching'}`, {
+      body: `${kind === 'project' ? 'Project' : 'Assignment'} is at ${status.pct}%.`,
+      tag: `aaru-${kind}-${item.id}`,
+      icon: './icon-192.png',
+    })
+    n.onclick = () => {
+      window.focus()
+      window.location.hash = `#/${kind}s/${item.id}`
+      n.close()
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Open projects/assignments whose deadline lands within `thresholdHours`
+ * (overdue items always qualify). Each one alerts once per day.
+ * @returns {{kind:string,item:object,status:object}[]}
+ */
+export function checkWorkReminders(state, { now = new Date(), thresholdHours = 24 } = {}) {
+  const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const out = []
+  const consider = (kind, item, status) => {
+    if (!item || !item.deadline || status.complete || !status.hasDeadline) return
+    if (status.hoursLeft == null) return
+    if (status.hoursLeft > thresholdHours) return
+    const key = `${kind}:${item.id}`
+    if (workAlertFired(day, key)) return
+    markWorkFired(day, key)
+    out.push({ kind, item, status })
+  }
+  for (const p of state.projects || []) {
+    if (p.completedAt || p.archived) continue
+    consider('project', p, projectStatus(p, now))
+  }
+  for (const a of state.assignments || []) {
+    if (a.completedAt || a.archived) continue
+    consider('assignment', a, assignmentStatus(a, now))
+  }
+  return out
 }

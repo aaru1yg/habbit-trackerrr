@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { exportPayload, normalizeImport } from '../lib/importExport.js'
-import { notificationState, notificationsSupported } from '../lib/reminders.js'
+import { notificationState } from '../lib/reminders.js'
+import { projectStatus, assignmentStatus } from '../lib/work.js'
+import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
 import { todayStr, daysBetween } from '../lib/dates.js'
 import { Link } from '../lib/router.jsx'
 import { IconUser, IconPalette, IconBell, IconBellOff, IconDownload, IconUpload, IconTrash, IconClock } from '../lib/icons.jsx'
@@ -34,6 +36,40 @@ export default function SettingsScreen() {
   const habitsWithReminders = (state.habits || []).filter((h) => h.reminder && !h.archived)
   const perm = notificationState()
 
+  // ---- deadline alerts (work layer) ----
+  const workReminders = state.profile.workReminders !== false
+  const hours = [12, 24, 48, 72].includes(Number(state.profile.workReminderHours)) ? Number(state.profile.workReminderHours) : 24
+  const setWork = (patch) => dispatch({ type: 'SET_PROFILE', patch })
+
+  const upcoming = useMemo(() => {
+    const now = new Date()
+    const out = []
+    for (const pr of state.projects || []) {
+      if (pr.completedAt || pr.archived || !pr.deadline) continue
+      const st = projectStatus(pr, now)
+      if (!st.complete && st.hasDeadline && st.hoursLeft != null && st.hoursLeft <= hours) out.push({ kind: 'project', item: pr, status: st })
+    }
+    for (const a of state.assignments || []) {
+      if (a.completedAt || a.archived || !a.deadline) continue
+      const st = assignmentStatus(a, now)
+      if (!st.complete && st.hasDeadline && st.hoursLeft != null && st.hoursLeft <= hours) out.push({ kind: 'assignment', item: a, status: st })
+    }
+    return out.sort((x, y) => (x.status.hoursLeft ?? 0) - (y.status.hoursLeft ?? 0))
+  }, [state, hours])
+
+  const counts = useMemo(() => {
+    const checkins = Object.values(state.checkins || {}).reduce((n, days) => n + Object.values(days || {}).filter((c) => c?.done).length, 0)
+    return {
+      habits: (state.habits || []).filter((h) => !h.archived).length,
+      archived: (state.habits || []).filter((h) => h.archived).length,
+      routines: (state.routines || []).filter((r) => !r.archived).length,
+      projects: (state.projects || []).filter((p2) => !p2.archived).length,
+      assignments: (state.assignments || []).filter((a) => !a.archived).length,
+      checkins,
+      moods: Object.keys(state.moods || {}).length,
+    }
+  }, [state])
+
   const onExport = () => {
     const payload = JSON.stringify(exportPayload(state), null, 2)
     const blob = new Blob([payload], { type: 'application/json' })
@@ -53,7 +89,13 @@ export default function SettingsScreen() {
       const parsed = JSON.parse(text) // malformed JSON → catch below
       const clean = normalizeImport(parsed)
       dispatch({ type: 'IMPORT_DATA', data: clean })
-      toast.show(`Imported ${clean.habits.length} habit${clean.habits.length === 1 ? '' : 's'}, ${clean.projects.length} goal${clean.projects.length === 1 ? '' : 's'}.`)
+      const bits = [
+        `${clean.habits.length} habit${clean.habits.length === 1 ? '' : 's'}`,
+        `${clean.projects.length} project${clean.projects.length === 1 ? '' : 's'}`,
+        `${clean.assignments.length} assignment${clean.assignments.length === 1 ? '' : 's'}`,
+      ]
+      if (clean.routines?.length) bits.push(`${clean.routines.length} routine${clean.routines.length === 1 ? '' : 's'}`)
+      toast.show(`Imported ${bits.join(', ')}.`)
     } catch (err) {
       toast.show(err.message === 'File is not valid JSON data.' ? 'That file isn\u2019t valid JSON.' : `Import failed: ${err.message}`)
     }
@@ -148,6 +190,62 @@ export default function SettingsScreen() {
         </SectionCard>
 
         <SectionCard className="pad">
+          <CardHead title="Deadline alerts" />
+          <div className="row-between" style={{ gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 'var(--fs-sm)', fontWeight: 700 }}>Alert me about upcoming deadlines</p>
+              <p className="tiny muted" style={{ marginTop: 4, lineHeight: 1.55 }}>
+                Open projects and assignments that carry a real deadline. Each one alerts once a day while the app is open.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="switch"
+              role="switch"
+              aria-checked={workReminders}
+              aria-label="Deadline alerts"
+              onClick={() => setWork({ workReminders: !workReminders })}
+            >
+              <span className="switch-knob" />
+            </button>
+          </div>
+
+          {workReminders && (
+            <div style={{ marginTop: 16 }}>
+              <label className="field-label" htmlFor="work-hours">Alert window</label>
+              <select
+                id="work-hours"
+                className="status-select"
+                value={hours}
+                onChange={(e) => setWork({ workReminderHours: Number(e.target.value) })}
+              >
+                <option value={12}>12 hours before</option>
+                <option value={24}>24 hours before</option>
+                <option value={48}>2 days before</option>
+                <option value={72}>3 days before</option>
+              </select>
+              <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.55 }}>
+                {perm === 'granted'
+                  ? 'Alerts arrive as notifications while the app is open in this browser.'
+                  : 'Notifications aren\u2019t enabled, so alerts appear as in-app toasts while the app is open.'}
+                {' '}Overdue work is always included.
+              </p>
+            </div>
+          )}
+
+          {workReminders && upcoming.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <p className="eyebrow">Inside the window right now</p>
+              <div className="tl" style={{ marginTop: 8 }}>
+                {upcoming.slice(0, 4).map(({ kind, item, status }) => (
+                  <WorkRow key={`${kind}-${item.id}`} kind={kind} item={item} status={status} progressPct={workProgressOf(kind, item)} />
+                ))}
+              </div>
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard className="pad">
           <CardHead title="Your data" />
           <div className="stack" style={{ gap: 10 }}>
             <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>
@@ -185,8 +283,17 @@ export default function SettingsScreen() {
                 </button>
               )}
             </div>
-            <p style={{ color: 'var(--text-3)', fontSize: 'var(--fs-xs)' }}>
-              Exports include habits, history, goals, and moods. Imports are validated before anything is replaced.
+            <div className="kv" style={{ marginTop: 4 }}>
+              <div className="kv-row"><span className="kv-k">Habits</span><span className="kv-v tnum">{counts.habits}{counts.archived ? ` (+${counts.archived} archived)` : ''}</span></div>
+              <div className="kv-row"><span className="kv-k">Projects</span><span className="kv-v tnum">{counts.projects}</span></div>
+              <div className="kv-row"><span className="kv-k">Assignments</span><span className="kv-v tnum">{counts.assignments}</span></div>
+              <div className="kv-row"><span className="kv-k">Routines</span><span className="kv-v tnum">{counts.routines}</span></div>
+              <div className="kv-row"><span className="kv-k">Check-ins</span><span className="kv-v tnum">{counts.checkins}</span></div>
+              <div className="kv-row"><span className="kv-k">Mind entries</span><span className="kv-v tnum">{counts.moods}</span></div>
+            </div>
+            <p style={{ color: 'var(--text-3)', fontSize: 'var(--fs-xs)', lineHeight: 1.6 }}>
+              Exports include habits, check-in history, projects, assignments, routines, mind entries and settings.
+              Imports are validated and normalised before anything is replaced.
             </p>
           </div>
         </SectionCard>

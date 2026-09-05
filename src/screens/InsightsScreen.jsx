@@ -12,6 +12,7 @@ import {
   trendSeries, heatmapSeries, habitMatrix, weekComparison, habitPerformance,
 } from '../lib/stats.js'
 import { navigate } from '../lib/router.jsx'
+import InsightsDeepDive from './InsightsDeepDive.jsx'
 import { IconInsights, IconTrendUp, IconTrendDown, IconFlame } from '../lib/icons.jsx'
 
 const YEAR = new Date().getFullYear()
@@ -22,10 +23,16 @@ const RANGES = [
   { id: '1y', label: '1Y', days: 365 },
 ]
 
+const INSIGHT_VIEWS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'deep', label: 'Deep dive' },
+]
+
 export default function InsightsScreen() {
   const { state } = useStore()
   const today = todayStr()
   const habits = activeHabits(state)
+  const [view, setView] = useState('overview')
 
   const hasData = habits.length > 0 && Object.values(state.checkins || {}).some((days) => Object.keys(days || {}).length > 0)
 
@@ -128,6 +135,24 @@ export default function InsightsScreen() {
       </header>
 
       <div className="stack">
+        <div className="seg seg-wide" role="group" aria-label="Insights view">
+          {INSIGHT_VIEWS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              className={`seg-btn${view === v.id ? ' active' : ''}`}
+              aria-pressed={view === v.id}
+              onClick={() => setView(v.id)}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+
+        {view === 'deep' && <InsightsDeepDive state={state} />}
+
+        {view === 'overview' && (
+        <>
         {/* Hero: ring + streaks */}
         <SectionCard className="pad">
           <div className="insights-grid">
@@ -318,6 +343,17 @@ export default function InsightsScreen() {
               On low days, <b className="tnum" style={{ color: 'var(--warn)' }}>{moodLink.lowPct}%</b>. (Last 30 days.)
             </p>
           </SectionCard>
+        )}
+
+        <SectionCard className="pad">
+          <div className="row-between">
+            <p className="card-blurb" style={{ margin: 0 }}>
+              Weekday patterns, consistency scores, streak history and what tends to travel together.
+            </p>
+            <button className="btn sm" onClick={() => setView('deep')}>Deep dive</button>
+          </div>
+        </SectionCard>
+        </>
         )}
       </div>
     </div>

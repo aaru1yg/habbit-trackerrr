@@ -10,6 +10,9 @@ import { todayStr, subDaysStr, weekDays, weekdayShort, shortDate, prettyDate } f
 import { activeHabits, isDone, weekStats, weekDelta, strongestHabit, weakestHabit, habitStreak } from '../lib/stats.js'
 import { IconWeek, IconChevronLeft, IconChevronRight, IconTrendUp, IconTrendDown, IconFlame } from '../lib/icons.jsx'
 import { isScheduled, categoryOf } from '../lib/schedule.js'
+import { calendarMarkers } from '../lib/work.js'
+import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
+import { Link } from '../lib/router.jsx'
 
 export default function WeekScreen() {
   const { state } = useStore()
@@ -33,6 +36,32 @@ export default function WeekScreen() {
   const isThisWeek = offset === 0
   const daysElapsed = isThisWeek ? week.filter((d) => d <= today) : week
 
+  // ---- work landing in this week (§72) ----
+  const marks = useMemo(() => calendarMarkers(state, week), [state, week])
+  const weekWork = useMemo(() => {
+    const out = []
+    for (const day of week) {
+      for (const m of marks.get(day) || []) {
+        if (m.kind === 'project-deadline' || m.kind === 'assignment-deadline') {
+          out.push({ day, kind: m.kind === 'project-deadline' ? 'project' : 'assignment', item: m.item, status: m.status })
+        }
+      }
+    }
+    out.sort((a, b) => a.day.localeCompare(b.day))
+    return out
+  }, [marks, week])
+  const weekOther = useMemo(() => {
+    let tasks = 0
+    let milestones = 0
+    for (const day of week) {
+      for (const m of marks.get(day) || []) {
+        if (m.kind === 'task') tasks += 1
+        if (m.kind === 'milestone') milestones += 1
+      }
+    }
+    return { tasks, milestones }
+  }, [marks, week])
+
   return (
     <div className="screen" id="week-screen">
       <header className="screen-head">
@@ -46,14 +75,43 @@ export default function WeekScreen() {
         </div>
       </header>
 
-      {habits.length === 0 ? (
-        <SectionCard>
-          <EmptyState icon={<IconWeek size={40} />} title="No habits scheduled this week">
-            Add a habit to start tracking your week.
-          </EmptyState>
-        </SectionCard>
-      ) : (
-        <div className="stack">
+      <div className="stack">
+        {weekWork.length > 0 && (
+          <SectionCard className="pad">
+            <CardHead title={isThisWeek ? 'Due this week' : 'Deadlines that week'}>
+              <Link to="timeline" className="btn ghost sm">All deadlines</Link>
+            </CardHead>
+            <div className="tl">
+              {weekWork.map(({ day, kind, item, status }) => (
+                <WorkRow
+                  key={`${kind}-${item.id}-${day}`}
+                  kind={kind}
+                  item={item}
+                  status={status}
+                  progressPct={workProgressOf(kind, item)}
+                  right={<span className="tiny muted tnum">{weekdayShort(day)}</span>}
+                />
+              ))}
+            </div>
+            {(weekOther.tasks > 0 || weekOther.milestones > 0) && (
+              <p className="tiny muted" style={{ marginTop: 10 }}>
+                Also landing this week:{' '}
+                {[weekOther.milestones > 0 && `${weekOther.milestones} milestone${weekOther.milestones === 1 ? '' : 's'}`,
+                  weekOther.tasks > 0 && `${weekOther.tasks} task${weekOther.tasks === 1 ? '' : 's'}`]
+                  .filter(Boolean).join(' and ')}.
+              </p>
+            )}
+          </SectionCard>
+        )}
+
+        {habits.length === 0 ? (
+          <SectionCard>
+            <EmptyState icon={<IconWeek size={40} />} title="No habits scheduled this week">
+              Add a habit to start tracking your week.
+            </EmptyState>
+          </SectionCard>
+        ) : (
+          <>
           {/* weekly completion */}
           <SectionCard className="pad-lg">
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
@@ -167,8 +225,9 @@ export default function WeekScreen() {
               Solid = completed · outline = missed · dashed = not scheduled
             </p>
           </SectionCard>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

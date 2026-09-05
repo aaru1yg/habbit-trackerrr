@@ -1222,3 +1222,347 @@
 .pace-note[data-tone='bad'] { color: var(--bad); background: var(--bad-soft); border-color: transparent; }
 .pace-note[data-tone='warn'] { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
 .pace-note[data-tone='good'] { color: var(--good); background: var(--good-soft); border-color: transparent; }
+
+/* ------------------------------------------------------------
+   CALENDAR WORK MARKERS (§71) — deadlines show up in the habit
+   grid without turning it into a spreadsheet.
+   ------------------------------------------------------------ */
+.cal-marks {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2px;
+  min-height: 5px;
+}
+
+.cal-mark {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  box-sizing: border-box;
+}
+
+.cal-mark[data-deadline='false'] {
+  background: transparent !important;
+}
+
+.cal-head-cell:hover .cal-mark,
+.cal-head-cell:focus-within .cal-mark {
+  transform: scale(1.25);
+}
+
+.cal-mark {
+  transition: transform 160ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+/* deadlines listed under the calendar grid */
+.di-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.di-row + .di-row {
+  border-top: 1px solid var(--hairline);
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.di-date {
+  flex: none;
+  width: 40px;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  padding: 6px 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-mark { transition: none; }
+  .cal-head-cell:hover .cal-mark,
+  .cal-head-cell:focus-within .cal-mark { transform: none; }
+}
+
+/* ------------------------------------------------------------
+   INSIGHTS · DEEP DIVE
+   ------------------------------------------------------------ */
+.insight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insight-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-2);
+}
+
+.insight-card[data-tone='good'] { border-left-color: var(--good); }
+.insight-card[data-tone='warn'] { border-left-color: var(--warn); }
+.insight-card[data-tone='bad'] { border-left-color: var(--bad); }
+.insight-card[data-tone='neutral'] { border-left-color: var(--accent-2); }
+
+.insight-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--surface-3);
+  color: var(--accent-2);
+}
+
+.insight-card[data-tone='good'] .insight-icon { color: var(--good); }
+.insight-card[data-tone='warn'] .insight-icon { color: var(--warn); }
+.insight-card[data-tone='bad'] .insight-icon { color: var(--bad); }
+
+.insight-title {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.insight-text {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  line-height: 1.55;
+  margin-top: 3px;
+}
+
+.insight-metric {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  background: var(--surface-3);
+  border-radius: 999px;
+  padding: 4px 9px;
+}
+
+.grid-3-tight {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.tile-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 14px 10px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms var(--ease), transform 160ms var(--ease), background 160ms var(--ease);
+}
+
+.tile-btn:hover { border-color: var(--border-2); transform: translateY(-1px); background: var(--surface-3); }
+.tile-btn:active { transform: translateY(0); }
+
+.tile-title { font-size: var(--fs-sm); font-weight: 700; max-width: 100%; }
+.tile-sub { font-size: var(--fs-xs); color: var(--text-2); font-weight: 600; }
+
+.stat-trio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  text-align: center;
+}
+
+.stat-trio > div {
+  padding: 12px 8px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.stat-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.corr-row {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.corr-pair {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  color: var(--accent-2);
+  margin-bottom: 5px;
+}
+
+.corr-text { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.6; }
+.corr-text b { color: var(--text); font-weight: 700; }
+.corr-up { color: var(--good); font-weight: 700; }
+.corr-down { color: var(--warn); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-btn { transition: none; }
+  .tile-btn:hover { transform: none; }
+}
+
+/* ------------------------------------------------------------
+   MIND — capacity scales + reflection (§24, §25)
+   ------------------------------------------------------------ */
+.mood-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dim-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.level-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.level-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  border-radius: 12px;
+  padding: 9px 0;
+  cursor: pointer;
+  transition: background 160ms var(--ease), color 160ms var(--ease), border-color 160ms var(--ease), transform 120ms var(--ease);
+}
+
+.level-btn:hover { border-color: var(--border-2); color: var(--text-2); }
+.level-btn:active { transform: scale(0.97); }
+
+.level-btn[data-on='true'] {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  border-color: transparent;
+  color: #0b0f1a;
+  box-shadow: 0 6px 18px -10px var(--accent-1);
+}
+
+.mood-strip {
+  display: grid;
+  grid-template-columns: repeat(30, minmax(0, 1fr));
+  gap: 3px;
+  margin-top: 14px;
+}
+
+.mood-strip > span {
+  aspect-ratio: 1;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-btn { transition: none; }
+  .level-btn:active { transform: none; }
+}
+
+/* ------------------------------------------------------------
+   GOALS · DIRECTION (§23)
+   ------------------------------------------------------------ */
+.goal-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-h2);
+  letter-spacing: -0.015em;
+  color: var(--text);
+  text-decoration: none;
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.goal-name:hover { color: var(--accent-2); }
+
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms var(--ease), color 160ms var(--ease), background 160ms var(--ease);
+}
+
+.chip-btn:hover { border-color: var(--border-2); color: var(--text); }
+
+.chip-btn[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.goal-habit {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.goal-habit-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip-btn { transition: none; }
+}

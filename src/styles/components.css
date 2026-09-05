@@ -1225,3 +1225,21 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
 /* Shared note/blurb helpers */
 .card-blurb { color: var(--text-2); font-size: var(--fs-sm); margin-bottom: var(--sp-3); }
 .empty-note { color: var(--text-2); font-size: var(--fs-sm); padding: 12px 0; }
+
+/* Suspense fallback */
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2.5px solid var(--track);
+  border-top-color: var(--accent-2);
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+}

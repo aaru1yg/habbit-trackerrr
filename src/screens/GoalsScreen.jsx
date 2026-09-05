@@ -1,52 +1,69 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+/* ============================================================
+   GOALS · DIRECTION (§23 reframed)
+   Goals are the long view: why you are doing things.
+   Projects are how you execute them, habits are how you repeat.
+   This screen never duplicates project CRUD — it links the two
+   sides together and shows which habits support which goal.
+   ============================================================ */
+import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
-import { useToast } from '../components/ui/Toaster.jsx'
-import Sheet from '../components/ui/Sheet.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
-import Confetti from '../components/ui/Confetti.jsx'
-import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
-import { projectProgress } from '../lib/stats.js'
-import { IconGoals, IconPlus, IconCheck, IconTrash, IconX, IconChevronDown, IconSparkle } from '../lib/icons.jsx'
+import { Meter, StatStrip, CountdownChip } from '../components/work/WorkKit.jsx'
+import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
+import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
+import { activeHabits, habitRate, habitStreak } from '../lib/stats.js'
+import { projectStatus, projectProgress } from '../lib/work.js'
+import { categoryOf } from '../lib/schedule.js'
+import { todayStr, subDaysStr, prettyDate } from '../lib/dates.js'
+import { Link } from '../lib/router.jsx'
+import { IconGoals, IconPlus, IconFlame, IconProjects, IconChevronRight, IconCheck, IconLink } from '../lib/icons.jsx'
 
 export default function GoalsScreen() {
   const { state, dispatch } = useStore()
-  const toast = useToast()
-  const [addOpen, setAddOpen] = useState(false)
-  const [celebrate, setCelebrate] = useState(null)
-  const [fire, setFire] = useState(0)
-  const reduced = useReducedMotion()
-  const prevProgress = useRef({})
+  const work = useWorkUI()
+  const habitUI = useHabitUI()
+  const today = todayStr()
+  const from = subDaysStr(today, 29)
 
-  const projects = state.projects || []
-  const active = projects.filter((p) => !p.completedAt)
-  const completed = projects.filter((p) => p.completedAt)
+  const projects = useMemo(() => (state.projects || []).filter((p) => !p.completedAt && !p.archived), [state])
+  const reached = useMemo(
+    () => (state.projects || []).filter((p) => p.completedAt).sort((a, b) => String(b.completedAt).localeCompare(String(a.completedAt))),
+    [state]
+  )
 
-  // Detect 0→100% transitions for the celebration moment.
-  useEffect(() => {
-    for (const p of projects) {
-      const pct = projectProgress(p)
-      const before = prevProgress.current[p.id]
-      prevProgress.current[p.id] = pct
-      if (before != null && before < 100 && pct >= 100) {
-        if (reduced) {
-          toast.show(`“${p.name}” is complete. Well done.`)
-        } else {
-          setCelebrate(p)
-          setFire((f) => f + 1)
-        }
-      }
-    }
-  }, [projects, reduced, toast])
+  const open = useMemo(() => {
+    return projects
+      .map((p) => ({ project: p, status: projectStatus(p), progress: projectProgress(p) }))
+      .sort((a, b) => {
+        const ad = a.project.deadline ? String(a.project.deadline) : '9999'
+        const bd = b.project.deadline ? String(b.project.deadline) : '9999'
+        return ad.localeCompare(bd) || a.project.name.localeCompare(b.project.name)
+      })
+  }, [projects])
 
-  const removeProject = (p) => {
-    dispatch({ type: 'DELETE_PROJECT', id: p.id })
-    toast.show(`Deleted “${p.name}”`, {
-      duration: 6000,
-      actionLabel: 'Undo',
-      onAction: () => dispatch({ type: 'RESTORE_PROJECT', project: p }),
-    })
+  const habits = activeHabits(state)
+  const linkedIds = useMemo(() => new Set(projects.flatMap((p) => p.linkedHabitIds || [])), [projects])
+  const unlinked = habits.filter((h) => !linkedIds.has(h.id))
+
+  const nextDeadline = open.find((o) => o.project.deadline && !o.status.complete)?.project || null
+
+  const cells = [
+    { label: 'Open goals', value: open.length, note: open.length === 1 ? 'project' : 'projects' },
+    { label: 'Habits linked', value: habits.length - unlinked.length, note: `of ${habits.length}` },
+    {
+      label: 'Next deadline',
+      value: nextDeadline && nextDeadline.status.daysLeft != null ? `${nextDeadline.status.daysLeft}d` : '—',
+      note: nextDeadline ? nextDeadline.project.name : 'none set',
+      small: true,
+    },
+    { label: 'Reached', value: reached.length, note: 'all time' },
+  ]
+
+  const toggleLink = (project, habitId) => {
+    const current = project.linkedHabitIds || []
+    const next = current.includes(habitId) ? current.filter((id) => id !== habitId) : [...current, habitId]
+    dispatch({ type: 'UPDATE_PROJECT', id: project.id, patch: { linkedHabitIds: next } })
   }
 
   return (
@@ -54,281 +71,192 @@ export default function GoalsScreen() {
       <header className="screen-head">
         <div>
           <h1 className="screen-title">Goals</h1>
-          <p className="screen-sub">Break big things into milestones and tasks.</p>
+          <p className="screen-sub">The long view. Projects execute it, habits repeat it.</p>
         </div>
-        <button className="btn primary" onClick={() => setAddOpen(true)}>
-          <IconPlus size={16} /> New goal
-        </button>
+        {open.length > 0 && (
+          <button className="btn primary" onClick={work.newProject}>
+            <IconPlus size={16} /> New goal
+          </button>
+        )}
       </header>
 
-      {projects.length === 0 ? (
-        <SectionCard>
-          <EmptyState
-            art="art/empty-hero.webp"
-            icon={<IconGoals size={40} />}
-            title="No goals yet"
-          >
-            Habits are about repetition. Goals are about finishing — add something you want done, not repeated.
-          </EmptyState>
-        </SectionCard>
-      ) : (
-        <div className="stack">
-          {active.map((p) => (
-            <ProjectCard key={p.id} project={p} onRemove={removeProject} />
-          ))}
-          {completed.length > 0 && (
-            <>
-              <p className="eyebrow" style={{ marginTop: 8 }}>Completed</p>
-              {completed.map((p) => (
-                <ProjectCard key={p.id} project={p} onRemove={removeProject} collapsedByDefault />
-              ))}
-            </>
-          )}
-        </div>
-      )}
-
-      <NewGoalSheet open={addOpen} onClose={() => setAddOpen(false)} />
-
-      {/* celebration overlay */}
-      <Confetti fire={fire} origin={{ x: 0.5, y: 0.55 }} />
-      <AnimatePresence>
-        {celebrate && (
-          <motion.div
-            className="scrim"
-            style={{ zIndex: 88, display: 'grid', placeItems: 'center', padding: 24 }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setCelebrate(null)}
-          >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-label="Goal complete"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-              className="card pad-lg"
-              style={{ maxWidth: 380, textAlign: 'center', background: 'var(--surface-solid)', pointerEvents: 'auto' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'grid', placeItems: 'center', gap: 12 }}>
-                <span style={{ width: 64, height: 64, borderRadius: 999, background: 'linear-gradient(135deg, var(--accent-1), var(--accent-2))', display: 'grid', placeItems: 'center', color: '#fff', boxShadow: '0 12px 40px var(--accent-soft)' }}>
-                  <IconCheck size={30} />
+      <div className="stack">
+        {projects.length === 0 && reached.length === 0 ? (
+          <SectionCard>
+            <EmptyState
+              art="art/empty-hero.webp"
+              icon={<IconGoals size={40} />}
+              title="No goals yet"
+              action={(
+                <span className="empty-actions">
+                  <button className="btn primary" onClick={work.newProject}><IconProjects size={16} /> Create a project</button>
+                  <button className="btn" onClick={habitUI.openAdd}><IconFlame size={16} /> Add a habit</button>
                 </span>
-                <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>Goal complete</h2>
-                <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>
-                  “{celebrate.name}” is finished — every task checked. That took real work.
+              )}
+            >
+              A goal is an outcome — something you finish, not something you repeat. Create one as a project and link the
+              habits that carry it.
+            </EmptyState>
+          </SectionCard>
+        ) : (
+          <>
+            <StatStrip cells={cells} />
+
+            {open.length === 0 && (
+              <SectionCard className="pad">
+                <p className="empty-note">Every goal is reached or archived. Start a new one when you are ready.</p>
+              </SectionCard>
+            )}
+
+            {open.map(({ project, status, progress }, i) => (
+              <DirectionCard
+                key={project.id}
+                project={project}
+                status={status}
+                progress={progress}
+                habits={habits}
+                from={from}
+                today={today}
+                state={state}
+                delay={i * 0.03}
+                onToggleLink={toggleLink}
+              />
+            ))}
+
+            {unlinked.length > 0 && (
+              <SectionCard className="pad">
+                <CardHead title="Habits not tied to a goal">
+                  <span className="tiny muted tnum">{unlinked.length}</span>
+                </CardHead>
+                <p className="card-blurb">
+                  That is fine — plenty of habits stand alone. Link one from a goal card above when it is carrying something bigger.
                 </p>
-                <button className="btn primary" style={{ minWidth: 140 }} onClick={() => setCelebrate(null)} autoFocus>
-                  <IconSparkle size={16} /> Nice
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+                <div className="wrap-gap" style={{ gap: 6 }}>
+                  {unlinked.map((h) => (
+                    <span key={h.id} className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span className="dot" style={{ background: `var(${categoryOf(h.category).cssVar})` }} />
+                      {h.name}
+                      <span className="tiny muted tnum">{habitStreak(state, h)}d</span>
+                    </span>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
+
+            {reached.length > 0 && (
+              <SectionCard className="pad">
+                <CardHead title="Reached" />
+                <div className="stack" style={{ gap: 8 }}>
+                  {reached.map((p) => (
+                    <div key={p.id} className="kv-row">
+                      <span className="kv-k" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--good)' }}>
+                        <IconCheck size={14} /> {p.name}
+                      </span>
+                      <span className="kv-v muted">{p.completedAt ? prettyDate(String(p.completedAt).slice(0, 10)) : '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
+          </>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   )
 }
 
-function ProjectCard({ project, onRemove, collapsedByDefault = false }) {
-  const { dispatch } = useStore()
-  const [open, setOpen] = useState(!collapsedByDefault)
-  const [newTask, setNewTask] = useState({})
-  const [newMilestone, setNewMilestone] = useState('')
-  const [addMsOpen, setAddMsOpen] = useState(false)
-  const pct = projectProgress(project)
-  const isLegacy = project.legacyPercent != null && !project.milestones.length
+function DirectionCard({ project, status, progress, habits, from, today, state, delay = 0, onToggleLink }) {
+  const [linkOpen, setLinkOpen] = useState(false)
+  const linked = (project.linkedHabitIds || []).map((id) => habits.find((h) => h.id === id)).filter(Boolean)
+  const cat = categoryOf(project.category)
 
   return (
-    <SectionCard className="pad">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button
-          className="btn ghost icon"
-          aria-expanded={open}
-          aria-label={`${open ? 'Collapse' : 'Expand'} ${project.name}`}
-          onClick={() => setOpen((o) => !o)}
-        >
-          <motion.span animate={{ rotate: open ? 0 : -90 }} style={{ display: 'grid' }}>
-            <IconChevronDown size={18} />
-          </motion.span>
-        </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--fs-h2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {project.name}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-            <div style={{ flex: 1, height: 6, borderRadius: 999, background: 'var(--track)', overflow: 'hidden' }}>
-              <motion.div
-                initial={false}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                style={{ height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, var(--accent-1), var(--accent-2))' }}
-              />
-            </div>
-            <span className="tnum" style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: pct === 100 ? 'var(--good)' : 'var(--text-2)' }}>
-              <AnimatedNumber value={pct} />%
-            </span>
+    <SectionCard className="pad" delay={delay}>
+      <div className="row-between" style={{ alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div className="wrap-gap" style={{ gap: 6, marginBottom: 7 }}>
+            <span className="kind-tag project" aria-hidden="true" />
+            <span className="chip">{cat.label}</span>
+            {status.hasDeadline
+              ? <CountdownChip status={status} />
+              : <span className="chip">Open-ended</span>}
+          </div>
+          <Link to={`projects/${project.id}`} className="goal-name">{project.name}</Link>
+          {project.description && <p className="card-blurb" style={{ marginTop: 6 }}>{project.description}</p>}
+        </div>
+        <div style={{ flex: 'none', textAlign: 'right' }}>
+          <div className="meter-pct" style={{ fontSize: '1.5rem', lineHeight: 1 }}>{status.pct}%</div>
+          <div className="tiny muted" style={{ marginTop: 4 }}>
+            {progress.total > 0 ? `${progress.done}/${progress.total} tasks` : progress.mode === 'manual' ? 'manual' : 'no tasks yet'}
           </div>
         </div>
-        <button className="btn ghost icon" style={{ color: 'var(--bad)' }} aria-label={`Delete ${project.name}`} onClick={() => onRemove(project)}>
-          <IconTrash size={17} />
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <Meter pct={status.pct} tone={status.tone} pace={status.elapsedPct}
+          label={`${project.name}: ${status.pct}% complete${status.elapsedPct != null ? `, pace ${status.elapsedPct}%` : ''}`} />
+      </div>
+
+      <div className="row-between" style={{ marginTop: 14 }}>
+        <p className="eyebrow" style={{ margin: 0 }}>Habits carrying this goal</p>
+        <button className="btn ghost sm" onClick={() => setLinkOpen((o) => !o)} aria-expanded={linkOpen}>
+          <IconLink size={14} /> {linkOpen ? 'Done' : linked.length ? 'Edit links' : 'Link habits'}
         </button>
       </div>
 
-      {open && (
-        <div className="stack" style={{ gap: 14, marginTop: 16 }}>
-          {isLegacy && (
-            <p className="chip tag-warn" style={{ whiteSpace: 'normal' }}>
-              Carried over from an earlier version at {pct}%. Add milestones below to keep building on it.
-            </p>
-          )}
-          {project.milestones.length === 0 && !isLegacy && (
-            <p style={{ color: 'var(--text-3)', fontSize: 'var(--fs-sm)' }}>No milestones yet — break this goal into 2–4 chunks.</p>
-          )}
-          {project.milestones.map((m) => {
-            const doneCount = m.tasks.filter((t) => t.done).length
-            const allDone = m.tasks.length > 0 && doneCount === m.tasks.length
+      {linkOpen ? (
+        habits.length ? (
+          <div className="wrap-gap" style={{ gap: 6, marginTop: 10 }}>
+            {habits.map((h) => {
+              const on = (project.linkedHabitIds || []).includes(h.id)
+              return (
+                <button
+                  key={h.id}
+                  type="button"
+                  className="chip-btn"
+                  aria-pressed={on}
+                  onClick={() => onToggleLink(project, h.id)}
+                >
+                  {on && <IconCheck size={13} />}
+                  {h.name}
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="empty-note" style={{ marginTop: 10 }}>Add a habit first, then link it here.</p>
+        )
+      ) : linked.length ? (
+        <div className="stack" style={{ gap: 8, marginTop: 10 }}>
+          {linked.map((h) => {
+            const r = habitRate(state, h, from, today)
+            const streak = habitStreak(state, h)
             return (
-              <div key={m.id} style={{ borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface-2)', padding: '10px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 20, height: 20, borderRadius: 7, flex: 'none', display: 'grid', placeItems: 'center',
-                      background: allDone ? 'var(--good)' : 'var(--track)', color: '#07130c',
-                    }}
-                  >
-                    {allDone && <IconCheck size={12} />}
+              <div key={h.id} className="goal-habit">
+                <span className="dot" style={{ background: `var(${cat.cssVar})` }} />
+                <span className="goal-habit-name ellipsis">{h.name}</span>
+                {streak > 1 && (
+                  <span className="tiny tnum" style={{ color: 'var(--warn)', fontWeight: 700, display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+                    <IconFlame size={12} />{streak}d
                   </span>
-                  <span style={{ flex: 1, fontWeight: 700, fontSize: 'var(--fs-sm)', textDecoration: allDone ? 'line-through' : 'none', color: allDone ? 'var(--text-2)' : 'var(--text)' }}>{m.name}</span>
-                  <span className="tnum" style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>{doneCount}/{m.tasks.length}</span>
-                  <button
-                    className="btn ghost icon"
-                    style={{ width: 32, height: 32, minHeight: 32 }}
-                    aria-label={`Delete milestone ${m.name}`}
-                    onClick={() => dispatch({ type: 'DELETE_MILESTONE', projectId: project.id, milestoneId: m.id })}
-                  >
-                    <IconX size={14} />
-                  </button>
-                </div>
-                <div className="stack" style={{ gap: 4, marginTop: 8, paddingLeft: 28 }}>
-                  {m.tasks.map((t) => (
-                    <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 40, cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={t.done}
-                        onChange={() => dispatch({ type: 'TOGGLE_TASK', projectId: project.id, milestoneId: m.id, taskId: t.id })}
-                        style={{ width: 20, height: 20, accentColor: 'var(--accent-1)', flex: 'none' }}
-                      />
-                      <span style={{ fontSize: 'var(--fs-sm)', textDecoration: t.done ? 'line-through' : 'none', color: t.done ? 'var(--text-3)' : 'var(--text-2)' }}>
-                        {t.name}
-                      </span>
-                    </label>
-                  ))}
-                  <form
-                    style={{ display: 'flex', gap: 8, marginTop: 4 }}
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      const name = (newTask[m.id] || '').trim()
-                      if (!name) return
-                      dispatch({ type: 'ADD_TASK', projectId: project.id, milestoneId: m.id, name })
-                      setNewTask((s) => ({ ...s, [m.id]: '' }))
-                    }}
-                  >
-                    <input
-                      className="field"
-                      style={{ minHeight: 38 }}
-                      placeholder="Add a task…"
-                      aria-label={`Add task to ${m.name}`}
-                      value={newTask[m.id] || ''}
-                      onChange={(e) => setNewTask((s) => ({ ...s, [m.id]: e.target.value }))}
-                    />
-                    <button className="btn icon" type="submit" aria-label={`Add task to ${m.name}`}><IconPlus size={16} /></button>
-                  </form>
-                </div>
+                )}
+                <span className="tiny muted tnum" style={{ flex: 'none' }}>
+                  {r.rate == null ? 'no data' : `${Math.round(r.rate * 100)}% · 30d`}
+                </span>
               </div>
             )
           })}
-
-          {addMsOpen ? (
-            <form
-              style={{ display: 'flex', gap: 8 }}
-              onSubmit={(e) => {
-                e.preventDefault()
-                const name = newMilestone.trim()
-                if (!name) return
-                dispatch({ type: 'ADD_MILESTONE', projectId: project.id, name })
-                setNewMilestone('')
-                setAddMsOpen(false)
-              }}
-            >
-              <input
-                className="field"
-                autoFocus
-                placeholder="New milestone name…"
-                aria-label="New milestone name"
-                value={newMilestone}
-                onChange={(e) => setNewMilestone(e.target.value)}
-                onKeyDown={(e) => e.key === 'Escape' && setAddMsOpen(false)}
-              />
-              <button className="btn" type="submit">Add</button>
-              <button className="btn ghost" type="button" onClick={() => setAddMsOpen(false)}>Cancel</button>
-            </form>
-          ) : (
-            <button className="btn ghost" style={{ alignSelf: 'flex-start' }} onClick={() => setAddMsOpen(true)}>
-              <IconPlus size={15} /> Add milestone
-            </button>
-          )}
         </div>
+      ) : (
+        <p className="tiny muted" style={{ marginTop: 8 }}>Nothing linked yet.</p>
       )}
-    </SectionCard>
-  )
-}
 
-function NewGoalSheet({ open, onClose }) {
-  const { dispatch } = useStore()
-  const [name, setName] = useState('')
-  const [milestone, setMilestone] = useState('')
-
-  useEffect(() => {
-    if (open) { setName(''); setMilestone('') }
-  }, [open])
-
-  const create = () => {
-    const n = name.trim()
-    if (!n) return
-    dispatch({
-      type: 'ADD_PROJECT',
-      project: { name: n, milestones: milestone.trim() ? [{ id: Math.random().toString(36).slice(2), name: milestone.trim(), tasks: [] }] : [] },
-    })
-    onClose()
-  }
-
-  return (
-    <Sheet open={open} onClose={onClose} title="New goal" labelledBy="goal-title">
-      <div className="stack" style={{ gap: 16 }}>
-        <div>
-          <label className="field-label" htmlFor="goal-name">Goal</label>
-          <input id="goal-name" className="field" autoFocus value={name} maxLength={80}
-            placeholder="e.g. Launch portfolio site"
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && create()} />
-        </div>
-        <div>
-          <label className="field-label" htmlFor="goal-milestone">First milestone <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>(optional)</span></label>
-          <input id="goal-milestone" className="field" value={milestone} maxLength={80}
-            placeholder="e.g. Pick 3 projects to show"
-            onChange={(e) => setMilestone(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && create()} />
-        </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={create} disabled={!name.trim()}>Create goal</button>
-        </div>
+      <div className="row-between" style={{ marginTop: 14 }}>
+        <span className="tiny muted">
+          {status.hasDeadline ? `Due ${prettyDate(String(project.deadline).slice(0, 10))}` : 'No deadline — this is direction, not a race'}
+        </span>
+        <Link to={`projects/${project.id}`} className="btn ghost sm">Open project <IconChevronRight size={14} /></Link>
       </div>
-    </Sheet>
+    </SectionCard>
   )
 }

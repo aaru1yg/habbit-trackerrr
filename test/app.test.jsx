@@ -156,28 +156,67 @@ describe('core flows', () => {
     expect((await screen.findAllByText(/Solid focus/i)).length).toBeGreaterThan(0)
   })
 
-  it('goals: create → milestone → task → 100% completion state', async () => {
+  it('project progress is mathematical: 1 of 2 tasks = 50%, 2 of 2 = 100% + celebration', async () => {
     await onboard()
-    window.location.hash = '#/goals'
-    await screen.findByText(/No goals yet/i)
-
-    fireEvent.click(screen.getByRole('button', { name: /New goal/i }))
-    const form = await screen.findByRole('dialog')
-    fireEvent.change(within(form).getByLabelText(/^Goal/i), { target: { value: 'Ship v1' } })
-    fireEvent.click(within(form).getByRole('button', { name: /Create goal/i }))
+    window.location.hash = '#/projects'
+    await screen.findByText('No projects yet')
+    fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
+    const form = await screen.findByRole('dialog', { name: 'New project' })
+    fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Ship v1' } })
+    fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Scope\nBuild' } })
+    fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
     await screen.findByText('Ship v1')
 
-    fireEvent.click(screen.getByRole('button', { name: /Add milestone/i }))
-    fireEvent.change(screen.getByLabelText(/New milestone name/i), { target: { value: 'Scope' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    await screen.findByText('Scope')
+    // open the project and add one task per milestone
+    fireEvent.click(screen.getByRole('link', { name: /Open Ship v1/i }))
+    const scopeInput = await screen.findByRole('textbox', { name: /task to Scope/i })
+    fireEvent.change(scopeInput, { target: { value: 'Write spec' } })
+    fireEvent.submit(scopeInput.closest('form'))
+    const buildInput = await screen.findByRole('textbox', { name: /task to Build/i })
+    fireEvent.change(buildInput, { target: { value: 'Frontend' } })
+    fireEvent.submit(buildInput.closest('form'))
+    await screen.findByText('Write spec')
+    await screen.findByText('Frontend')
 
-    const taskInput = screen.getByRole('textbox', { name: /Add task to Scope/i })
-    fireEvent.change(taskInput, { target: { value: 'Write spec' } })
-    fireEvent.submit(taskInput.closest('form'))
+    // 1 of 2 tasks done is exactly 50%
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Write spec done' }))
+    await waitFor(() => expect(screen.getAllByText(textContentMatcher('50%')).length).toBeGreaterThan(0))
 
-    fireEvent.click(await screen.findByRole('checkbox'))
-    await waitFor(() => expect(screen.getAllByText(textContentMatcher('100%')).length).toBeGreaterThan(0))
+    // 2 of 2 is 100% and earns the big celebration (§84)
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Frontend done' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Project complete' })
+    expect(within(dialog).getByText('Ship v1')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: /Close it out/i }))
+  })
+
+  it('goals: direction links a habit to a project and shows the real 30-day rate', async () => {
+    await onboard()
+    await addHabit('Write')
+    fireEvent.click(await screen.findByRole('button', { name: /Mark Write complete/i }))
+
+    window.location.hash = '#/projects'
+    await screen.findByText('No projects yet')
+    fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
+    const form = await screen.findByRole('dialog', { name: 'New project' })
+    fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Write a novella' } })
+    fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Draft' } })
+    fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
+    await screen.findByText('Write a novella')
+
+    window.location.hash = '#/goals'
+    await screen.findByRole('heading', { name: 'Goals' })
+    await screen.findByText('Write a novella')
+    expect(screen.getByText(/Habits not tied to a goal/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Link habits/i }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Write' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+
+    await waitFor(() => expect(screen.queryByText(/Habits not tied to a goal/)).toBeNull())
+    // a real completion today means a real rate, never a placeholder
+    expect(screen.getByText(/100% · 30d/)).toBeTruthy()
+    // the direction summary counts the link
+    expect(screen.getByText('Habits linked')).toBeTruthy()
   })
 
   it('settings: switch theme → persists; export/import round-trip via store', async () => {

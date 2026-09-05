@@ -10,6 +10,7 @@ import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
 import { todayStr, daysBetween } from '../lib/dates.js'
 import { Link } from '../lib/router.jsx'
 import { IconUser, IconPalette, IconBell, IconBellOff, IconDownload, IconUpload, IconTrash, IconClock } from '../lib/icons.jsx'
+import { BUILD_ID, BUILD_TIME } from '../lib/buildInfo.js'
 
 const THEMES = [
   { id: 'midnight', label: 'Midnight', hint: 'Deep navy · violet to cyan' },
@@ -302,6 +303,9 @@ export default function SettingsScreen() {
           <CardHead title="About" />
           <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', lineHeight: 1.6 }}>
             Aaru Habits — a calm habit tracker. Works offline, installs to your home screen, and never sends your data anywhere.
+          </p>
+          <p data-build-id={BUILD_ID} style={{ color: 'var(--text-3)', fontSize: 'var(--fs-xs)', marginTop: 8 }}>
+            Build {BUILD_ID}{BUILD_TIME !== 'dev' ? ` · ${BUILD_TIME.slice(0, 10)}` : ''}
           </p>
         </SectionCard>
       </div>

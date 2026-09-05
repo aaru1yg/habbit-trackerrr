@@ -5,6 +5,7 @@ import { STARTER_HABITS, categoryOf } from '../lib/schedule.js'
 import { requestNotificationPermission, notificationState, notificationsSupported } from '../lib/reminders.js'
 import { BrandMark } from './layout/Navigation.jsx'
 import { IconCheck, IconChevronRight, IconBell } from '../lib/icons.jsx'
+import { BUILD_ID } from '../lib/buildInfo.js'
 
 /* 3-step onboarding: name → starter habits → optional reminder. Fast, skippable. */
 export default function Onboarding() {
@@ -174,6 +175,7 @@ export default function Onboarding() {
 
         <p style={{ marginTop: 'auto', paddingTop: 40, color: 'var(--text-3)', fontSize: 'var(--fs-xs)' }}>
           {picked.length > 0 ? `${picked.length} habit${picked.length === 1 ? '' : 's'} ready to add` : 'No habits picked yet — you can add them any time.'}
+          <span data-build-id={BUILD_ID} style={{ opacity: 0.75 }}> · build {BUILD_ID}</span>
         </p>
       </div>
     </div>

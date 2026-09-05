@@ -1,8 +1,10 @@
 /* Aaru Habits — offline-capable service worker.
    Strategy: network-first for the app shell so deployments are picked up
    immediately; cache-first only for immutable hashed build assets and
-   same-origin fonts. Old caches are evicted on activate. */
-const CACHE = 'aaru-habits-v6'
+   same-origin fonts. Old caches are evicted on activate.
+   NOTE: __BUILD_ID__ is stamped per build by vite.config (aaru-build-identity),
+   so every deployment installs a fresh worker that evicts the previous build. */
+const CACHE = 'aaru-habits-v7-__BUILD_ID__'
 const CORE = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './icon-192.png', './icon-512.png', './icon-512-maskable.png']
 
 self.addEventListener('install', (e) => {

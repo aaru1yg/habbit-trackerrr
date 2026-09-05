@@ -3,6 +3,16 @@ import ReactDOM from 'react-dom/client'
 import { StoreProvider } from './store.jsx'
 import App from './App.jsx'
 import './index.css'
+import { BUILD_ID, BUILD_TIME } from './lib/buildInfo.js'
+
+// Production-safe build identity: proves exactly which commit is being served.
+// Non-intrusive — window vars + console line only; visible captions live in the
+// onboarding footer and Settings → About.
+window.__BUILD_ID__ = BUILD_ID
+window.__BUILD_TIME__ = BUILD_TIME
+if (import.meta.env.PROD) {
+  console.info(`[aaru] build ${BUILD_ID} (${BUILD_TIME})`)
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -33,6 +33,22 @@ jobs:
         env:
           GH_PAGES: 'true'
 
+      # Chain-of-evidence guard: the artifact must provably be built from the
+      # checked-out commit, with the Pages subpath base applied. Fails loudly
+      # instead of deploying a build that 404s its assets or hides its origin.
+      - name: Verify build identity
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse --short=7 HEAD)"
+          echo "source commit: $SHA (full: $GITHUB_SHA)"
+          test -f dist/index.html || { echo "dist/index.html missing"; exit 1; }
+          grep -q '/habbit-trackerrr/assets/' dist/index.html || { echo "Pages subpath base missing — GH_PAGES=true not applied?"; exit 1; }
+          grep -o '<meta name="build-id" content="[^"]*"' dist/index.html
+          grep -q "<meta name=\"build-id\" content=\"$SHA\"" dist/index.html || { echo "build-id meta does not match $SHA"; exit 1; }
+          grep -o "aaru-habits-v7-[0-9a-f]*" dist/sw.js | head -1
+          grep -q "aaru-habits-v7-$SHA" dist/sw.js || { echo "sw.js cache version does not match $SHA"; exit 1; }
+          echo "build identity OK: $SHA"
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

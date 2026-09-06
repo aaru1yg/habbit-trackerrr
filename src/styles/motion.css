@@ -480,3 +480,20 @@
   .scatter-pop .scatter-dot { opacity: 1; transform: none; transition: none; }
   .scatter-pop .scatter-trend { stroke-dashoffset: 0; transition: none; }
 }
+
+/* medal sheen: one light sweep across an earned trophy on first view */
+.medal-shine { position: relative; overflow: hidden; }
+.medal-shine::after {
+  content: '';
+  position: absolute; inset: -30%;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.26) 50%, transparent 58%);
+  transform: translateX(-75%);
+  opacity: 0.9;
+  pointer-events: none;
+  transition: transform 820ms var(--ease-out) 140ms, opacity 240ms linear 820ms;
+}
+.medal-shine.is-in::after { transform: translateX(75%); opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .medal-shine::after { display: none; }
+  .ach-card.is-fresh { animation: none; }
+}

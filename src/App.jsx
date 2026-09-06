@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { useStore } from './store.jsx'
 import { useRoute, navigate } from './lib/router.jsx'
 import { ToastProvider, useToast } from './components/ui/Toaster.jsx'
+import UnlockWatcher from './components/achievements/UnlockWatcher.jsx'
 import HabitUIProvider, { useHabitUI } from './components/habits/HabitUIProvider.jsx'
 import WorkUIProvider, { useWorkUI } from './components/work/WorkUIProvider.jsx'
 import Backdrop from './components/layout/Backdrop.jsx'
@@ -115,6 +116,7 @@ export default function App() {
       )}
 
       <ToastProvider>
+        <UnlockWatcher />
         <WorkUIProvider>
           <HabitUIProvider onFire={onFire}>
             <main id="content" style={{ position: 'relative' }}>

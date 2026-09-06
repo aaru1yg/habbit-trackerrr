@@ -1167,6 +1167,52 @@ console.log('\n— Empty states —')
 }
 
 /* ============================================================
+   PART — Achievements 2.0: shelf honesty + the unlock moment
+   ============================================================ */
+console.log('\n— Achievements 2.0 —')
+{
+  const page = await newPage(browser, VIEWPORTS.mobile)
+  await seedAndGoto(page, seededStateV4(), 'achievements', BASE)
+  await sleep(700)
+  const atxt = await page.evaluate(() => document.body.textContent)
+  check('achievements hero counts unlocked from real data', /unlocked/.test(atxt) && /\d+/.test(atxt))
+  check('[achievements 2.0] earned cards carry the medal sheen mount', await page.evaluate(() => (
+    document.querySelectorAll('.ach-card.is-earned .medal-shine').length >= 1
+  )))
+  check('[achievements 2.0] locked cards show honest progress meters', await page.evaluate(() => (
+    document.querySelectorAll('.ach-card:not(.is-earned) .meter').length >= 1
+  )))
+  await shot(page, '17-achievements')
+  await overflowCheck(page, 'achievements')
+  await tapTargetCheck(page, 'achievements')
+
+  // finish every habit scheduled today → the clean-sweep unlock moment
+  await page.goto(`${BASE}/#/today`, { waitUntil: 'networkidle0' })
+  await sleep(800)
+  for (let i = 0; i < 10; i++) {
+    const clicked = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('.habit-row')].find((r) => !r.classList.contains('done'))
+      const b = row?.querySelector('[role="button"]')
+      if (!b) return false
+      b.click()
+      return true
+    })
+    if (!clicked) break
+    await sleep(420)
+  }
+  check('[achievements 2.0] finishing the day fires the unlock moment', await page.evaluate(() => (
+    /troph(y|ies) earned/i.test(document.querySelector('.toast-region')?.textContent || '')
+  )))
+  await page.goto(`${BASE}/#/achievements`, { waitUntil: 'networkidle0' })
+  await sleep(700)
+  check('[achievements 2.0] clean sweep is stamped earned afterwards', await page.evaluate(() => (
+    [...document.querySelectorAll('.ach-card.is-earned')].some((c) => /Clean sweep/.test(c.textContent))
+  )))
+  await noConsoleErrors(page, 'achievements')
+  await page.close()
+}
+
+/* ============================================================
    PART 11 — Viewport sweep 320–414px (zero horizontal overflow)
    ============================================================ */
 console.log('\n— Viewport sweep 320–414px —')

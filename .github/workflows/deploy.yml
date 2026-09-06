@@ -28,10 +28,40 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Public Supabase client config must be injected at BUILD time — Vite
+      # inlines VITE_* into the bundle, and CI has no .env file. Both values
+      # are public-safe (the anon key is constrained by RLS); the service_role
+      # key must never appear here.
       - name: Build (Pages subpath base)
         run: npm run build
         env:
           GH_PAGES: 'true'
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      # Fail loudly rather than deploying a build whose login screen cannot
+      # possibly create an account.
+      - name: Verify Supabase config was injected
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ] || [ -z "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
+            echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY repository secrets are not set."
+            echo "Add them under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          grep -rq "supabase.co" dist/assets/*.js || {
+            echo "::error::Supabase URL is not present in the built bundle."; exit 1; }
+          echo "Supabase config present in build."
+
+      # Guard against a service-role key ever reaching the public bundle.
+      - name: Assert no service-role key in bundle
+        run: |
+          set -euo pipefail
+          if grep -rlE '"role" *: *"service_role"|service_role' dist/ 2>/dev/null | grep -q .; then
+            echo "::error::A service_role reference was found in the deployed bundle."
+            exit 1
+          fi
+          echo "No service-role key in bundle."
 
       # Chain-of-evidence guard: the artifact must provably be built from the
       # checked-out commit, with the Pages subpath base applied. Fails loudly

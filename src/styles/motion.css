@@ -1,0 +1,410 @@
+/* ============================================================
+   MOTION — the single owner of scroll choreography, depth and
+   chart animation. tokens/base/components/work/system build the
+   product; this layer makes it move, and nothing else may.
+
+   Rules held here:
+   - every animation is transform/opacity only (GPU friendly)
+   - every effect has an explicit static state
+   - prefers-reduced-motion collapses all of it to the static state
+   - nothing animates forever except the atmosphere and the
+     Progress Core's slow orbit (both paused offscreen, both
+     disabled under reduced motion)
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   0 · Motion tokens this layer consumes (declared here, used
+   here; components read them through these names only).
+   ------------------------------------------------------------ */
+:root {
+  --mo-reveal-y: 22px;
+  --mo-reveal-scale: 0.985;
+  --mo-depth-1: 600px;    /* gentle perspective: cards */
+  --mo-depth-2: 900px;    /* medium: hero compositions */
+  --mo-depth-3: 1400px;   /* deep: scene backdrops */
+  --mo-tilt-max: 5deg;    /* pointer tilt ceiling */
+  --mo-parallax-1: 14px;
+  --mo-parallax-2: 30px;
+  --mo-parallax-3: 56px;
+  --mo-blur-enter: 6px;
+}
+
+/* ------------------------------------------------------------
+   1 · REVEAL — IntersectionObserver-driven entrance.
+   .reveal starts hidden; .reveal.is-in settles it. Delay comes
+   from --mo-delay so groups stagger without new classes.
+   ------------------------------------------------------------ */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, var(--mo-reveal-y), 0) scale(var(--mo-reveal-scale));
+  transition:
+    opacity var(--dur-4) var(--ease-out) var(--mo-delay, 0ms),
+    transform var(--dur-4) var(--ease-out) var(--mo-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal[data-reveal='depth'] {
+  transform: translate3d(0, calc(var(--mo-reveal-y) * 1.6), 0) scale(0.96);
+  filter: blur(var(--mo-blur-enter));
+  transition:
+    opacity var(--dur-4) var(--ease-out) var(--mo-delay, 0ms),
+    transform 560ms var(--ease-out) var(--mo-delay, 0ms),
+    filter 560ms var(--ease-out) var(--mo-delay, 0ms);
+}
+.reveal[data-reveal='left'] { transform: translate3d(calc(var(--mo-reveal-y) * -1), 0, 0); }
+.reveal[data-reveal='right'] { transform: translate3d(var(--mo-reveal-y), 0, 0); }
+.reveal[data-reveal='rise'] { transform: translate3d(0, calc(var(--mo-reveal-y) * 2), 0); }
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* Children of a choreographed group inherit the group's timing. */
+.stagger-group > * { --mo-delay: calc(var(--mo-i, 0) * 55ms); }
+
+/* ------------------------------------------------------------
+   2 · DEPTH — perspective containers and layered cards.
+   A .stage gives its children a shared vanishing point; .layer-*
+   place children at different depths.
+   ------------------------------------------------------------ */
+.stage {
+  perspective: var(--mo-depth-2);
+  perspective-origin: 50% 40%;
+}
+.stage[data-depth='near'] { perspective: var(--mo-depth-1); }
+.stage[data-depth='far'] { perspective: var(--mo-depth-3); }
+.stage > * { transform-style: preserve-3d; }
+
+/* layered composition: each layer floats at its own z */
+.layer-1 { transform: translateZ(0); }
+.layer-2 { transform: translateZ(18px); }
+.layer-3 { transform: translateZ(36px); }
+
+/* Pointer tilt — JS writes --tilt-x/--tilt-y; CSS owns the feel. */
+.tilt {
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 220ms var(--ease-out);
+  will-change: transform;
+}
+.tilt[data-tilting='true'] { transition-duration: 60ms; }
+/* the specular sheen that follows the pointer */
+.tilt-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-out);
+  background: radial-gradient(
+    420px circle at var(--sheen-x, 50%) var(--sheen-y, 50%),
+    rgba(255, 255, 255, 0.075),
+    transparent 62%
+  );
+}
+.tilt[data-tilting='true'] .tilt-sheen,
+.tilt:hover .tilt-sheen { opacity: 1; }
+
+/* ------------------------------------------------------------
+   3 · PARALLAX — scroll-linked travel. JS sets --px (0..1);
+   CSS maps it to a depth-scaled translate. Transform only.
+   ------------------------------------------------------------ */
+.parallax {
+  transform: translate3d(0, calc((var(--px, 0) - 0.5) * var(--mo-travel, var(--mo-parallax-1)) * -1), 0);
+  will-change: transform;
+}
+.parallax[data-travel='2'] { --mo-travel: var(--mo-parallax-2); }
+.parallax[data-travel='3'] { --mo-travel: var(--mo-parallax-3); }
+
+/* ------------------------------------------------------------
+   4 · CHART MOTION — charts tell their story on first entry.
+   Each primitive has a static final state; the animation only
+   plays when .is-in arrives, once.
+   ------------------------------------------------------------ */
+
+/* line / area draw-on */
+.chart-draw .chart-line {
+  stroke-dasharray: var(--len, 1200);
+  stroke-dashoffset: var(--len, 1200);
+  transition: stroke-dashoffset 900ms var(--ease-out) 120ms;
+}
+.chart-draw.is-in .chart-line { stroke-dashoffset: 0; }
+
+.chart-draw .chart-area {
+  opacity: 0;
+  transform: scaleY(0.72);
+  transform-origin: bottom;
+  transition: opacity 520ms var(--ease-out) 420ms, transform 640ms var(--ease-out) 420ms;
+}
+.chart-draw.is-in .chart-area { opacity: 1; transform: none; }
+
+.chart-draw .chart-dot {
+  opacity: 0;
+  transform: scale(0.4);
+  transform-origin: center;
+  transform-box: fill-box;
+  transition: opacity 260ms var(--ease-out), transform 320ms var(--ease-spring);
+  transition-delay: calc(380ms + var(--i, 0) * 26ms);
+}
+.chart-draw.is-in .chart-dot { opacity: 1; transform: scale(1); }
+
+/* axes + grid settle first */
+.chart-draw .chart-frame {
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+.chart-draw.is-in .chart-frame { opacity: 1; }
+
+.chart-draw .chart-label {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 320ms var(--ease-out) 620ms, transform 320ms var(--ease-out) 620ms;
+}
+.chart-draw.is-in .chart-label { opacity: 1; transform: none; }
+
+/* bars rise into place */
+.bar-rise .bar-rect,
+.bar-rise .bar-col {
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transform-box: fill-box;
+  transition: transform 620ms var(--ease-spring);
+  transition-delay: calc(var(--i, 0) * 40ms);
+}
+.bar-rise.is-in .bar-rect,
+.bar-rise.is-in .bar-col { transform: scaleY(1); }
+
+/* horizontal bars grow from the axis */
+.hbar-grow .hbar-fill {
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 720ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 55ms);
+}
+.hbar-grow.is-in .hbar-fill { transform: scaleX(1); }
+
+/* heatmap reveals column by column, week by week */
+.heat-reveal .heat-cell {
+  opacity: 0;
+  transform: scale(0.6);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 200ms var(--ease-out), transform 260ms var(--ease-spring);
+  transition-delay: calc(var(--i, 0) * 9ms);
+}
+.heat-reveal.is-in .heat-cell { opacity: 1; transform: scale(1); }
+
+/* donuts sweep */
+.donut-sweep .donut-value {
+  stroke-dashoffset: var(--c, 300);
+  transition: stroke-dashoffset 900ms var(--ease-out) 100ms;
+}
+.donut-sweep.is-in .donut-value { stroke-dashoffset: var(--off, 0); }
+
+/* ------------------------------------------------------------
+   5 · PROGRESS CORE — the signature object.
+   Pure CSS/SVG so it works everywhere; the WebGL field layers
+   behind it only on capable devices.
+   ------------------------------------------------------------ */
+.core-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+.core-halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 46%,
+    var(--accent-soft) 0%,
+    transparent 68%);
+  background: radial-gradient(circle at 50% 46%,
+    color-mix(in oklab, var(--accent-1) 46%, transparent) 0%,
+    color-mix(in oklab, var(--accent-2) 24%, transparent) 42%,
+    transparent 70%);
+  filter: blur(26px);
+  opacity: calc(0.28 + var(--pct, 0) * 0.5);
+  transition: opacity 700ms var(--ease-out);
+  pointer-events: none;
+  z-index: -1;
+}
+.core-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: core-orbit var(--orbit-dur, 26s) linear infinite;
+  pointer-events: none;
+}
+.core-orbit.reverse { animation-direction: reverse; animation-duration: 38s; }
+.core-orbit i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--dot, 5px);
+  height: var(--dot, 5px);
+  margin: calc(var(--dot, 5px) / -2);
+  border-radius: 50%;
+  background: var(--dot-c, var(--accent-2));
+  box-shadow: 0 0 10px var(--dot-c, var(--accent-2));
+  transform: rotate(var(--a, 0deg)) translateX(var(--r, 46%));
+  opacity: var(--dot-o, 0.7);
+}
+@keyframes core-orbit { to { transform: rotate(360deg); } }
+
+.core-float { animation: core-float 9s var(--ease-in-out) infinite; }
+@keyframes core-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -7px, 0); }
+}
+
+.core-breathe { animation: core-breathe 5.5s var(--ease-in-out) infinite; }
+@keyframes core-breathe {
+  0%, 100% { opacity: calc(0.28 + var(--pct, 0) * 0.5); transform: scale(1); }
+  50% { opacity: calc(0.36 + var(--pct, 0) * 0.55); transform: scale(1.045); }
+}
+
+/* completion pulse: one shot when progress increases */
+.core-pulse {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in oklab, var(--accent-2) 70%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.core-pulse.go { animation: core-pulse 760ms var(--ease-out) 1; }
+@keyframes core-pulse {
+  0% { opacity: 0.55; transform: scale(0.86); }
+  100% { opacity: 0; transform: scale(1.28); }
+}
+
+/* ------------------------------------------------------------
+   6 · PARTICLE BURST — reserved for meaningful completions.
+   Canvas-free: a handful of GPU dots, one shot, then removed.
+   ------------------------------------------------------------ */
+.burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+.burst i {
+  position: absolute;
+  width: var(--s, 5px);
+  height: var(--s, 5px);
+  border-radius: 50%;
+  background: var(--c, var(--accent-2));
+  opacity: 0;
+  animation: burst-fly 680ms var(--ease-out) 1 forwards;
+  animation-delay: var(--d, 0ms);
+}
+/* --dx/--dy are computed by the Burst component (no trig in CSS, so
+   the effect works on every engine that supports custom props). */
+@keyframes burst-fly {
+  0% { opacity: 0.9; transform: translate3d(0, 0, 0) scale(1); }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 40px), var(--dy, -30px), 0) scale(0.3);
+  }
+}
+
+/* ------------------------------------------------------------
+   7 · SCENE TRANSITIONS — screens arrive with depth.
+   ------------------------------------------------------------ */
+.scene-enter {
+  animation: scene-enter 420ms var(--ease-out) 1 both;
+}
+@keyframes scene-enter {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* hero compression: as the page scrolls, the hero settles back */
+.hero-compress {
+  transform: scale(calc(1 - var(--px, 0) * 0.045)) translateY(calc(var(--px, 0) * -10px));
+  opacity: calc(1 - var(--px, 0) * 0.35);
+  transform-origin: 50% 0%;
+  will-change: transform, opacity;
+}
+
+/* ------------------------------------------------------------
+   8 · POINTER LIGHT — a whisper of light following the cursor.
+   ------------------------------------------------------------ */
+.pointer-light::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+  background: radial-gradient(560px circle at var(--pointer-x, 50%) var(--pointer-y, 40%),
+    color-mix(in oklab, var(--accent-1) 9%, transparent), transparent 65%);
+}
+.pointer-light[data-pointer='on']::before { opacity: 1; }
+
+/* ------------------------------------------------------------
+   9 · REDUCED MOTION — collapse to the static composition.
+   State stays fully readable; only movement is removed.
+   ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal[data-reveal] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+  .tilt { transform: none; transition: none; }
+  .tilt-sheen { display: none; }
+  .parallax,
+  .hero-compress { transform: none; opacity: 1; }
+  .core-orbit,
+  .core-float,
+  .core-breathe,
+  .core-pulse,
+  .burst i { animation: none; }
+  .burst { display: none; }
+  .chart-draw .chart-line { stroke-dashoffset: 0; transition: none; }
+  .chart-draw .chart-area,
+  .chart-draw .chart-dot,
+  .chart-draw .chart-frame,
+  .chart-draw .chart-label { opacity: 1; transform: none; transition: none; }
+  .bar-rise .bar-rect,
+  .bar-rise .bar-col,
+  .hbar-grow .hbar-fill { transform: none; transition: none; }
+  .heat-reveal .heat-cell { opacity: 1; transform: none; transition: none; }
+  .donut-sweep .donut-value { stroke-dashoffset: var(--off, 0); transition: none; }
+  .scene-enter { animation: none; }
+  .pointer-light::before { display: none; }
+}
+
+/* Progress Core — arc + ticks + orb internals */
+.core-arc {
+  transition: stroke-dashoffset 900ms var(--ease-out);
+}
+.core-ticks line {
+  transition: opacity 500ms var(--ease-out), stroke 500ms var(--ease-out);
+}
+.core-orb {
+  transition: opacity 700ms var(--ease-out), r 700ms var(--ease-out);
+}
+.core-value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: var(--tr-display);
+  line-height: 1;
+}
+.core-caption {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  margin-top: 4px;
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+}
+@media (prefers-reduced-motion: reduce) {
+  .core-arc,
+  .core-ticks line,
+  .core-orb { transition: none; }
+}

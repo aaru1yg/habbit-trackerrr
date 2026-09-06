@@ -5,6 +5,7 @@ import { ToastProvider, useToast } from './components/ui/Toaster.jsx'
 import HabitUIProvider, { useHabitUI } from './components/habits/HabitUIProvider.jsx'
 import WorkUIProvider, { useWorkUI } from './components/work/WorkUIProvider.jsx'
 import Backdrop from './components/layout/Backdrop.jsx'
+import PointerLight from './components/motion/PointerLight.jsx'
 import { BottomNav, Sidebar, MoreSheet } from './components/layout/Navigation.jsx'
 import SearchPalette from './components/layout/SearchPalette.jsx'
 import Onboarding from './components/Onboarding.jsx'
@@ -104,6 +105,7 @@ export default function App() {
   return (
     <>
       <Backdrop />
+      <PointerLight />
       <Sidebar route={active} name={state.profile.name} onSearch={() => setSearchOpen(true)} />
       {!online && (
         <div className="offline-pill" role="status">

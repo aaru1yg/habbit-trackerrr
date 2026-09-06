@@ -17,6 +17,7 @@ import {
   assignmentCompletionTrend, weeklyCompletionSpeed,
 } from '../lib/work.js'
 import {   shortDate, dayOf } from '../lib/dates.js'
+import PressureRow from '../components/work/PaceRibbon.jsx'
 import { IconAssignment, IconPlus, IconSearch, IconX, IconAlert } from '../lib/icons.jsx'
 
 const SORTS = [
@@ -91,6 +92,9 @@ export default function AssignmentsScreen({ route = 'assignments' }) {
                 { label: 'Completed', value: summary.completed, tone: summary.completed ? 'good' : undefined, note: 'at 100%' },
               ]}
             />
+
+            {/* V4: assignments live in TIME — the pressure band reads it at a glance (spec §11) */}
+            {hasAny && <PressureRow rows={visible} />}
 
             {urgent.length > 0 && (
               <SectionCard className="pad" style={{ borderColor: 'color-mix(in srgb, var(--bad) 40%, var(--border))' }}>

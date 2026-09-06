@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { SpatialStage } from '../components/spatial/Depth.jsx'
 import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
@@ -134,6 +135,7 @@ export default function InsightsScreen() {
         </div>
       </header>
 
+      <SpatialStage className="insights-stage" focus={1800} parallax={7}>
       <div className="stack insights-layout">
         <div className="seg seg-wide insights-switch" role="group" aria-label="Insights view">
           {INSIGHT_VIEWS.map((v) => (
@@ -154,6 +156,7 @@ export default function InsightsScreen() {
         {view === 'overview' && (
         <>
         {/* Hero: ring + streaks */}
+          <div className="sp-depth" data-z="2">
         <SectionCard className="pad insights-hero">
           <div className="insights-grid">
             <div className="insights-ring">
@@ -187,8 +190,10 @@ export default function InsightsScreen() {
             </div>
           </div>
         </SectionCard>
+          </div>
 
         {/* Trend */}
+          <div className="sp-depth" data-z="3">
         <SectionCard className="pad insights-trend">
           <CardHead title="Completion trend" />
           <div className="seg seg-wide" role="group" aria-label="Trend range">
@@ -205,13 +210,15 @@ export default function InsightsScreen() {
             ))}
           </div>
           {hasData ? (
-            <TrendChart data={trend} />
+            <TrendChart key={range} data={trend} />
           ) : (
             <p className="empty-note">No check-ins yet — this chart fills in as you go.</p>
           )}
         </SectionCard>
+          </div>
 
         {/* This week vs last week */}
+          <div className="sp-depth" data-z="1">
         <SectionCard className="pad insights-compare">
           <CardHead title="This week vs last week" />
           <div className="vs">
@@ -249,8 +256,10 @@ export default function InsightsScreen() {
             <div className="compare-labels"><span>Last week</span><span>This week</span></div>
           </div>
         </SectionCard>
+          </div>
 
         {/* Sortable habit performance */}
+          <div className="sp-depth" data-z="2">
         <SectionCard className="pad insights-performance">
           <CardHead title="Habit performance">
             <span className="perf-window">last 30 days</span>
@@ -287,22 +296,28 @@ export default function InsightsScreen() {
             {perf.length === 0 && <p className="empty-note">No habits with enough history yet.</p>}
           </div>
         </SectionCard>
+          </div>
 
         {/* Heatmap */}
+          <div className="sp-depth" data-z="3">
         <SectionCard className="pad insights-heatmap">
           <CardHead title="Activity heatmap" />
           <p className="card-blurb">Tap any day for details.</p>
           <Heatmap weeks={weeks} />
         </SectionCard>
+          </div>
 
         {/* Habit × day matrix */}
+          <div className="sp-depth" data-z="1">
         <SectionCard className="pad insights-matrix">
           <CardHead title="Habit × day" />
           <p className="card-blurb">Last 28 days · tap is read-only on this screen.</p>
           <HabitMatrix rows={matrixRows} days={matrixDays} weekLabels={weekLabels} />
         </SectionCard>
+          </div>
 
         {/* Year overview */}
+          <div className="sp-depth" data-z="2">
         <SectionCard className="pad insights-year">
           <CardHead title={`${YEAR} at a glance`} />
           {yearsWithData ? (
@@ -318,8 +333,10 @@ export default function InsightsScreen() {
             <p className="empty-note">Your {YEAR} heatmap appears once you start checking off habits.</p>
           )}
         </SectionCard>
+          </div>
 
         {/* Achievements */}
+          <div className="sp-depth" data-z="1">
         <SectionCard className="pad insights-achievements">
           <CardHead title="Achievements" />
           <div className="badge-grid">
@@ -343,9 +360,11 @@ export default function InsightsScreen() {
             </p>
           )}
         </SectionCard>
+          </div>
 
         {/* Mood link */}
         {moodLink && (
+          <div className="sp-depth" data-z="3">
           <SectionCard className="pad insights-mood">
             <CardHead title="Mood and habits" />
             <p className="card-blurb">
@@ -353,8 +372,10 @@ export default function InsightsScreen() {
               On low days, <b className="tnum" style={{ color: 'var(--warn)' }}>{moodLink.lowPct}%</b>. (Last 30 days.)
             </p>
           </SectionCard>
+          </div>
         )}
 
+          <div className="sp-depth" data-z="1">
         <SectionCard className="pad insights-deep-link">
           <div className="row-between">
             <p className="card-blurb" style={{ margin: 0 }}>
@@ -363,9 +384,11 @@ export default function InsightsScreen() {
             <button className="btn sm" onClick={() => setView('deep')}>Deep dive</button>
           </div>
         </SectionCard>
+          </div>
         </>
         )}
       </div>
+      </SpatialStage>
     </div>
   )
 }

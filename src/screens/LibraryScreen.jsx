@@ -364,7 +364,20 @@ function RoutineForm({ open, onClose, editing }) {
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={editing ? 'Edit routine' : 'New routine'} labelledBy="routine-form-title">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={editing ? 'Edit routine' : 'New routine'}
+      labelledBy="routine-form-title"
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn primary" onClick={save} disabled={!name.trim() || !picked.length}>
+            {editing ? 'Save routine' : 'Create routine'}
+          </button>
+        </>
+      }
+    >
       <div className="stack" style={{ gap: 18 }}>
         <div>
           <label className="field-label" htmlFor="routine-name">Routine name</label>
@@ -423,12 +436,6 @@ function RoutineForm({ open, onClose, editing }) {
           )}
         </fieldset>
 
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingBottom: 4 }}>
-          <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={save} disabled={!name.trim() || !picked.length}>
-            {editing ? 'Save routine' : 'Create routine'}
-          </button>
-        </div>
       </div>
     </Sheet>
   )

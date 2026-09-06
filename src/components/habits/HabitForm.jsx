@@ -71,7 +71,18 @@ export default function HabitForm({ open, onClose, editing }) {
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={editing ? 'Edit habit' : 'New habit'} labelledBy="habit-form-title">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={editing ? 'Edit habit' : 'New habit'}
+      labelledBy="habit-form-title"
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn primary" onClick={save}>{editing ? 'Save changes' : 'Add habit'}</button>
+        </>
+      }
+    >
       <div className="stack" style={{ gap: 18 }}>
         <div>
           <label className="field-label" htmlFor="habit-name">Name</label>
@@ -177,10 +188,6 @@ export default function HabitForm({ open, onClose, editing }) {
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingBottom: 4 }}>
-          <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={save}>{editing ? 'Save changes' : 'Add habit'}</button>
-        </div>
       </div>
     </Sheet>
   )

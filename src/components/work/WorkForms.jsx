@@ -115,7 +115,20 @@ export function ProjectForm({ open, onClose, editing }) {
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={editing ? 'Edit project' : 'New project'} labelledBy="project-form-title">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={editing ? 'Edit project' : 'New project'}
+      labelledBy="project-form-title"
+      footer={
+        <>
+          <button className="btn ghost" type="button" onClick={onClose}>Cancel</button>
+          <button className="btn primary" type="button" onClick={save} disabled={!name.trim()}>
+            {editing ? 'Save changes' : 'Create project'}
+          </button>
+        </>
+      }
+    >
       <div className="stack" style={{ gap: 18 }}>
         <div>
           <label className="field-label" htmlFor="project-name">Project</label>
@@ -190,12 +203,6 @@ export function ProjectForm({ open, onClose, editing }) {
           </div>
         </MoreOptions>
 
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingBottom: 4 }}>
-          <button className="btn ghost" type="button" onClick={onClose}>Cancel</button>
-          <button className="btn primary" type="button" onClick={save} disabled={!name.trim()}>
-            {editing ? 'Save changes' : 'Create project'}
-          </button>
-        </div>
       </div>
     </Sheet>
   )
@@ -284,7 +291,20 @@ export function AssignmentForm({ open, onClose, editing, defaultProjectId = null
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={editing ? 'Edit assignment' : 'New assignment'} labelledBy="assignment-form-title">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={editing ? 'Edit assignment' : 'New assignment'}
+      labelledBy="assignment-form-title"
+      footer={
+        <>
+          <button className="btn ghost" type="button" onClick={onClose}>Cancel</button>
+          <button className="btn primary" type="button" onClick={save} disabled={!name.trim()}>
+            {editing ? 'Save changes' : 'Create assignment'}
+          </button>
+        </>
+      }
+    >
       <div className="stack" style={{ gap: 18 }}>
         <div>
           <label className="field-label" htmlFor="assignment-name">Assignment</label>
@@ -367,12 +387,6 @@ export function AssignmentForm({ open, onClose, editing, defaultProjectId = null
           </div>
         </MoreOptions>
 
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingBottom: 4 }}>
-          <button className="btn ghost" type="button" onClick={onClose}>Cancel</button>
-          <button className="btn primary" type="button" onClick={save} disabled={!name.trim()}>
-            {editing ? 'Save changes' : 'Create assignment'}
-          </button>
-        </div>
       </div>
     </Sheet>
   )

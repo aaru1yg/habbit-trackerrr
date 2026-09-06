@@ -410,7 +410,18 @@ export default function CalendarScreen({ ymParam }) {
         )}
       </div>
 
-      <Sheet open={!!noteFor} onClose={() => setNoteFor(null)} title={noteFor ? `Note — ${noteFor.habit.name}` : 'Note'} labelledBy="note-title">
+      <Sheet
+        open={!!noteFor}
+        onClose={() => setNoteFor(null)}
+        title={noteFor ? `Note — ${noteFor.habit.name}` : 'Note'}
+        labelledBy="note-title"
+        footer={noteFor ? (
+          <>
+            <button className="btn ghost" onClick={() => setNoteFor(null)}>Cancel</button>
+            <button className="btn primary" onClick={saveNote}>Save note</button>
+          </>
+        ) : null}
+      >
         {noteFor && (
           <div className="stack">
             <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>{prettyDate(noteFor.date)}</p>
@@ -424,10 +435,6 @@ export default function CalendarScreen({ ymParam }) {
               onChange={(e) => setNoteDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNote() }}
             />
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="btn ghost" onClick={() => setNoteFor(null)}>Cancel</button>
-              <button className="btn primary" onClick={saveNote}>Save note</button>
-            </div>
           </div>
         )}
       </Sheet>

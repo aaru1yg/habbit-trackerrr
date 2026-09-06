@@ -305,29 +305,59 @@ html[data-theme='ember'] .toast-action { color: #7dd3fc; }
   flex-direction: column;
   overflow: hidden;
 }
+/* Visible-viewport height. --sheet-vh is published by Sheet.jsx from
+   visualViewport (keyboard-aware); dvh is the static fallback. --sheet-kb is
+   the keyboard/browser-UI intrusion at the bottom of the layout viewport. */
 .sheet-panel {
-  /* mobile: true bottom sheet */
+  /* mobile: true bottom sheet, pinned above the keyboard */
+  --sheet-safe-b: env(safe-area-inset-bottom, 0px);
+  --sheet-avail: var(--sheet-vh, 100dvh);
   left: 0;
   right: 0;
-  bottom: 0;
-  max-height: min(86dvh, 720px);
+  bottom: var(--sheet-kb, 0px);
+  /* Never taller than the visible viewport minus a small top breathing gap. */
+  max-height: calc(var(--sheet-avail) - 24px);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
   border-bottom: none;
-  padding-bottom: env(safe-area-inset-bottom);
+}
+/* Very short viewports (landscape phones): use every available pixel. */
+@media (max-height: 480px) {
+  .sheet-panel { max-height: calc(var(--sheet-avail) - 8px); }
 }
 @media (min-width: 640px) {
   .sheet-panel {
-    /* ≥640px: centered dialog */
-    top: 50%;
-    left: 50%;
-    right: auto;
-    bottom: auto;
-    transform: none;
+    /* ≥640px: centered premium dialog.
+       Centred via inset + margin:auto rather than a translate, so it never
+       fights framer-motion for ownership of `transform`. */
+    inset: 0;
+    margin: auto;
     width: min(560px, calc(100vw - 48px));
-    max-height: min(82dvh, 720px);
+    height: max-content;
+    max-height: min(calc(var(--sheet-avail) - 64px), 760px);
     border-radius: var(--r-lg);
     border-bottom: 1px solid var(--border-2);
   }
+}
+
+/* Sticky action rail — lives outside .sheet-body so it can never scroll away. */
+.sheet-footer {
+  flex: none;
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: flex-end;
+  align-items: center;
+  padding: var(--sp-3) var(--sp-5);
+  padding-bottom: calc(var(--sp-3) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-1);
+  background: var(--surface-solid);
+}
+@media (min-width: 640px) {
+  .sheet-footer { padding-bottom: var(--sp-4); }
+}
+/* On narrow phones let the two actions share the width evenly. */
+@media (max-width: 380px) {
+  .sheet-footer { gap: var(--sp-2); }
+  .sheet-footer > .btn { flex: 1; justify-content: center; }
 }
 
 .sheet-grab {
@@ -360,10 +390,18 @@ html[data-theme='ember'] .toast-action { color: #7dd3fc; }
   white-space: nowrap;
 }
 .sheet-body {
+  flex: 1 1 auto;
+  min-height: 0; /* required: lets the flex child actually scroll */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 0 var(--sp-5) var(--sp-5);
+  /* Without a footer the body owns the safe-area padding itself. */
+  padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px));
   overscroll-behavior: contain;
+}
+/* With a sticky footer present, the footer owns the safe area instead. */
+.sheet-panel:has(> .sheet-footer) .sheet-body {
+  padding-bottom: var(--sp-4);
 }
 
 /* ---------------- Navigation ---------------- */

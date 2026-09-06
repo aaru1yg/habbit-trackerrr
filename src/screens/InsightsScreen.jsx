@@ -158,6 +158,7 @@ export default function InsightsScreen() {
         {/* Hero: ring + streaks */}
           <div className="sp-depth" data-z="2">
         <SectionCard className="pad insights-hero">
+          <img className="insights-scene" src="art/scene-data-room.webp" alt="" width="840" height="560" loading="lazy" decoding="async" />
           <div className="insights-grid">
             <div className="insights-ring">
               <ProgressRing pct={last30} size={148} stroke={11} label={last30 == null ? 'No completion data yet' : `${last30} percent completion over 30 days`}>

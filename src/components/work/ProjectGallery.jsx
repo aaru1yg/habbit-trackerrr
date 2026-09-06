@@ -8,7 +8,7 @@
    not involved here, so this renders identically on every device.
    ============================================================ */
 import { useWorkUI } from './WorkUIProvider.jsx'
-import { Meter, StatusPill } from './WorkKit.jsx'
+import { Meter, StatusPill, KindTag } from './WorkKit.jsx'
 import { DepthCard } from '../spatial/Depth.jsx'
 import { projectPhase, phaseTone, PROJECT_PHASES, projectProgress, milestoneTrack } from '../../lib/work.js'
 import { shortDate, dayOf } from '../../lib/dates.js'
@@ -58,7 +58,7 @@ export function ProjectGalleryCard({ row, now, index = 0 }) {
   return (
     <DepthCard
       as="li"
-      className="gal-item"
+      className="project-card gal-item"
       depth={(index % 4) + 1}
       max={5}
       aria-label={`Project ${project.name}`}
@@ -85,6 +85,7 @@ export function ProjectGalleryCard({ row, now, index = 0 }) {
           />
 
           <div className="gal-meta">
+            <KindTag kind="project">Project</KindTag>
             <StatusPill status={status} />
             {project.category && project.category !== 'General' && <span>{project.category}</span>}
             <span>

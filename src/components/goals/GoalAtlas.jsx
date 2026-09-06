@@ -57,21 +57,22 @@ export function GoalConstellation({ goal }) {
   return (
     <section className="atlas card pad" aria-label={`Goal atlas for ${goal.title}`}>
       <div className="atlas-frame">
+        <img className="atlas-scene" src="art/scene-constellation.webp" alt="" width="840" height="470" loading="lazy" decoding="async" />
         <svg className="atlas-web" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
           {sats.map((s, i) => (
             <line key={i} x1="50" y1="50" x2={SLOTS[i].x} y2={SLOTS[i].y} vectorEffect="non-scaling-stroke" />
           ))}
         </svg>
 
-        <span
+        <a
           className="atlas-node atlas-goal"
+          href={`#/goals/${goal.id}`}
+          aria-label={`Goal: ${goal.title}, ${prog.pct} percent`}
           style={{ left: '50%', top: '50%', '--z': 'var(--sp-z3)' }}
         >
-          <a href={`#/goals/${goal.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-            {goal.title}
-          </a>
+          {goal.title}
           <b className="tnum">{prog.pct}%</b>
-        </span>
+        </a>
 
         {sats.map((s, i) => (
           <a

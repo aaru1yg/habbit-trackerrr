@@ -148,6 +148,7 @@ export default function ProjectsScreen({ route = 'projects' }) {
               </SectionCard>
             ) : layout === 'gallery' ? (
               <SpatialStage className="gal-wrap" focus={1600} parallax={8}>
+                <img className="gal-scene" src="art/scene-gallery.webp" alt="" width="960" height="420" loading="lazy" decoding="async" />
                 <ProjectGallery rows={visible} now={now} />
               </SpatialStage>
             ) : (

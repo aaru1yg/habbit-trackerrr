@@ -5,6 +5,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { resolve, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createHash } from 'node:crypto'
+import { gzipSync } from 'node:zlib'
 import { execFileSync } from 'node:child_process'
 
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
@@ -41,6 +42,40 @@ export function fileInventory(root) {
   return files
 }
 
+/**
+ * V4 performance budgets (docs/V4-AUDIT.md §7), enforced on the artifact:
+ *  - the initial JS the landing screen must fetch stays under 236 kB gzip
+ *  - the initial CSS stays under 42 kB gzip
+ *  - the WebGL chunks (three) are never referenced by index.html — they may
+ *    only be reached through dynamic imports inside the lazy scene chunks
+ * Fails loudly; numbers are logged so CI shows what the build actually cost.
+ */
+export const BUDGETS = { initialJsGzip: 236 * 1024, initialCssGzip: 42 * 1024 }
+
+export function assertPerformanceBudget(dir = 'dist') {
+  const root = resolve(dir)
+  const html = readFileSync(resolve(root, 'index.html'), 'utf8')
+  const assets = [...html.matchAll(/(?:src|href)="[^"]*?\/assets\/([^"]+?)"/g)].map((m) => m[1])
+  let js = 0
+  let css = 0
+  for (const name of assets) {
+    const bytes = readFileSync(resolve(root, 'assets', name))
+    const gz = gzipSync(bytes).length
+    if (name.endsWith('.js')) js += gz
+    if (name.endsWith('.css')) css += gz
+  }
+  if (!js || !css) throw new Error('Perf budget probe found no initial JS/CSS in index.html — asset regex or build output changed.')
+  const lazyThree = assets.some((name) => /three/i.test(name))
+  if (lazyThree) throw new Error('Perf budget: three.js is referenced from index.html — WebGL must stay lazy-only.')
+  if (js > BUDGETS.initialJsGzip) {
+    throw new Error(`Perf budget: initial JS ${(js / 1024).toFixed(1)} kB gzip exceeds ${(BUDGETS.initialJsGzip / 1024).toFixed(0)} kB.`)
+  }
+  if (css > BUDGETS.initialCssGzip) {
+    throw new Error(`Perf budget: initial CSS ${(css / 1024).toFixed(1)} kB gzip exceeds ${(BUDGETS.initialCssGzip / 1024).toFixed(0)} kB.`)
+  }
+  console.log(`Perf budget OK — initial JS ${(js / 1024).toFixed(1)} kB gz, CSS ${(css / 1024).toFixed(1)} kB gz, three lazy-only.`)
+}
+
 export function buildProof(dir = 'dist') {
   const root = resolve(dir)
   const files = fileInventory(root)
@@ -56,6 +91,7 @@ export function buildProof(dir = 'dist') {
     throw new Error('Service worker build identity does not match.')
   }
   writeFileSync(resolve(root, 'release.json'), JSON.stringify({ commit, buildId, builtAt, files }, null, 2) + '\n')
+  assertPerformanceBudget(root)
   console.log(`Build proof: ${commit}; ${Object.keys(files).length} SHA-256 checksums; no private credentials.`)
 }
 

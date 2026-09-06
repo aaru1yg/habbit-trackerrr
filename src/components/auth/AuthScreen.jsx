@@ -91,6 +91,7 @@ export default function AuthScreen() {
   return (
     <div className="auth-shell">
       <aside className="auth-brand" aria-hidden="true">
+        <img className="auth-scene" src="art/scene-hero.webp" alt="" width="1200" height="675" loading="eager" decoding="async" />
         <div className="auth-brand-inner">
           <div className="auth-logo">
             <span className="auth-logo-mark"><IconCheck size={20} /></span>

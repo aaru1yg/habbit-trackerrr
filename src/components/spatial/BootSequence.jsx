@@ -52,19 +52,30 @@ export default function BootSequence() {
 
     markSeen()
     setVisible(true)
+    // While the cinematic is up it owns the keyboard: '/' must not slip
+    // behind the overlay and open the search palette mid-entry.
+    window.__aaruBoot = true
 
     const t1 = setTimeout(() => setOut(true), HOLD_MS)
-    const t2 = setTimeout(() => setVisible(false), HOLD_MS + FADE_MS)
+    const t2 = setTimeout(() => { setVisible(false); window.__aaruBoot = false }, HOLD_MS + FADE_MS)
     timers.current = [t1, t2]
 
     const finish = () => {
+      window.__aaruBoot = false
       setOut(true)
       timers.current.push(setTimeout(() => setVisible(false), FADE_MS))
     }
-    const onKey = (e) => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') finish() }
-    window.addEventListener('keydown', onKey)
+    const onKey = (e) => {
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ' || e.key === '/') {
+        e.preventDefault()
+        e.stopPropagation()
+        finish()
+      }
+    }
+    window.addEventListener('keydown', onKey, { capture: true })
     return () => {
-      window.removeEventListener('keydown', onKey)
+      window.__aaruBoot = false
+      window.removeEventListener('keydown', onKey, { capture: true })
       timers.current.forEach(clearTimeout)
       timers.current = []
     }
@@ -76,6 +87,7 @@ export default function BootSequence() {
     <div
       className={`boot${out ? ' is-out' : ''}`}
       onPointerDown={() => {
+        window.__aaruBoot = false
         setOut(true)
         timers.current.push(setTimeout(() => setVisible(false), FADE_MS))
       }}
@@ -96,6 +108,7 @@ export default function BootSequence() {
       </div>
       <button type="button" className="boot-skip" onClick={(e) => {
         e.stopPropagation()
+        window.__aaruBoot = false
         setOut(true)
         timers.current.push(setTimeout(() => setVisible(false), FADE_MS))
       }}>

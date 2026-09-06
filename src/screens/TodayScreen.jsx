@@ -203,14 +203,14 @@ export default function TodayScreen({ onFire }) {
                 </div>
                 <Link to="habits" className="btn ghost sm">Manage habits</Link>
               </div>
-              <MasterGraph habits={allActive} onOpenDay={(d) => setDay(d)} />
+              <MasterGraph habits={allActive} onOpenDay={(d) => setDay(d)} onOpenHabit={(h) => habitUI.openFull(h)} />
             </section>
 
             <div className="hub-grid">
               {/* ================= MAIN COLUMN ================= */}
               <main className="hub-main">
                 {focusRows.length > 0 && (
-                  <section className="hub-zone focus-zone" aria-label="Needs attention first">
+                  <section className="hub-zone focus-zone today-priorities" aria-label="Needs attention first">
                     <ZoneLabel hint="what matters most right now">
                       Needs attention
                     </ZoneLabel>
@@ -287,7 +287,7 @@ export default function TodayScreen({ onFire }) {
 
                   {/* inline day timeline */}
                   {plan.timeline.length > 0 && (
-                    <div className="today-timeline-inline">
+                    <div className="today-timeline-inline today-timeline">
                       <div className="zone-label compact" style={{ marginTop: 6 }}>
                         <div>
                           <h3 className="zone-title sm">Your day</h3>

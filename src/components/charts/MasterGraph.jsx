@@ -19,7 +19,6 @@
    ============================================================ */
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useStore } from '../../store.jsx'
-import { Link } from '../../lib/router.jsx'
 import { todayStr, subDaysStr, shortDate } from '../../lib/dates.js'
 import { eligibleOn, isDone, checkinOf, runEndingOn } from '../../lib/stats.js'
 import { habitColorHex, habitPriority, priorityMeta } from '../../lib/habitIdentity.js'
@@ -88,7 +87,7 @@ const monthOf = (dateStr) => {
   return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short' })
 }
 
-export default function MasterGraph({ habits: habitList, onOpenDay }) {
+export default function MasterGraph({ habits: habitList, onOpenDay, onOpenHabit }) {
   const { state } = useStore()
   const gid = useId().replace(/:/g, '')
   const svgRef = useRef(null)
@@ -302,6 +301,20 @@ export default function MasterGraph({ habits: habitList, onOpenDay }) {
                   <circle cx={x(last.i)} cy={y(last.value)} r={emphasized ? 5 : 3.4} fill={hex}
                     stroke="var(--surface)" strokeWidth="1.6" style={{ pointerEvents: 'none' }} />
                 )}
+                {/* invisible fat stroke: the tap/click target for this habit's line */}
+                {d && onOpenHabit && (
+                  <path
+                    d={d}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth={14}
+                    style={{ cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onOpenHabit(h)
+                    }}
+                  />
+                )}
               </g>
             )
           })}
@@ -343,15 +356,6 @@ export default function MasterGraph({ habits: habitList, onOpenDay }) {
               <span className="mg-chip-dot" style={{ background: habitColorHex(h) }} aria-hidden="true" />
               <span className="mg-chip-name">{h.name}</span>
               <span className="mg-chip-val tnum">{on && last ? `${last.value}%` : ''}</span>
-              <Link
-                to={`habits/${h.id}`}
-                className="mg-chip-open"
-                aria-label={`Open ${h.name} detail`}
-                onClick={(e) => e.stopPropagation()}
-                tabIndex={-1}
-              >
-                ›
-              </Link>
             </button>
           )
         })}

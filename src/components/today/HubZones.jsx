@@ -195,7 +195,7 @@ export function GoalsMini() {
   if (!rows.length) return null
 
   return (
-    <section className="hub-zone goals-mini" aria-label="Goals in progress">
+    <section className="hub-zone goals-mini today-goals" aria-label="Goals in progress">
       <ZoneLabel hint="the why behind the work" actionTo="goals" actionLabel="All goals">
         Goals
       </ZoneLabel>

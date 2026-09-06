@@ -67,6 +67,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  min-height: var(--touch);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
   color: var(--text-2);
@@ -132,7 +133,7 @@
 }
 
 .seg-sm .seg-btn {
-  min-height: 30px;
+  min-height: var(--touch);
   padding: 0 10px;
   font-size: var(--fs-xs);
 }
@@ -181,8 +182,8 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 34px;
-  padding: 3px 6px 3px 10px;
+  min-height: var(--touch);
+  padding: 3px 12px;
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
   background: var(--surface);
@@ -229,22 +230,6 @@
 
 .mg-chip.is-on .mg-chip-val {
   color: var(--text-2);
-}
-
-.mg-chip-open {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  color: var(--text-3);
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.mg-chip:hover .mg-chip-open {
-  color: var(--text);
-  background: var(--track);
 }
 
 .mg-note {
@@ -519,6 +504,7 @@ button.mg-tip-row:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: var(--touch);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
   color: var(--text-2);
@@ -559,6 +545,7 @@ button.mg-tip-row:hover {
   grid-template-columns: minmax(0, 1fr) minmax(90px, 150px) auto;
   align-items: center;
   gap: 10px;
+  min-height: var(--touch);
   padding: 7px 6px;
   border-radius: var(--r-sm);
   text-decoration: none;
@@ -604,6 +591,7 @@ button.mg-tip-row:hover {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  min-height: var(--touch);
   padding: 8px 6px;
   border-radius: var(--r-sm);
   text-decoration: none;
@@ -726,6 +714,7 @@ button.mg-tip-row:hover {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  min-height: var(--touch);
   padding: 7px 6px;
   border-radius: var(--r-sm);
   text-decoration: none;

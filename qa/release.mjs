@@ -183,7 +183,7 @@ async function synced(page) {
 }
 
 async function addHabit(page, name, viewport) {
-  await clickVisible(page, viewport === 'mobile' ? '.fab-stack button[aria-label="Add a habit"]' : '.today-section .card-head button.btn')
+  await clickVisible(page, viewport === 'mobile' ? '.fab-stack button[aria-label="Add a habit"]' : '.today-list .zone-label button.btn')
   await page.waitForSelector('#habit-name', { visible: true })
   await sleep(400)
   await dialogFits(page, `${viewport} Add habit`)

@@ -5,7 +5,8 @@ import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { todayStr, monthDays, monthLabel, weekdayInitial, dayNum, isFuture, prettyDate, shortDate, addDaysStr, subDaysStr } from '../lib/dates.js'
-import { isScheduled, categoryOf } from '../lib/schedule.js'
+import { isScheduled } from '../lib/schedule.js'
+import { habitColorHex } from '../lib/habitIdentity.js'
 import { activeHabits, isDone, checkinOf, habitRate, dayDensity } from '../lib/stats.js'
 import { IconChevronLeft, IconChevronRight, IconCalendar, IconCheck } from '../lib/icons.jsx'
 import { calendarMarkers } from '../lib/work.js'
@@ -328,7 +329,7 @@ export default function CalendarScreen({ ymParam }) {
                 {habits.map((h) => (
                   <div key={h.id} style={{ display: 'contents' }}>
                     <div className="cal-name">
-                      <span className="dot" style={{ width: 7, height: 7, borderRadius: 99, background: `var(${categoryOf(h.category).cssVar})`, flex: 'none' }} />
+                      <span className="dot" style={{ width: 7, height: 7, borderRadius: 99, background: habitColorHex(h), flex: 'none' }} />
                       <span className="cal-name-text">{h.name}</span>
                     </div>
                     {days.map((d) => {

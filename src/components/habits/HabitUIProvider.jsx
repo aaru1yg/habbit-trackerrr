@@ -3,8 +3,12 @@ import { useStore } from '../../store.jsx'
 import { useToast } from '../ui/Toaster.jsx'
 import HabitForm from './HabitForm.jsx'
 import HabitDetailSheet from './HabitDetailSheet.jsx'
+import { navigate } from '../../lib/router.jsx'
 
-/* Shared habit management: add/edit form, detail sheet, archive + delete-with-undo. */
+/* Shared habit management: add/edit form, quick detail sheet, archive +
+   delete-with-undo. The quick sheet covers row-level actions; the full
+   intelligence page (habits/:id) is one tap deeper (chevron → Full
+   history) and reachable from every chart, ring and search result. */
 const HabitUIContext = createContext(null)
 export const useHabitUI = () => useContext(HabitUIContext)
 
@@ -20,6 +24,7 @@ export default function HabitUIProvider({ children }) {
   const openAdd = useCallback(() => { setEditing(null); setFormOpen(true) }, [])
   const openEdit = useCallback((habit) => { setEditing(habit); setFormOpen(true) }, [])
   const openDetail = useCallback((habit) => setDetailId(habit.id), [])
+  const openFull = useCallback((habit) => { setDetailId(null); if (habit?.id) navigate(`habits/${habit.id}`) }, [])
 
   const archive = useCallback((habit) => {
     const next = !habit.archived
@@ -43,13 +48,14 @@ export default function HabitUIProvider({ children }) {
   }, [dispatch, state.checkins, toast])
 
   return (
-    <HabitUIContext.Provider value={{ openAdd, openEdit, openDetail, archive, remove }}>
+    <HabitUIContext.Provider value={{ openAdd, openEdit, openDetail, archive, remove, openFull }}>
       {children}
       <HabitForm open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
       <HabitDetailSheet
         habit={detailHabit}
         open={!!detailHabit}
         onClose={() => setDetailId(null)}
+        onFull={() => detailHabit && openFull(detailHabit)}
         onEdit={(h) => { setDetailId(null); openEdit(h) }}
         onArchive={archive}
         onDelete={remove}

@@ -17,8 +17,6 @@ import { CardHead } from '../components/ui/SectionCard.jsx'
 import ProgressCore from '../components/ui/ProgressCore.jsx'
 import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
-import SceneLayer from '../components/three/SceneLayer.jsx'
-import Parallax from '../components/motion/Parallax.jsx'
 import Reveal from '../components/motion/Reveal.jsx'
 import PaceChart from '../components/charts/PaceChart.jsx'
 import { areaOf, goalProgress, goalHealth, goalPace, nextMilestone, goalTodayActions } from '../lib/goals.js'
@@ -92,9 +90,7 @@ export default function GoalDetailScreen({ id }) {
       <div className="stack">
         {/* ---------- the goal object ---------- */}
         <Reveal as="section" variant="depth" className="card pad-lg goal-hero">
-          <Parallax travel={2} className="goal-scene" aria-hidden="true">
-            <SceneLayer pct={prog.pct} theme={state.profile.theme} />
-          </Parallax>
+          <span className="goal-halo-2d" aria-hidden="true" />
 
           <div className="goal-hero-inner">
             <div className="goal-core">

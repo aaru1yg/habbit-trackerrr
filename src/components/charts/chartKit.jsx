@@ -14,10 +14,14 @@ const TNUM = { fontVariantNumeric: 'tabular-nums' }
 /**
  * TrendChart — a completion trend over time.
  * data: [{ date, pct (0..100 | null) }] oldest → newest.
+ * color: optional '#rrggbb' identity colour (habit colour); defaults
+ * to the theme accent. Everything the chart draws resolves to it.
  */
-export function TrendChart({ data, className = '' }) {
+export function TrendChart({ data, className = '', color }) {
   const gid = useId().replace(/:/g, '')
   const [sel, setSel] = useState(null) // index of tapped/hovered point
+  const stroke = color || 'var(--accent-2)'
+  const line1 = color || 'var(--accent-1)'
 
   const W = 640
   const H = 220
@@ -60,13 +64,13 @@ export function TrendChart({ data, className = '' }) {
       >
         <defs>
           <linearGradient id={`t${gid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent-2)" stopOpacity="0.38" />
-            <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0.02" />
+            <stop offset="0%" stopColor={stroke} stopOpacity={color ? 0.3 : 0.38} />
+            <stop offset="100%" stopColor={stroke} stopOpacity={color ? 0.02 : 0.02} />
           </linearGradient>
           <linearGradient id={`tline${gid}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--accent-1)" />
-            <stop offset="52%" stopColor="var(--accent-2)" />
-            <stop offset="100%" stopColor="var(--c5, var(--accent-1))" />
+            <stop offset="0%" stopColor={line1} />
+            <stop offset="52%" stopColor={stroke} />
+            <stop offset="100%" stopColor={color ? line1 : 'var(--c5, var(--accent-1))'} />
           </linearGradient>
         </defs>
         {/* grid + y labels */}
@@ -94,7 +98,7 @@ export function TrendChart({ data, className = '' }) {
               onPointerEnter={() => setSel(p.i)}
               onClick={() => setSel(sel === p.i ? null : p.i)}
             />
-            {p.y != null && <circle cx={p.x} cy={p.y} r={sel === p.i ? 4.5 : 2.5} fill={sel === p.i ? 'var(--accent-2)' : 'var(--accent-1)'} stroke="var(--surface-solid)" strokeWidth="1.5" />}
+            {p.y != null && <circle cx={p.x} cy={p.y} r={sel === p.i ? 4.5 : 2.5} fill={sel === p.i ? stroke : line1} stroke="var(--surface-solid)" strokeWidth="1.5" />}
           </g>
         ))}
         {selP && selP.y != null && (

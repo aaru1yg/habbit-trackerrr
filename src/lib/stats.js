@@ -59,6 +59,20 @@ export function habitStreak(state, habit) {
   return streak
 }
 
+/** Length of the completion run that ends exactly on `date` (0 when that day is not done). */
+export function runEndingOn(state, habit, date) {
+  if (!isDone(state, habit.id, date)) return 0
+  let run = 0
+  let cursor = date
+  const created = habit?.createdAt
+  for (let i = 0; i < 2200; i++) {
+    if (created && cursor < created) break
+    if (!eligibleOn(habit, cursor)) { cursor = subDaysStr(cursor, 1); continue }
+    if (isDone(state, habit.id, cursor)) { run++; cursor = subDaysStr(cursor, 1) } else break
+  }
+  return run
+}
+
 /** Longest streak ever recorded for a habit (walks its real check-ins). */
 export function habitBestStreak(state, habit) {
   const dates = Object.keys(state.checkins?.[habit.id] || {})

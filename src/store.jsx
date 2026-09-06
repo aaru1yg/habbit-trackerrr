@@ -10,6 +10,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import { todayStr, isoLocal, dayOf, isValidDayStr } from './lib/dates.js'
 import { normalizeImport } from './lib/importExport.js'
 import { projectProgress, assignmentProgress, allTasks } from './lib/work.js'
+import { CATEGORY_COLORS } from './lib/habitIdentity.js'
 
 export const STORAGE_KEY = 'aaru.habits.v4'
 const LEGACY_KEYS = ['aaru.habits.v3', 'aaru.habit-tracker.v2']
@@ -346,6 +347,8 @@ function reducer(state, action) {
         schedule: { type: 'daily' },
         reminder: null,
         notes: '',
+        color: CATEGORY_COLORS.mind,       // one habit = one visual identity
+        priority: 2,                        // 1 Low … 5 Critical (default Normal)
         createdAt: todayStr(),
         archived: false,
         pause: null,
@@ -353,6 +356,9 @@ function reducer(state, action) {
         order: state.habits.length,
         ...action.habit,
       }
+      // Colour is optional at the call site; when omitted pick the category
+      // default so the habit is never visually homeless.
+      if (!action.habit?.color) habit.color = CATEGORY_COLORS[habit.category] || habit.color
       return { ...state, habits: [...state.habits, habit] }
     }
     case 'UPDATE_HABIT':

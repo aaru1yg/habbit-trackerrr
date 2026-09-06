@@ -6,13 +6,15 @@ import { motion, useReducedMotion } from 'framer-motion'
  * size px, stroke px, pct 0..100 (null = no data / indeterminate empty).
  * The gradient is deliberately reserved for primary progress moments.
  */
-export default function ProgressRing({ pct, size = 120, stroke = 10, trackClass = 'ring-track', children, label }) {
+export default function ProgressRing({ pct, size = 120, stroke = 10, trackClass = 'ring-track', children, label, color }) {
   const reduced = useReducedMotion()
   const gid = useId().replace(/:/g, '')
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const clamped = Math.max(0, Math.min(100, pct ?? 0))
   const hasData = pct != null
+  const c1 = color || 'var(--accent-1)'
+  const c2 = color || 'var(--accent-2)'
 
   return (
     <div
@@ -24,9 +26,9 @@ export default function ProgressRing({ pct, size = 120, stroke = 10, trackClass 
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
         <defs>
           <linearGradient id={`progress-${gid}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="var(--accent-1)" />
-            <stop offset="58%" stopColor="var(--accent-2)" />
-            <stop offset="100%" stopColor="var(--c5, var(--accent-1))" />
+            <stop offset="0%" stopColor={c1} />
+            <stop offset="58%" stopColor={c2} stopOpacity={color ? 0.85 : undefined} />
+            <stop offset="100%" stopColor={color ? c1 : 'var(--c5, var(--accent-1))'} />
           </linearGradient>
         </defs>
         <circle className={trackClass} cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} />

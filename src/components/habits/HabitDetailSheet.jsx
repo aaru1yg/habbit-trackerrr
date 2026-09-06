@@ -5,9 +5,9 @@ import { scheduleLabel, categoryOf } from '../../lib/schedule.js'
 import { isScheduled } from '../../lib/schedule.js'
 import { todayStr, subDaysStr, weekdayInitial, prettyDate } from '../../lib/dates.js'
 import { habitStreak, habitBestStreak, habitRate, checkinOf } from '../../lib/stats.js'
+import { habitColorHex, habitPriority, priorityMeta } from '../../lib/habitIdentity.js'
 import AnimatedNumber from '../ui/AnimatedNumber.jsx'
-import { CategoryIcon } from './HabitForm.jsx'
-import { IconPencil, IconArchive, IconTrash, IconBell, IconUndo } from '../../lib/icons.jsx'
+import { IconPencil, IconArchive, IconTrash, IconBell, IconUndo, IconChevronRight } from '../../lib/icons.jsx'
 
 /* 90-day heatmap for one habit. */
 export function Heatmap90({ habit }) {
@@ -70,7 +70,7 @@ function Stat({ label, value, suffix }) {
   )
 }
 
-export default function HabitDetailSheet({ habit, open, onClose, onEdit, onArchive, onDelete }) {
+export default function HabitDetailSheet({ habit, open, onClose, onFull, onEdit, onArchive, onDelete }) {
   const { state } = useStore()
   const [confirmDelete, setConfirmDelete] = useState(false)
   if (!habit) return null
@@ -85,13 +85,13 @@ export default function HabitDetailSheet({ habit, open, onClose, onEdit, onArchi
   return (
     <Sheet open={open} onClose={onClose} title={habit.name} labelledBy="habit-detail-title">
       <div className="stack" style={{ gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <CategoryIcon id={habit.category} size={26} />
-          <span className="chip">
-            <span className="dot" style={{ background: `var(${cat.cssVar})` }} />
-            {cat.label}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span className="dot" style={{ width: 12, height: 12, borderRadius: 4, background: habitColorHex(habit) }} aria-hidden="true" />
+          <span className="chip">{cat.label}</span>
           <span className="chip">{scheduleLabel(habit)}</span>
+          <span className="prio-mini" data-p={habitPriority(habit)} aria-label={`Priority ${habitPriority(habit)} — ${priorityMeta(habitPriority(habit)).label}`}>
+            {[1, 2, 3, 4, 5].map((i) => <i key={i} data-on={i <= habitPriority(habit) ? 'true' : undefined} aria-hidden="true" />)}
+          </span>
           {habit.reminder && (
             <span className="chip"><IconBell size={13} /> {habit.reminder}</span>
           )}
@@ -134,6 +134,11 @@ export default function HabitDetailSheet({ habit, open, onClose, onEdit, onArchi
         <hr className="divider" />
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {onFull && (
+            <button className="btn primary" onClick={() => onFull(habit)}>
+              <IconChevronRight size={15} /> Full history
+            </button>
+          )}
           <button className="btn" onClick={() => onEdit(habit)}>
             <IconPencil size={16} /> Edit
           </button>

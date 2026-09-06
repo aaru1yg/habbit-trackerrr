@@ -5,17 +5,17 @@
    ============================================================ */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../../store.jsx'
-import { useHabitUI } from '../habits/HabitUIProvider.jsx'
 import Sheet from '../ui/Sheet.jsx'
 import { searchAll } from '../../lib/analytics.js'
 import { navigate } from '../../lib/router.jsx'
 import { shortDate, todayStr } from '../../lib/dates.js'
-import { IconSearch, IconFlame, IconProjects, IconAssignment, IconStack, IconNote, IconCalendar, IconAward } from '../../lib/icons.jsx'
+import { IconSearch, IconFlame, IconProjects, IconAssignment, IconStack, IconNote, IconCalendar, IconAward, IconTarget } from '../../lib/icons.jsx'
 
 const TYPE_META = {
   habit: { Icon: IconFlame, label: 'Habit' },
   project: { Icon: IconProjects, label: 'Project' },
   assignment: { Icon: IconAssignment, label: 'Assignment' },
+  goal: { Icon: IconTarget, label: 'Goal' },
   routine: { Icon: IconStack, label: 'Routine' },
   note: { Icon: IconNote, label: 'Note' },
   date: { Icon: IconCalendar, label: 'Date' },
@@ -24,7 +24,6 @@ const TYPE_META = {
 
 export default function SearchPalette({ open, onClose }) {
   const { state } = useStore()
-  const habitUI = useHabitUI()
   const [query, setQuery] = useState('')
   const [cursor, setCursor] = useState(0)
   const inputRef = useRef(null)
@@ -38,12 +37,8 @@ export default function SearchPalette({ open, onClose }) {
 
   const pick = (item) => {
     onClose()
-    if (item.type === 'habit' && item.entity) {
-      navigate('library')
-      // let the screen mount before opening the detail sheet
-      setTimeout(() => habitUI.openDetail(item.entity), 60)
-      return
-    }
+    if (item.type === 'habit' && item.entity) return navigate(`habits/${item.id}`)
+    if (item.type === 'goal' && item.entity) return navigate(`goals/${item.id}`)
     if (item.type === 'project') return navigate(`projects/${item.id}`)
     if (item.type === 'assignment') return navigate(`assignments/${item.id}`)
     if (item.type === 'routine') return navigate('library')

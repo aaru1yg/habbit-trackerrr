@@ -143,6 +143,9 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
 
   await shot(page, '01-onboarding-step1')
   await overflowCheck(page, 'onboarding-1')
+  check('[onboarding 2.0] welcome step opens with the art moment', await page.evaluate(() => (
+    !!document.querySelector('.onboarding .ob-art')
+  )))
 
   // step 1: name
   await page.type('input[placeholder="Your name"]', 'Aaru')
@@ -150,6 +153,9 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
   await page.waitForSelector('text/Pick a few to start', { timeout: 5000 })
   await sleep(300)
   await shot(page, '02-onboarding-step2')
+  check('[onboarding 2.0] starter habits carry their category art', await page.evaluate(() => (
+    document.querySelectorAll('.starter-art').length >= 5
+  )))
 
   // step 2: pick two habits
   await clickByText(page, 'Read 10 pages', 'button')
@@ -1169,6 +1175,17 @@ console.log('\n— Empty states —')
         const el = document.querySelector('.empty img')
         return !!el && el.getAttribute('src').includes('empty-hero')
       }))
+    }
+    const ART_BY_ROUTE = {
+      calendar: 'empty-calendar', week: 'empty-week', insights: 'empty-insights',
+      mind: 'empty-mind', goals: 'empty-goals', projects: 'empty-projects',
+      assignments: 'empty-assignments', workload: 'empty-workload',
+    }
+    if (ART_BY_ROUTE[route]) {
+      check(`[${route}] empty state carries its own art`, await page.evaluate((want) => {
+        const imgs = [...document.querySelectorAll('.empty img')].map((i) => i.getAttribute('src') || '')
+        return imgs.some((src) => src.includes(want))
+      }, ART_BY_ROUTE[route]))
     }
     if (route === 'projects' || route === 'assignments') {
       check(`${route} empty state offers a create action`, await page.evaluate(() => {

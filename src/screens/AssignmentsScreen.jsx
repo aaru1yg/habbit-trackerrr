@@ -129,6 +129,7 @@ export default function AssignmentsScreen({ route = 'assignments' }) {
             {!hasAny ? (
               <SectionCard>
                 <WorkEmpty
+                  art="art/empty-assignments.webp"
                   icon={<IconAssignment size={40} />}
                   title="Nothing due yet"
                   action={<button className="btn primary" onClick={() => work.newAssignment()}><IconPlus size={16} /> Create an assignment</button>}

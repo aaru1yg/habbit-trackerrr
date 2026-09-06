@@ -245,7 +245,7 @@ export default function CalendarScreen({ ymParam }) {
           </div>
 
           {habits.length === 0 ? (
-            <EmptyState icon={<IconCalendar size={40} />} title="No habits in this range">
+            <EmptyState art="art/empty-calendar.webp" icon={<IconCalendar size={40} />} title="No habits in this range">
               Add a habit and its calendar will appear here.
             </EmptyState>
           ) : (

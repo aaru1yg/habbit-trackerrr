@@ -106,7 +106,7 @@ export default function WeekScreen() {
 
         {habits.length === 0 ? (
           <SectionCard>
-            <EmptyState icon={<IconWeek size={40} />} title="No habits scheduled this week">
+            <EmptyState art="art/empty-week.webp" icon={<IconWeek size={40} />} title="No habits scheduled this week">
               Add a habit to start tracking your week.
             </EmptyState>
           </SectionCard>

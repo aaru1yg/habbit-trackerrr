@@ -121,6 +121,7 @@ export default function ProjectsScreen({ route = 'projects' }) {
             {!hasAny ? (
               <SectionCard>
                 <WorkEmpty
+                  art="art/empty-projects.webp"
                   icon={<IconProjects size={40} />}
                   title="No projects yet"
                   action={<button className="btn primary" onClick={work.newProject}><IconPlus size={16} /> Create your first project</button>}

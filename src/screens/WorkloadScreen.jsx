@@ -57,6 +57,7 @@ export default function WorkloadScreen({ route = 'workload' }) {
           <WorkTabs route={route} />
           <SectionCard>
             <WorkEmpty
+              art="art/empty-workload.webp"
               icon={<IconWorkload size={40} />}
               title="No work scheduled"
               action={

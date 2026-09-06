@@ -205,6 +205,57 @@ async function main() {
     `got ${reread?.doc?.habits?.[0]?.name}`)
   check('server stamped updated_at on write', !!reread?.updated_at)
 
+  // ---- true session persistence: restore a stored session and refresh it ----
+  // This is what "stay logged in across a reload" actually depends on: the
+  // persisted refresh token must mint a NEW valid access token without a
+  // password. Re-running signInWithPassword would not prove that.
+  const restored = mkClient()
+  const { data: setData, error: setErr } = await restored.auth.setSession({
+    access_token: aData.session.access_token,
+    refresh_token: aData.session.refresh_token,
+  })
+  check('stored session can be restored without a password (reload survives)',
+    !setErr && !!setData?.session, setErr?.message)
+
+  const { data: refreshed, error: refErr } = await restored.auth.refreshSession()
+  check('refresh token mints a new access token (long-lived session)',
+    !refErr && !!refreshed?.session?.access_token, refErr?.message)
+  check('refreshed token differs from the original',
+    refreshed?.session?.access_token && refreshed.session.access_token !== aData.session.access_token)
+
+  const { data: restoredRead } = await restored.from('user_state').select('doc').eq('user_id', uidA).maybeSingle()
+  check('restored session can read the user\u2019s cloud data',
+    restoredRead?.doc?.habits?.[0]?.name === marker)
+
+  // ---- local -> cloud migration, using the app\u2019s real merge engine ----
+  // Simulates: device holds local-only data, account already holds cloud data,
+  // user picks "merge". Both sides must survive; nothing may be lost.
+  const { mergeDocs, summarise } = await import('../src/lib/cloud/merge.js')
+  const localOnly = {
+    version: 4,
+    profile: { name: 'QA User A' },
+    habits: [{ id: `local-${stamp}`, name: `local-habit-${stamp}`, order: 1, updatedAt: new Date().toISOString() }],
+    checkins: { [`local-${stamp}`]: { '2026-01-01': { done: true } } },
+    moods: {}, projects: [], assignments: [], routines: [],
+  }
+  const cloudNow = (await clientA.from('user_state').select('doc').eq('user_id', uidA).maybeSingle()).data?.doc
+  const merged = mergeDocs(localOnly, cloudNow)
+  const mSum = summarise(merged)
+  check('merge keeps both local and cloud habits (no data loss)', mSum.habits === 2, `habits=${mSum.habits}`)
+  check('merge preserves local check-ins', mSum.checkins >= 1, `checkins=${mSum.checkins}`)
+
+  const { error: mErr } = await clientA.from('user_state')
+    .upsert({ user_id: uidA, doc: merged, revision: 2 }, { onConflict: 'user_id' })
+  check('merged document persists to the cloud', !mErr, mErr?.message)
+
+  const { data: afterMerge } = await mkClient().auth
+    .signInWithPassword({ email: preA.email, password: preA.password })
+    .then(() => clientA2.from('user_state').select('doc').eq('user_id', uidA).maybeSingle())
+  const names = (afterMerge?.doc?.habits || []).map((h) => h.name)
+  check('migrated data is readable back from the cloud',
+    names.includes(marker) && names.includes(`local-habit-${stamp}`),
+    `got [${names.join(', ')}]`)
+
   // ---- User B ----
   const clientB = mkClient()
   const { data: bData, error: bErr } = await clientB.auth
@@ -264,6 +315,12 @@ async function main() {
   check('signed-out client can no longer read any rows',
     !postOutRows || postOutRows.length === 0,
     postOutRows?.length ? `LEAKED ${postOutRows.length}` : '')
+
+  // ================= 8. cleanup =================
+  // Leave the project tidy so repeat runs start from a known state. Each user
+  // deletes only their OWN row, which RLS permits.
+  const { error: cleanAErr } = await clientA2.from('user_state').delete().eq('user_id', uidA)
+  check('User A can delete their own row (cleanup)', !cleanAErr, cleanAErr?.message)
 
   // ================= summary =================
   console.log(`\n${pass} passed, ${fail} failed${skipped.length ? `, ${skipped.length} skipped` : ''}`)

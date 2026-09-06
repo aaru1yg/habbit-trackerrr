@@ -43,6 +43,18 @@ async function screenshot(page, name) {
   await page.screenshot({ path: `${OUT}/${name}.png` })
 }
 
+function watchLogoutTraffic(page, viewport) {
+  const record = (event, req, status, error = null) => {
+    if (!new URL(req.url()).pathname.endsWith('/auth/v1/logout')) return
+    // Metadata only: never headers, tokens or request bodies.
+    const row = { viewport, event, method: req.method(), type: req.resourceType(), status, error }
+    ;(evidence.logoutTraffic ||= []).push(row)
+    console.log(`Logout transport: ${JSON.stringify(row)}`)
+  }
+  page.on('response', (res) => record('response', res.request(), res.status()))
+  page.on('requestfailed', (req) => record('failed', req, req.response()?.status() ?? null, req.failure()?.errorText))
+}
+
 async function verifyArtifact() {
   if (EXPECT) check('artifact is from the requested full commit', proof.commit === EXPECT)
   const stop = Date.now() + 8 * 60 * 1000
@@ -289,6 +301,7 @@ try {
       if (REQUIRE_AUTH) {
         const other = await browser.createBrowserContext()
         const device = await newPage(other, config)
+        watchLogoutTraffic(device, viewport)
         try {
           await device.goto(`${BASE}#/today`, { waitUntil: 'networkidle0' })
           await login(device)
@@ -301,10 +314,18 @@ try {
           check(`${viewport}: second clean browser pulls the UI-created habit AND goal from Supabase`, true)
           await navigate(device, 'settings', viewport === 'mobile')
           await synced(device)
+          const logout = device.waitForResponse((res) =>
+            new URL(res.url()).pathname.endsWith('/auth/v1/logout') && res.request().method() === 'POST',
+            { timeout: 30000 })
           await clickVisible(device, '::-p-text(Sign out)')
+          const logoutResponse = await logout
+          check(`${viewport}: logout POST succeeds at Supabase`, logoutResponse.ok(), `HTTP ${logoutResponse.status()}`)
+          await device.waitForNetworkIdle({ idleTime: 750, timeout: 30000 })
           await device.waitForSelector('#auth-email', { visible: true })
           check(`${viewport}: logout restores the login gate`, !(await device.$('.sidebar')))
           await login(device)
+          // Do not let the test's forced reload cancel an auth request.
+          await device.waitForNetworkIdle({ idleTime: 750, timeout: 30000 })
           await device.reload({ waitUntil: 'networkidle0' })
           await device.waitForSelector('.screen-title', { visible: true })
           check(`${viewport}: re-login and reload retain the session without a migration prompt`, !(await device.$('#auth-email')) && !(await device.$('#migrate-title')))

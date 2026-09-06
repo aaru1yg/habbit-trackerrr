@@ -29,6 +29,14 @@ on:
         description: 'fixed (expect healthy behaviour) or reproduce (expect the historical bug — harness sanity)'
         required: true
         default: 'fixed'
+      pages_run_id:
+        description: 'Optional completed Pages run ID to reverify using this branch’s QA scripts'
+        required: false
+        type: string
+      build_sha:
+        description: 'Full SHA of that Pages artifact (required with pages_run_id)'
+        required: false
+        type: string
   pull_request:
     paths:
       - 'src/lib/cloud/**'
@@ -70,6 +78,9 @@ jobs:
 
       - name: Determine expectation
         id: mode
+        env:
+          REQUESTED_SHA: ${{ inputs.build_sha }}
+          REQUESTED_RUN: ${{ inputs.pages_run_id }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # The public site always serves main (never PR code): a PR run is
@@ -78,7 +89,11 @@ jobs:
             echo "build=" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "expect=${{ inputs.expect }}" >> "$GITHUB_OUTPUT"
-            echo "build=" >> "$GITHUB_OUTPUT"
+            if [ -n "$REQUESTED_RUN" ] && ! [[ "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo '::error::A Pages re-verification requires its exact full build SHA.'
+              exit 1
+            fi
+            echo "build=$REQUESTED_SHA" >> "$GITHUB_OUTPUT"
           else
             # Completed Pages deployment — verify the exact deployed commit.
             echo "expect=fixed" >> "$GITHUB_OUTPUT"
@@ -86,16 +101,16 @@ jobs:
           fi
 
       - name: Download the exact deployed Pages artifact
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'workflow_run' || inputs.pages_run_id
         uses: actions/download-artifact@v4
         with:
           name: github-pages
           path: /tmp/pages-artifact
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id || inputs.pages_run_id }}
           github-token: ${{ github.token }}
 
       - name: Unpack deployed artifact
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'workflow_run' || inputs.pages_run_id
         run: |
           mkdir -p dist
           tar -xf /tmp/pages-artifact/artifact.tar -C dist
@@ -103,7 +118,7 @@ jobs:
       # Sequential with browser tests: these scripts share TEST_A/TEST_B.
       # A partial (exit 3) result is a failure for a production release.
       - name: Real Supabase auth, persistence and cross-user RLS
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'workflow_run' || inputs.pages_run_id
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -174,21 +189,21 @@ jobs:
           fi
 
       - name: Verify all V2 screens on the public URL and match every deployed byte
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'workflow_run' || inputs.pages_run_id
         env:
           LIVE_URL: https://aaru1yg.github.io/habbit-trackerrr/
-          EXPECT_BUILD_ID: ${{ github.event.workflow_run.head_sha }}
+          EXPECT_BUILD_ID: ${{ github.event.workflow_run.head_sha || inputs.build_sha }}
           REQUIRE_AUTH: '1'
           TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
           TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
         run: node qa/release.mjs
 
       - name: Publish public browser proof
-        if: always() && github.event_name == 'workflow_run'
+        if: always() && (github.event_name == 'workflow_run' || inputs.pages_run_id)
         run: node qa/publish-release-evidence.mjs
 
       - name: Upload public browser screenshots and checksums
-        if: always() && github.event_name == 'workflow_run'
+        if: always() && (github.event_name == 'workflow_run' || inputs.pages_run_id)
         uses: actions/upload-artifact@v4
         with:
           name: public-release-proof

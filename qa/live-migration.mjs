@@ -10,9 +10,10 @@
  *   a fresh profile stays independently scoped.
  *
  * Two expectation modes:
- *   EXPECT=reproduce  — run against the current production build and REQUIRE
- *                       the bug (dialog reappears after resolution). This is
- *                       the control: it proves the test can detect the bug.
+ *   EXPECT=reproduce  — REQUIRE the historical bug (dialog reappears after
+ *                       resolution). The control that proved the test can
+ *                       detect the bug on builds up to and including b9640e6;
+ *                       now a dispatch-only harness sanity check.
  *   EXPECT=fixed      — REQUIRE the healthy behaviour (prompt at most once,
  *                       then never again).
  *
@@ -260,9 +261,16 @@ async function run() {
     check('A: signed in and app rendered past the auth gate',
       !(await page.evaluate(() => !!document.querySelector('#auth-email'))))
 
-    // Sign out, edit locally (offline-style), sign back in → genuine divergence
+    // Sign out, edit locally (offline-style), then RELOAD so the app actually
+    // boots from the edited device state — a raw localStorage write is invisible
+    // to an already-running app instance. Sign back in → genuine divergence.
     await signOutViaUI(page)
     await addLocalHabit(page, markerOffline)
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await waitFor(page,
+      `!!document.querySelector('#auth-email') || (!document.querySelector('.auth-loading') && window.__BUILD_ID__ !== undefined)`,
+      { label: 'auth gate after reload' })
+    await sleep(1000)
     await login(page, credsA)
     await appReady()
     await sleep(2500)

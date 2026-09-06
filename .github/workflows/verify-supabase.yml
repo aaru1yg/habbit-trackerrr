@@ -24,6 +24,14 @@ on:
       - 'qa/verify-supabase.mjs'
       - '.github/workflows/verify-supabase.yml'
 
+# Shares the TEST_A/TEST_B accounts with verify-live-site.yml. Without this
+# group the two runs execute CONCURRENTLY on the same push and mutate the same
+# accounts' cloud rows mid-journey (signup writes → RLS matrix → row cleanup),
+# which the live migration journey legitimately reads as fresh divergence.
+concurrency:
+  group: live-qa-shared-accounts
+  cancel-in-progress: false
+
 jobs:
   verify:
     name: Live auth, persistence and RLS isolation

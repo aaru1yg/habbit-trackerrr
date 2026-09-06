@@ -101,7 +101,7 @@ export function TrendChart({ data, className = '' }) {
         {selP && selP.y != null && (
           <g pointerEvents="none">
             <line x1={selP.x} y1={T} x2={selP.x} y2={H - B} stroke="var(--border-2)" strokeWidth="1" strokeDasharray="3 3" />
-            <g transform={`translate(${Math.min(Math.max(selP.x, L + 34), W - R - 66)}, ${Math.max(T, selP.y - 40)})`}>
+            <g transform={`translate(${Math.min(Math.max(selP.x - 58, L), W - R - 116)}, ${Math.max(T, selP.y - 40)})`}>
               <rect width="116" height="28" rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
               <circle cx="13" cy="14" r="4" fill="var(--accent-2)" />
               <text x="25" y="18" fontSize="11" fontWeight="700" fill="var(--text)">{shortDate(selP.date)}</text>

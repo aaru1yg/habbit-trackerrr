@@ -261,7 +261,35 @@ async function main() {
   const { data: bData, error: bErr } = await clientB.auth
     .signInWithPassword({ email: preB.email, password: preB.password })
   if (!check('User B can log in (separate account)', !bErr && !!bData?.session, bErr?.message)) {
-    console.log('\n✗ Cannot run the isolation matrix without User B.')
+    // Diagnose without ever printing the password. Distinguishes a wrong
+    // password from an unconfirmed/nonexistent user, and reports the shape of
+    // the configured values so a stray quote or newline in a secret is visible.
+    const shape = (v) => v
+      ? `len=${v.length} first=${v[0]} last=${v[v.length - 1]}` +
+        (/^["']|["']$/.test(v) ? ' ⚠ WRAPPED IN QUOTES' : '') +
+        (/\s/.test(v) ? ' ⚠ CONTAINS WHITESPACE' : '')
+      : 'EMPTY'
+    console.log(`    ↳ TEST_B_EMAIL:    ${preB.email}`)
+    console.log(`    ↳ TEST_B_PASSWORD: ${shape(process.env.TEST_B_PASSWORD)}`)
+    console.log(`    ↳ TEST_A_EMAIL:    ${preA.email} (this one worked)`)
+    console.log(`    ↳ TEST_A_PASSWORD: ${shape(process.env.TEST_A_PASSWORD)}`)
+    console.log(`    ↳ A and B are the same email: ${preA.email === preB.email}`)
+
+    // Does the account exist at all? A reset request on a real address is
+    // accepted; this does not reveal the password and is rate-limit tolerant.
+    const { error: probeErr } = await mkClient().auth.resetPasswordForEmail(preB.email)
+    if (probeErr && /rate limit/i.test(probeErr.message)) {
+      console.log('    ↳ existence probe inconclusive (email rate limit)')
+    } else {
+      console.log(`    ↳ password-reset probe for TEST_B_EMAIL: ${probeErr ? 'rejected — ' + probeErr.message : 'accepted (address is known to Supabase)'}`)
+    }
+    console.log('')
+    console.log('    Most likely causes, in order:')
+    console.log('      1. TEST_B_PASSWORD does not match the password set for that user.')
+    console.log('      2. The user was created but "Auto Confirm User" was left unticked.')
+    console.log('      3. The secret value picked up surrounding quotes or a trailing newline.')
+    console.log('')
+    console.log('✗ Cannot run the isolation matrix without User B.')
     process.exit(1)
   }
   const uidB = bData.session.user.id

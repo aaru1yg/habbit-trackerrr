@@ -43,6 +43,12 @@ const check = (name, ok, detail = '') => {
   return ok
 }
 const skip = (name, why) => { skipped.push(`${name} — ${why}`); console.log(`  ⊘ ${name} (skipped: ${why})`) }
+/* Emit a GitHub annotation directly. Raw logs/artifacts are served from blob
+ * storage that some environments cannot reach; annotations come from the API. */
+const note = (msg) => {
+  console.log(`    ${msg}`)
+  if (process.env.GITHUB_ACTIONS) console.log(`::notice::DIAG ${msg}`)
+}
 
 const mkClient = () => createClient(URL_, KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -269,19 +275,19 @@ async function main() {
         (/^["']|["']$/.test(v) ? ' ⚠ WRAPPED IN QUOTES' : '') +
         (/\s/.test(v) ? ' ⚠ CONTAINS WHITESPACE' : '')
       : 'EMPTY'
-    console.log(`    ↳ TEST_B_EMAIL:    ${preB.email}`)
-    console.log(`    ↳ TEST_B_PASSWORD: ${shape(process.env.TEST_B_PASSWORD)}`)
-    console.log(`    ↳ TEST_A_EMAIL:    ${preA.email} (this one worked)`)
-    console.log(`    ↳ TEST_A_PASSWORD: ${shape(process.env.TEST_A_PASSWORD)}`)
-    console.log(`    ↳ A and B are the same email: ${preA.email === preB.email}`)
+    note(`TEST_B_EMAIL: ${preB.email}`)
+    note(`TEST_B_PASSWORD: ${shape(process.env.TEST_B_PASSWORD)}`)
+    note(`TEST_A_EMAIL: ${preA.email} (this one worked)`)
+    note(`TEST_A_PASSWORD: ${shape(process.env.TEST_A_PASSWORD)}`)
+    note(`A and B are the same email: ${preA.email === preB.email}`)
 
     // Does the account exist at all? A reset request on a real address is
     // accepted; this does not reveal the password and is rate-limit tolerant.
     const { error: probeErr } = await mkClient().auth.resetPasswordForEmail(preB.email)
     if (probeErr && /rate limit/i.test(probeErr.message)) {
-      console.log('    ↳ existence probe inconclusive (email rate limit)')
+      note('existence probe inconclusive (email rate limit)')
     } else {
-      console.log(`    ↳ password-reset probe for TEST_B_EMAIL: ${probeErr ? 'rejected — ' + probeErr.message : 'accepted (address is known to Supabase)'}`)
+      note(`password-reset probe for TEST_B_EMAIL: ${probeErr ? 'rejected — ' + probeErr.message : 'accepted (address is known to Supabase)'}`)
     }
     console.log('')
     console.log('    Most likely causes, in order:')

@@ -28,7 +28,8 @@ export default function TodayHero({ stats, top, atRisk, nearMilestone, copy, wee
 
   return (
     <section
-      className="card pad-lg today-hero today-hero-v3 scene-enter"
+      className="card pad-lg today-hero today-hero-v3 scene-enter sp-depth"
+      data-z="1"
       aria-label="Today at a glance"
     >
       <div className="today-hero-inner hero-compress">

@@ -49,16 +49,29 @@ export async function newPage(browser, viewport = VIEWPORTS.mobile) {
   const page = await browser.newPage()
   await page.setViewport(viewport)
   const state = { consoleErrors: [], pageErrors: [], failedRequests: [] }
+  // Chromium/CDP quirk: `Network.loadingFailed` can fire with net::ERR_ABORTED
+  // for a request whose successful response was already delivered — e.g. the
+  // 204 Supabase logout POST torn down while the sign-out UI swaps the page
+  // (puppeteer emits `requestfailed` even when `request.response()` exists).
+  // The network exchange SUCCEEDED, so an already-answered 2xx request must
+  // not count as a failed request. Every genuine failure — no response at all,
+  // an aborted request that never got a 2xx, or any 4xx/5xx — stays fatal.
+  const deliveredStatus = new Map() // HTTPRequest → status already received
   page.on('console', (msg) => {
     if (msg.type() === 'error') state.consoleErrors.push(msg.text())
   })
   page.on('pageerror', (err) => state.pageErrors.push(String(err)))
-  page.on('requestfailed', (req) => {
-    state.failedRequests.push(`${req.url()} ${req.failure()?.errorText}`)
-  })
   page.on('response', (res) => {
+    deliveredStatus.set(res.request(), res.status())
     if (res.status() >= 400) state.failedRequests.push(`${res.url()} → ${res.status()}`)
   })
+  page.on('requestfailed', (req) => {
+    const status = deliveredStatus.get(req)
+    const abortedAfterSuccess =
+      req.failure()?.errorText === 'net::ERR_ABORTED' && status >= 200 && status < 300
+    if (!abortedAfterSuccess) state.failedRequests.push(`${req.url()} ${req.failure()?.errorText}`)
+  })
+  page.on('requestfinished', (req) => deliveredStatus.delete(req))
   page._qa = state
   return page
 }

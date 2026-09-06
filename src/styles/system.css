@@ -3216,3 +3216,137 @@ button.lb-row:hover {
   }
   .goal-hero-copy { width: 100%; }
 }
+
+/* ------------------------------------------------------------
+   V3 · PROJECT TIMELINE — the project moving through time
+   ------------------------------------------------------------ */
+.ptl { padding-top: 14px; }
+.ptl-track { position: relative; height: 34px; }
+.ptl-track::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: var(--r-pill);
+  background: var(--track);
+}
+.ptl-fill {
+  position: absolute;
+  left: 0; top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  box-shadow: 0 0 14px var(--accent-soft);
+  transition: width 900ms var(--ease-out);
+}
+.ptl[data-phase='at-risk'] .ptl-fill { background: linear-gradient(90deg, var(--warn), var(--bad)); }
+.ptl[data-phase='completed'] .ptl-fill { background: linear-gradient(90deg, var(--good), var(--accent-2)); }
+.ptl[data-phase='planned'] .ptl-fill { background: var(--surface-3); box-shadow: none; }
+.ptl-today {
+  position: absolute;
+  top: -2px; bottom: -2px;
+  width: 0;
+  border-left: 1.5px dashed var(--border-2);
+}
+.ptl-today em {
+  position: absolute;
+  top: -15px; left: -13px;
+  font-style: normal;
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.ptl-node {
+  position: absolute;
+  top: 50%;
+  width: 20px; height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  border: 1.5px solid var(--border-2);
+  display: grid;
+  place-items: center;
+  color: var(--accent-ink);
+  z-index: 1;
+  transition: transform var(--dur-2) var(--ease-spring), box-shadow var(--dur-2) var(--ease-out);
+}
+@media (hover: hover) {
+  .ptl-node:hover { transform: scale(1.18); box-shadow: 0 0 0 5px var(--accent-soft); }
+}
+.ptl-node.is-sel { transform: scale(1.18); box-shadow: 0 0 0 5px var(--accent-soft); }
+.ptl-node.is-done {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  border-color: transparent;
+}
+.ptl-flag {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -58%);
+  color: var(--bad);
+}
+.ptl-scale {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ptl-phase { font-weight: var(--fw-bold); }
+.ptl-phase[data-tone='good'] { color: var(--good); }
+.ptl-phase[data-tone='warn'] { color: var(--warn); }
+.ptl-phase[data-tone='info'] { color: var(--accent-1-lift, var(--accent-1)); }
+.ptl-hint { color: var(--text-3); }
+.ptl-detail {
+  margin-top: 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  min-height: 1em;
+}
+
+/* ------------------------------------------------------------
+   V3 · DEADLINE PRESSURE — the draining window
+   ------------------------------------------------------------ */
+.pressure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+}
+.pressure-bar {
+  display: flex;
+  gap: 3px;
+  height: 10px;
+  grid-column: 1;
+}
+.pressure-lg .pressure-bar { height: 16px; gap: 4px; }
+.pressure-seg {
+  flex: 1;
+  border-radius: 3px;
+  background: var(--track);
+}
+.pressure-seg[data-lit] { background: var(--good); }
+.pressure[data-tone='warn'] .pressure-seg[data-lit] { background: var(--warn); }
+.pressure[data-tone='bad'] .pressure-seg[data-lit] { background: var(--bad); }
+.pressure[data-tone='neutral'] .pressure-seg[data-lit] { background: var(--surface-3); }
+.pressure[data-tone='info'] .pressure-seg[data-lit] { background: var(--info); }
+.pressure-label {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.pressure-detail {
+  grid-column: 1 / -1;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}

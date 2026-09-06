@@ -9,11 +9,12 @@ import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { StatusPill, KindTag, MeterRow, QuickProgress, DeadlineHero, WorkEmpty } from '../components/work/WorkKit.jsx'
+import DeadlinePressure from '../components/work/DeadlinePressure.jsx'
 import { AssignmentDeadlineField } from '../components/work/DeadlineField.jsx'
 import { LineSeries, DonutStat, BucketColumns, TimeVsWorkBars, HBarList } from '../components/charts/workCharts.jsx'
 import {
   assignmentStatus, assignmentProgress, progressSeries, entityVelocity, timeVsWork, itemHistory,
-  PRIORITIES,
+  PRIORITIES, assignmentPressure,
 } from '../lib/work.js'
 import { todayStr, subDaysStr, shortDate, prettyDateTime, prettyDate, dayOf, minutesLabel } from '../lib/dates.js'
 import {
@@ -122,6 +123,9 @@ export default function AssignmentDetailScreen({ id }) {
                   {status.passed ? `Deadline passed ${shortDate(dayOf(assignment.deadline))}` : `Due ${prettyDateTime(assignment.deadline)}`}
                 </p>
               )}
+              <div style={{ marginTop: 12 }}>
+                <DeadlinePressure pressure={assignmentPressure(assignment, now)} size="lg" />
+              </div>
             </div>
             <div style={{ flex: 1, minWidth: 220 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

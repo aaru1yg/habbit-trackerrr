@@ -10,9 +10,12 @@ import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { StatusPill, KindTag, Meter, MeterRow, MilestoneStepper, QuickProgress, WorkEmpty, CountdownChip } from '../components/work/WorkKit.jsx'
 import { BurndownChart, LineSeries, BucketColumns, HBarList, DonutStat } from '../components/charts/workCharts.jsx'
+import PaceChart from '../components/charts/PaceChart.jsx'
+import ProjectTrack from '../components/work/ProjectTrack.jsx'
 import {
   projectStatus, projectProgress, milestoneTrack, burndown, progressSeries, entityVelocity,
   timeVsWork, itemHistory, allTasks, TASK_STATUSES, PRIORITIES,
+  projectPace, projectPhase, phaseTone, PROJECT_PHASES,
 } from '../lib/work.js'
 import { activeHabits, habitRate, habitStreak } from '../lib/stats.js'
 import { categoryOf } from '../lib/schedule.js'
@@ -117,6 +120,12 @@ export default function ProjectDetailScreen({ id }) {
                 : project.startDate ? `Started ${shortDate(project.startDate)}` : 'No deadline set'}
             />
             <div style={{ flex: 1, minWidth: 200 }}>
+              <div className="wrap-gap" style={{ gap: 6, marginBottom: 10 }}>
+                <span className="status-pill" data-tone={phaseTone(projectPhase(project, now))}>
+                  {PROJECT_PHASES.find((ph) => ph.id === projectPhase(project, now))?.label}
+                </span>
+                <StatusPill status={status.id} />
+              </div>
               <MeterRow pct={status.pct} tone={status.tone} pace={status.elapsedPct} />
               <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
                 {status.hasDeadline && !status.complete
@@ -146,6 +155,16 @@ export default function ProjectDetailScreen({ id }) {
               />
             </div>
           )}
+        </SectionCard>
+
+        {/* V3: the project as an object on its own track */}
+        <SectionCard className="pad project-track-card">
+          <CardHead title="The track">
+            <span className="tiny muted">
+              {project.deadline ? `deadline ${shortDate(dayOf(project.deadline))}` : 'no deadline'}
+            </span>
+          </CardHead>
+          <ProjectTrack project={project} now={now} />
         </SectionCard>
 
         {/* Milestones */}
@@ -575,9 +594,29 @@ function ProjectAnalyticsDetail({ project, status }) {
   }, [project])
 
   const hasLog = (project.progressLog || []).length > 0
+  const pace = useMemo(() => projectPace(project, { days: range, now }), [project, range, now])
 
   return (
     <>
+      <SectionCard className="pad">
+        <CardHead title="Expected vs actual">
+          <span className="pace-legend" aria-hidden="true">
+            <i className="pace-legend-actual" /> actual
+            <i className="pace-legend-expected" /> expected
+          </span>
+        </CardHead>
+        <PaceChart
+          actual={pace.actual}
+          expected={pace.expected}
+          ariaLabel={`Expected versus actual progress for ${project.name} over the last ${range} days`}
+        />
+        {!pace.expected && (
+          <p className="tiny muted" style={{ marginTop: 6 }}>
+            No expected line: this project needs a start date and a deadline to compute one.
+          </p>
+        )}
+      </SectionCard>
+
       <div className="split">
         <SectionCard className="pad">
           <CardHead title="Progress over time">

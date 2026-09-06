@@ -421,3 +421,16 @@
 @media (prefers-reduced-motion: reduce) {
   .chart-draw .chart-fade { opacity: 0.75; transition: none; }
 }
+
+/* deadline pressure: segments light left→right once on entry */
+.pressure-fill .pressure-seg {
+  transform: scaleX(0.2);
+  opacity: 0.35;
+  transform-origin: left;
+  transition: transform 340ms var(--ease-spring), opacity 340ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 42ms);
+}
+.pressure-fill.is-in .pressure-seg { transform: scaleX(1); opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .pressure-fill .pressure-seg { transform: none; opacity: 1; transition: none; }
+}

@@ -9,9 +9,11 @@
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { StatusPill, KindTag, Meter, DeadlineHero, CountdownChip, QuickProgress, MilestoneStepper } from './WorkKit.jsx'
+import DeadlinePressure from './DeadlinePressure.jsx'
 import { useWorkUI } from './WorkUIProvider.jsx'
 import {
   projectStatus, assignmentStatus, projectProgress, assignmentProgress, milestoneTrack,
+  assignmentPressure, projectPhase, phaseTone, PROJECT_PHASES,
 } from '../../lib/work.js'
 import { shortDate, prettyDateTime, minutesLabel, dayOf } from '../../lib/dates.js'
 import { IconPencil, IconTrash, IconChevronRight, IconLink, IconClock, IconLayers } from '../../lib/icons.jsx'
@@ -42,7 +44,9 @@ export function ProjectCard({ project, now = new Date(), showStepper = true }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="wrap-gap" style={{ gap: 6, marginBottom: 6 }}>
             <KindTag kind="project">Project</KindTag>
-            <StatusPill status={status} />
+            <span className="status-pill" data-tone={phaseTone(projectPhase(project, now))}>
+              {PROJECT_PHASES.find((ph) => ph.id === projectPhase(project, now))?.label}
+            </span>
             <PriorityChip priority={project.priority} />
           </div>
           <a className="work-title" href={`#/projects/${project.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
@@ -155,6 +159,9 @@ export function AssignmentCard({ assignment, now = new Date() }) {
           </div>
           <div style={{ marginTop: 10 }}>
             <DeadlineHero status={status} />
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <DeadlinePressure pressure={assignmentPressure(assignment, now)} showDetail={false} />
           </div>
         </div>
         <div style={{ flex: 'none', textAlign: 'right' }}>

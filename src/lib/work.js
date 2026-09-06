@@ -182,6 +182,94 @@ export function assignmentStatus(assignment, now = new Date()) {
   return { id, label: STATUS_LABEL[id], tone: STATUS_TONE[id], pct, complete, ...facts }
 }
 
+/* ------------------------------------------------------------
+   V3 · PHASE + PRESSURE — the two visual languages of work.
+   ------------------------------------------------------------ */
+
+/** The four life states of a project (spec §10). */
+export const PROJECT_PHASES = [
+  { id: 'planned', label: 'Planned' },
+  { id: 'active', label: 'Active' },
+  { id: 'at-risk', label: 'At risk' },
+  { id: 'completed', label: 'Completed' },
+]
+
+/**
+ * PLANNED   starts in the future
+ * ACTIVE    in flight and healthy
+ * AT RISK   behind pace, overdue, or urgent
+ * COMPLETED done
+ */
+export function projectPhase(project, now = new Date()) {
+  const st = projectStatus(project, now)
+  if (st.complete) return 'completed'
+  if (st.id === 'atRisk' || st.id === 'overdue') return 'at-risk'
+  const start = project?.startDate || project?.createdAtDay
+  if (isValidDayStr(start) && dayStr(now) < start) return 'planned'
+  return 'active'
+}
+
+export const phaseTone = (phase) => (phase === 'completed' ? 'good'
+  : phase === 'at-risk' ? 'warn'
+    : phase === 'planned' ? 'neutral'
+      : 'info')
+
+/**
+ * Expected vs actual progress for a project over a trailing window.
+ * actual  — the real progress log carried forward day by day
+ * expected — the straight line from start to deadline (null when the
+ *            project has no honest window)
+ */
+export function projectPace(project, { days = 30, now = new Date() } = {}) {
+  const today = dayStr(now)
+  const from = subDaysStr(today, days - 1)
+  const actual = progressSeries(project, from, today)
+    .map((r) => ({ day: r.date, pct: r.future ? null : r.pct }))
+
+  const start = project?.startDate || project?.createdAtDay
+  const end = project?.deadline ? dayOf(project.deadline) : null
+  let expected = null
+  if (isValidDayStr(start) && end && end > start) {
+    const t0 = new Date(`${start}T00:00:00`).getTime()
+    const t1 = new Date(`${end}T23:59:59`).getTime()
+    expected = actual.map((r) => {
+      if (r.day < start) return { day: r.day, pct: 0 }
+      const t = new Date(`${r.day}T12:00:00`).getTime()
+      return { day: r.day, pct: clampPct(((t - t0) / (t1 - t0)) * 100) }
+    })
+  }
+  return { actual, expected }
+}
+
+/**
+ * Deadline pressure for an assignment (spec §11): how much of its
+ * window is still left, as ten honest segments.
+ *   10 days of a 10-day window  → ██████████
+ *   half the window gone        → █████░░░░░
+ *   due tomorrow                → █░░░░░░░░░
+ * ratio null = no deadline to measure; 0 = the window has closed.
+ */
+export function assignmentPressure(assignment, now = new Date()) {
+  const st = assignmentStatus(assignment, now)
+  if (st.complete) {
+    return { tone: 'good', ratio: 1, segments: 10, label: 'Completed', detail: 'Done before the pressure mattered.' }
+  }
+  if (!st.hasDeadline) {
+    return { tone: 'neutral', ratio: null, segments: null, label: 'No deadline', detail: 'Set a deadline to see the pressure build.' }
+  }
+  const ratio = st.passed ? 0 : Math.max(0, Math.min(1, 1 - (st.elapsedPct ?? 100) / 100))
+  const segments = Math.round(ratio * 10)
+  return {
+    tone: st.tone,
+    ratio,
+    segments,
+    label: st.dueText,
+    detail: st.passed
+      ? `Window closed ${st.countdown || ''} — ${100 - st.pct}% still open.`
+      : `${st.countdown || st.dueText} left · ${100 - st.pct}% of the work still open.`,
+  }
+}
+
 /** Urgency 0..1 for sorting (1 = most urgent). Deadline first, then progress. */
 export function urgencyOf(status) {
   if (status.id === 'completed') return -1

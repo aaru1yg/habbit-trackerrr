@@ -662,6 +662,10 @@ console.log('\n— Projects & celebration (mobile) —')
   check('projects dashboard shows real task math (3 of 5 = 60%)', ptxt.includes('60%'))
   check('projects are tagged as their own kind', await page.evaluate(() => document.querySelectorAll('.kind-tag.project').length >= 2))
   check('status engine reports real states (at risk + completed)', /At risk/.test(ptxt) && /Completed/.test(ptxt))
+  check('projects carry the four V3 life states (planned/active/at risk/completed)', await page.evaluate(() => {
+    const pills = [...document.querySelectorAll('.project-card .status-pill')].map((e) => e.textContent.trim().toLowerCase())
+    return ['planned', 'active', 'at risk', 'completed'].some((ph) => pills.includes(ph)) && pills.length >= 2
+  }))
   check('projects dashboard shows deadline countdowns', /\dd left|days left|Due/i.test(ptxt))
   await shot(page, '14-projects')
   await overflowCheck(page, 'projects')
@@ -682,6 +686,26 @@ console.log('\n— Projects & celebration (mobile) —')
   const dtxt = await page.evaluate(() => document.body.textContent)
   check('project detail shows milestones and pace', /Milestones/.test(dtxt) && /(Behind|Ahead|pace)/i.test(dtxt))
   check('project detail shows linked habits', /Portfolio|linked|Habits/i.test(dtxt))
+  check('[projects 2.0] the track places milestones on real dates with today marked', await page.evaluate(() => (
+    !!document.querySelector('.ptl .ptl-track .ptl-node')
+    && !!document.querySelector('.ptl .ptl-today')
+    && !!document.querySelector('.ptl .ptl-fill')
+  )))
+  check('[projects 2.0] track nodes are interactive and explain themselves', await page.evaluate(() => {
+    const node = document.querySelector('.ptl .ptl-node')
+    if (!node) return false
+    node.click()
+    return (document.querySelector('.ptl-detail')?.textContent || '').length > 4
+  }))
+  await clickByText(page, 'Analytics')
+  await sleep(800)
+  check('[projects 2.0] analytics draw expected vs actual from the real log', await page.evaluate(() => (
+    /Expected vs actual/.test(document.body.textContent)
+    && !!document.querySelector('.chart-draw svg .chart-line')
+    && !!document.querySelector('.chart-draw svg .chart-fade')
+  )))
+  await clickByText(page, 'Tasks')
+  await sleep(500)
   await shot(page, '15-project-detail')
   await overflowCheck(page, 'project-detail')
 
@@ -728,6 +752,16 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   check('assignment due today is called out', /Due today|Today/i.test(atxt))
   check('assignment urgency states are real (urgent + overdue)', /Urgent/.test(atxt) && /Overdue/.test(atxt))
   check('assignments lead with a countdown', await page.evaluate(() => !!document.querySelector('.deadline-hero, .count-chip')))
+  check('[assignments 2.0] deadline pressure renders ten honest segments', await page.evaluate(() => {
+    const bars = document.querySelectorAll('.assignment-card .pressure-bar')
+    if (!bars.length) return false
+    const segs = bars[0].querySelectorAll('.pressure-seg')
+    return segs.length === 10 && bars[0].querySelectorAll('.pressure-seg[data-lit]').length <= 10
+  }))
+  check('[assignments 2.0] pressure tone follows urgency, never alarm colour by default', await page.evaluate(() => {
+    const p = document.querySelector('.assignment-card .pressure')
+    return !!p && ['good', 'warn', 'bad', 'neutral', 'info'].includes(p.dataset.tone)
+  }))
   await shot(page, '16-assignments')
   await overflowCheck(page, 'assignments')
   await tapTargetCheck(page, 'assignments')
@@ -741,6 +775,9 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await sleep(700)
   check('subtask-derived progress is honest (3 of 4 = 75%)', await page.evaluate(() => document.body.textContent.includes('75%')))
   check('assignment detail shows subject + countdown', await page.evaluate(() => /Data Structures/.test(document.body.textContent)))
+  check('[assignments 2.0] detail leads with the draining window', await page.evaluate(() => (
+    !!document.querySelector('#assignment-detail .pressure-lg .pressure-bar')
+  )))
   await shot(page, '16c-assignment-detail')
   await overflowCheck(page, 'assignment-detail')
 

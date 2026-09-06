@@ -4,14 +4,14 @@ import { useStore } from '../store.jsx'
 import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
 import HabitRow from '../components/habits/HabitRow.jsx'
 import RoutineStrip from '../components/habits/RoutineStrip.jsx'
-import ProgressRing from '../components/ui/ProgressRing.jsx'
-import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
-import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
+import TodayHero from '../components/today/TodayHero.jsx'
+import Reveal from '../components/motion/Reveal.jsx'
+import { CardHead } from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import SearchPalette from '../components/layout/SearchPalette.jsx'
 import { StatusPill } from '../components/work/WorkKit.jsx'
-import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween } from '../lib/dates.js'
-import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak, habitStreak, routineStats, activeRoutines } from '../lib/stats.js'
+import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween, weekdayShort } from '../lib/dates.js'
+import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak, habitStreak, routineStats, activeRoutines, trendSeries } from '../lib/stats.js'
 import { priorityWork } from '../lib/work.js'
 import { todayPriorities, dayTimeline, todayGoals, todayProjectGoals, todayHeadline } from '../lib/today.js'
 import { streakMilestone } from '../lib/analytics.js'
@@ -67,6 +67,22 @@ export default function TodayScreen({ onFire }) {
   }, [state, today])
 
   const priority = useMemo(() => priorityWork(state, new Date(), 3), [state])
+
+  /* hero side-rail: the honest last-7-days shape of this user's data */
+  const week = useMemo(() => {
+    const rows = trendSeries(state, 7).map((r) => ({
+      day: r.date,
+      label: weekdayShort(r.date),
+      pct: r.total ? Math.round((r.done / r.total) * 100) : 0,
+      done: r.done,
+      total: r.total,
+    }))
+    const eligible = rows.filter((r) => r.total > 0)
+    const avg = eligible.length
+      ? Math.round(eligible.reduce((n, r) => n + r.pct, 0) / eligible.length)
+      : 0
+    return { rows, avg, hasAny: rows.some((r) => r.total > 0 && r.done > 0) }
+  }, [state])
   const plan = useMemo(() => {
     const now = new Date()
     return {
@@ -115,6 +131,13 @@ export default function TodayScreen({ onFire }) {
   }
 
   const left = Math.max(0, stats.total - stats.done)
+  const heroCopy = `${
+    stats.total === 0
+      ? 'No habits scheduled for today.'
+      : stats.done === stats.total
+        ? 'Everything done. Keep the rest of the day open.'
+        : left === 1 ? 'One small finish left.' : `${left} small finishes left.`
+  }${top.streak >= 3 ? ` Best streak: ${top.streak} days on ${top.habit?.name || 'a habit'}.` : ''}`
 
   return (
     <div className="screen" id="today-screen">
@@ -132,59 +155,19 @@ export default function TodayScreen({ onFire }) {
       </header>
 
       <div className="stack">
-        {/* Today is deliberately one flow: what is due, how far through it, then context. */}
-        <SectionCard className="pad-lg today-hero" style={{ overflow: 'hidden' }}>
-          <div className="today-hero-inner">
-            <div className="today-ring">
-              <ProgressRing pct={stats.pct} size={156} stroke={12} label={stats.total ? `${stats.pct} percent complete today` : 'No habits yet'}>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2rem', lineHeight: 1 }}>
-                    <AnimatedNumber value={stats.pct ?? 0} format={(v) => `${Math.round(v)}`} />%
-                  </div>
-                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 4 }}>today</div>
-                </div>
-              </ProgressRing>
-            </div>
-            <div className="today-hero-copy">
-              <p className="eyebrow today-kicker">Today’s focus</p>
-              <div className="today-summary">
-                <strong><span className="tnum">{stats.done}</span> of <span className="tnum">{stats.total}</span> complete</strong>
-                <span>{stats.total === 1 ? 'habit' : 'habits'} scheduled</span>
-              </div>
-              <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', marginTop: 7 }}>
-                {stats.total === 0
-                  ? 'No habits scheduled for today.'
-                  : stats.done === stats.total
-                    ? 'Everything done. Keep the rest of the day open.'
-                    : left === 1 ? 'One small finish left.' : `${left} small finishes left.`}
-                {top.streak >= 3 ? ` Best streak: ${top.streak} days on ${top.habit?.name || 'a habit'}.` : ''}
-              </p>
-              {atRisk && (
-                <p className="pace-note" data-tone="warn">
-                  <IconAlert size={14} />
-                  Your {atRisk.streak}-day streak on {atRisk.habit.name} is at risk tonight.
-                </p>
-              )}
-              {!atRisk && nearMilestone && (
-                <p className="pace-note" data-tone="good">
-                  <IconFlame size={14} />
-                  {nearMilestone.away === 1
-                    ? `One more completion gives ${nearMilestone.habit.name} a ${nearMilestone.target}-day streak.`
-                    : `${nearMilestone.away} completions away from a ${nearMilestone.target}-day streak on ${nearMilestone.habit.name}.`}
-                </p>
-              )}
-              <div className="today-stats" aria-label="Today at a glance">
-                <div className="today-stat"><strong>{stats.done}</strong><span>completed</span></div>
-                <div className="today-stat"><strong>{left}</strong><span>remaining</span></div>
-                <div className="today-stat"><strong>{top.streak || 0}</strong><span>day streak</span></div>
-              </div>
-            </div>
-          </div>
-        </SectionCard>
+        {/* The immersive command center: one composition, three depths. */}
+        <TodayHero
+          stats={stats}
+          top={top}
+          atRisk={atRisk}
+          nearMilestone={nearMilestone}
+          copy={heroCopy}
+          week={week}
+        />
 
         {/* Today's priorities — what actually needs doing, in order */}
         {plan.rows.length > 0 && (
-          <SectionCard className="pad today-priorities" delay={0.06}>
+          <Reveal as="section" variant="up" delay={0} className="card pad today-priorities">
             <CardHead title="Today's priorities">
               <span className="tiny muted tnum">{plan.rows.length} item{plan.rows.length === 1 ? '' : 's'}</span>
             </CardHead>
@@ -210,12 +193,12 @@ export default function TodayScreen({ onFire }) {
                 </li>
               ))}
             </ol>
-          </SectionCard>
+          </Reveal>
         )}
 
         {/* Goals in progress */}
         {(plan.goals.length > 0 || plan.projectGoals.length > 0) && (
-          <SectionCard className="pad today-goals" delay={0.08}>
+          <Reveal as="section" variant="left" delay={60} className="card pad today-goals">
             <CardHead title={plan.goals.length ? 'Goals in progress' : 'Projects in progress'}>
               <Link to={plan.goals.length ? 'goals' : 'projects'} className="btn ghost sm">
                 {plan.goals.length ? 'All goals' : 'All projects'} <IconChevronRight size={14} />
@@ -240,11 +223,11 @@ export default function TodayScreen({ onFire }) {
                 </Link>
               ))}
             </div>
-          </SectionCard>
+          </Reveal>
         )}
 
         {/* Today's habits */}
-        <SectionCard className="pad today-section" delay={0.12}>
+        <Reveal as="section" variant="depth" delay={90} className="card pad today-section">
           <CardHead title="What needs to be done">
             <button className="btn sm" onClick={habitUI.openAdd}>
               <IconPlus size={15} /> Add
@@ -288,12 +271,12 @@ export default function TodayScreen({ onFire }) {
               </Reorder.Group>
             </>
           )}
-        </SectionCard>
+        </Reveal>
 
 
         {/* Day timeline — built from reminder times and real deadlines */}
         {plan.timeline.length > 0 && (
-          <SectionCard className="pad today-timeline" delay={0.14}>
+          <Reveal as="section" variant="right" delay={60} className="card pad today-timeline">
             <CardHead title="Your day">
               <span className="tiny muted">{plan.timeline.filter((e) => !e.done).length} remaining</span>
             </CardHead>
@@ -311,12 +294,12 @@ export default function TodayScreen({ onFire }) {
                 </li>
               ))}
             </ol>
-          </SectionCard>
+          </Reveal>
         )}
 
         {/* One daily insight */}
         {insight && (
-          <SectionCard className="pad today-insight" delay={0.06}>
+          <Reveal as="section" variant="up" delay={0} className="card pad today-insight">
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <span style={{ color: 'var(--accent-2)', marginTop: 2 }}><IconSparkle size={18} /></span>
               <div>
@@ -324,12 +307,12 @@ export default function TodayScreen({ onFire }) {
                 <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', lineHeight: 1.55 }}>{insight.text}</p>
               </div>
             </div>
-          </SectionCard>
+          </Reveal>
         )}
 
         {/* Missed days you can still log */}
         {overdue.length > 0 && (
-          <SectionCard className="pad today-missed" delay={0.08}>
+          <Reveal as="section" variant="up" delay={60} className="card pad today-missed">
             <CardHead title="Missed recently">
               <Link to="calendar" className="btn ghost sm">Log in calendar</Link>
             </CardHead>
@@ -340,12 +323,12 @@ export default function TodayScreen({ onFire }) {
                 </Link>
               ))}
             </div>
-          </SectionCard>
+          </Reveal>
         )}
 
         {/* Weekly review (Sundays) */}
         {showReview && (
-          <SectionCard className="pad" delay={0.1}>
+          <Reveal as="section" variant="up" delay={0} className="card pad">
             <CardHead title={review.enough ? 'Your week in review' : 'Weekly review'}>
               <button className="btn ghost sm" onClick={dismissReview}>Dismiss</button>
             </CardHead>
@@ -363,22 +346,22 @@ export default function TodayScreen({ onFire }) {
             ) : (
               <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)' }}>{review.text}</p>
             )}
-          </SectionCard>
+          </Reveal>
         )}
 
         {/* Routines (habit stacking) */}
         {routinesToday.length > 0 && (
-          <SectionCard className="pad" delay={0.14}>
+          <Reveal as="section" variant="up" delay={60} className="card pad">
             <CardHead title="Routines">
               <Link to="library" className="btn ghost sm">Manage <IconChevronRight size={14} /></Link>
             </CardHead>
             <RoutineStrip date={today} />
-          </SectionCard>
+          </Reveal>
         )}
 
         {/* Backup reminder (gentle, ≤ every 30 days) */}
         {backupDue && (
-          <SectionCard className="pad" delay={0.16}>
+          <Reveal as="section" variant="up" delay={0} className="card pad">
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <span style={{ color: 'var(--warn)' }}><IconDownload size={18} /></span>
               <p style={{ flex: 1, fontSize: 'var(--fs-sm)', color: 'var(--text-2)' }}>
@@ -386,7 +369,7 @@ export default function TodayScreen({ onFire }) {
               </p>
               <Link to="settings" className="btn sm">Export</Link>
             </div>
-          </SectionCard>
+          </Reveal>
         )}
       </div>
 

@@ -16,6 +16,18 @@
                poster/fallback art instead of live scenes)
    ============================================================ */
 
+/* QA / debug hook: `localStorage['aaru.cap'] = 'high'|'balanced'|'low'`
+   overrides the tier on this device only. Lets browser QA exercise the
+   WebGL scene (or the static fallback) deterministically. */
+const readOverride = () => {
+  try {
+    const v = typeof localStorage !== 'undefined' ? localStorage.getItem('aaru.cap') : null
+    return v === 'high' || v === 'balanced' || v === 'low' ? v : null
+  } catch {
+    return null
+  }
+}
+
 const probe = (() => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return { webgl: false, tier: 'low', touch: false, cores: 2, memory: 2 }
@@ -23,7 +35,9 @@ const probe = (() => {
 
   const nav = navigator
   const cores = Number.isFinite(nav.hardwareConcurrency) ? nav.hardwareConcurrency : 2
-  const memory = Number.isFinite(nav.deviceMemory) ? nav.deviceMemory : 4
+  // deviceMemory is Chromium-only. Absence is not weakness: Firefox and
+  // Safari desktops are assumed capable unless another signal says no.
+  const memory = Number.isFinite(nav.deviceMemory) ? nav.deviceMemory : 8
   const touch = typeof window.matchMedia === 'function'
     ? window.matchMedia('(pointer: coarse)').matches
     : 'ontouchstart' in window
@@ -44,6 +58,9 @@ const probe = (() => {
   if (!webgl || cores <= 2 || memory <= 2) tier = 'low'
   // A coarse pointer never gets desktop-grade pointer parallax anyway.
   if (touch && tier === 'high') tier = 'balanced'
+
+  const override = readOverride()
+  if (override) tier = override
 
   return { webgl, tier, touch, cores, memory }
 })()

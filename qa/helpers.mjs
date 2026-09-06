@@ -11,6 +11,9 @@ const BASE_ARGS = [
   '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
   '--force-color-profile=srgb', '--disable-lcd-text',
   '--enable-features=OverlayScrollbar',
+  // Software WebGL so browser QA can exercise the real 3D layer on
+  // GPU-less CI runners. Real devices use their own GPU.
+  '--enable-unsafe-swiftshader',
 ]
 
 /** Look for a usable system chromium first (CHROMIUM_PATH or common installs). */
@@ -130,12 +133,16 @@ export async function setStoredState(page, state) {
  *  The seed is injected before any app script runs (no stale-app writes),
  *  and the injection is removed so later reloads test real persistence. */
 export async function seedAndGoto(page, state, route, base = 'http://localhost:4173') {
-  const handle = await page.evaluateOnNewDocument((s) => {
+  // AARU_CAP lets browser QA pin the device tier (high/balanced/low) so the
+  // WebGL scene and each fallback can be exercised deterministically.
+  const cap = process.env.AARU_CAP || ''
+  const handle = await page.evaluateOnNewDocument((s, cap) => {
     try {
       localStorage.clear()
       localStorage.setItem('aaru.habits.v4', JSON.stringify(s))
+      if (cap) localStorage.setItem('aaru.cap', cap)
     } catch { /* ignore */ }
-  }, state)
+  }, state, cap)
   try {
     await page.goto(`${base}/#/${route}`, { waitUntil: 'networkidle0' })
     await sleep(500)

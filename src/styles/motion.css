@@ -18,7 +18,9 @@
    ------------------------------------------------------------ */
 :root {
   --mo-reveal-y: 22px;
-  --mo-reveal-scale: 0.985;
+  /* no scale on entrance: mid-animation shrink would momentarily drop
+     tap targets below 44px and widen the scroll box */
+  --mo-reveal-scale: 1;
   --mo-depth-1: 600px;    /* gentle perspective: cards */
   --mo-depth-2: 900px;    /* medium: hero compositions */
   --mo-depth-3: 1400px;   /* deep: scene backdrops */
@@ -43,7 +45,7 @@
   will-change: opacity, transform;
 }
 .reveal[data-reveal='depth'] {
-  transform: translate3d(0, calc(var(--mo-reveal-y) * 1.6), 0) scale(0.96);
+  transform: translate3d(0, calc(var(--mo-reveal-y) * 1.9), 0);
   filter: blur(var(--mo-blur-enter));
   transition:
     opacity var(--dur-4) var(--ease-out) var(--mo-delay, 0ms),

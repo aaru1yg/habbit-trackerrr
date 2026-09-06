@@ -111,13 +111,20 @@ export default function ProgressCore({
             <line
               key={t.i}
               x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-              stroke={t.lit ? 'var(--accent-2)' : 'var(--track)'}
+              stroke={t.lit ? 'var(--accent-2)' : 'var(--border-2)'}
               strokeWidth={t.lit ? 1.6 : 1}
               strokeLinecap="round"
-              opacity={t.lit ? 0.85 : 0.55}
+              opacity={t.lit ? 0.9 : 0.7}
             />
           ))}
         </g>
+
+        {/* hairline edge defines the object even at 0% */}
+        <circle
+          cx={size / 2} cy={size / 2} r={r + stroke / 2 + 4}
+          fill="none" stroke="var(--border)" strokeWidth={1}
+          style={{ transform: 'rotate(90deg)', transformOrigin: '50% 50%' }}
+        />
 
         {/* track + progress arc */}
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
@@ -139,13 +146,13 @@ export default function ProgressCore({
           className="core-orb"
           cx={size / 2} cy={size / 2} r={orbR}
           fill={`url(#orb-${gid})`}
-          opacity={0.34 + (value / 100) * 0.56}
+          opacity={0.5 + (value / 100) * 0.44}
           style={{ transform: 'rotate(90deg)', transformOrigin: '50% 50%' }}
         />
         <circle
           cx={size / 2} cy={size / 2} r={orbR * 0.52}
           fill="var(--bg-deep, var(--bg))"
-          opacity="0.55"
+          opacity="0.38"
           style={{ transform: 'rotate(90deg)', transformOrigin: '50% 50%' }}
         />
       </svg>

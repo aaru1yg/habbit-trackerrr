@@ -2781,3 +2781,190 @@ button.lb-row:hover {
 .goal-chip[data-tone='bad'] { border-color: color-mix(in srgb, var(--bad) 40%, var(--border)); }
 .goal-chip[data-tone='warn'] { border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); }
 .goal-chip[data-tone='good'] { border-color: color-mix(in srgb, var(--good) 40%, var(--border)); }
+
+/* ------------------------------------------------------------
+   V3 · TODAY COMMAND CENTER — depth composition for the hero.
+   The V2 rules above still own layout; this block adds the
+   three-depth staging (energy field → core → words) and the
+   tactile stat tiles. Restraint first: one glow source, one
+   moving backdrop, everything else still.
+   ------------------------------------------------------------ */
+.today-hero-v3 {
+  isolation: isolate;
+}
+
+/* far depth: WebGL field hugging the core, masked at the edges */
+.today-scene {
+  position: absolute;
+  inset: -95%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.95;
+  -webkit-mask-image: radial-gradient(50% 50% at 50% 50%, #000 34%, transparent 74%);
+  mask-image: radial-gradient(50% 50% at 50% 50%, #000 34%, transparent 74%);
+}
+.today-core .core-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.today-hero-v3 .today-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+/* mid depth: the core floats just above the field */
+.today-core {
+  position: relative;
+}
+.today-core .core-wrap {
+  filter: drop-shadow(0 18px 42px rgba(2, 5, 14, 0.42));
+}
+.today-core .core-pulse {
+  inset: 2%;
+}
+
+/* near depth: stat tiles read as physical counters */
+.today-hero-v3 .today-stats {
+  gap: var(--space-1);
+  padding-top: 0;
+  border-top: 0;
+}
+.today-hero-v3 .today-stat {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-inset));
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px var(--space-15) 9px;
+  box-shadow: var(--e-1), var(--e-hairline);
+  transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+.today-hero-v3 .today-stat + .today-stat {
+  border-left: var(--bd-1) solid var(--border);
+  padding-left: var(--space-15);
+}
+@media (hover: hover) {
+  .today-hero-v3 .today-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--e-2), var(--e-hairline);
+  }
+}
+.today-hero-v3 .today-stat strong {
+  font-size: 1.32rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* the hero's own light: a single accent wash behind the core */
+.today-hero-v3::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(52% 68% at 22% 46%, var(--accent-soft), transparent 70%);
+  opacity: 0.85;
+}
+
+@media (max-width: 719px) {
+  .today-scene {
+    inset: -78%;
+    opacity: 0.8;
+  }
+  .today-hero-v3::after {
+    background: radial-gradient(70% 46% at 50% 22%, var(--accent-soft), transparent 72%);
+  }
+}
+
+/* ------------------------------------------------------------
+   V3 · HABIT ROW completion language — the row itself answers.
+   ------------------------------------------------------------ */
+.today-section .habit-row {
+  transition:
+    background-color var(--dur-3) var(--ease-out),
+    box-shadow var(--dur-3) var(--ease-out),
+    transform var(--dur-3) var(--ease-out);
+}
+.habit-row .habit-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--warn);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.habit-row.done {
+  background: linear-gradient(90deg, var(--accent-soft), transparent 62%);
+}
+
+/* completed habits recede so what remains is the focus (spec §4) */
+.today-section .habit-row.done {
+  opacity: 0.82;
+}
+.today-section .habit-row.done .habit-name {
+  color: var(--text-2);
+}
+.today-section .habit-row:not(.done) {
+  box-shadow: var(--e-hairline);
+}
+
+/* ------------------------------------------------------------
+   V3 · HERO SIDE RAIL — the honest 7-day shape of the data.
+   Fills the hero's wide-screen space with something true.
+   ------------------------------------------------------------ */
+.today-week {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .today-hero-v3 .today-hero-inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .today-week {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    justify-content: center;
+    padding-left: var(--space-3);
+    border-left: var(--bd-1) solid var(--border);
+    min-width: 148px;
+  }
+}
+.today-week-label,
+.today-week-avg,
+.today-week-empty {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.today-week-avg {
+  color: var(--text-2);
+  font-weight: var(--fw-semibold);
+}
+.today-week-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 74px;
+}
+.today-week-bar {
+  position: relative;
+  width: 12px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  border-radius: var(--r-pill);
+  background: var(--track);
+  overflow: hidden;
+}
+.today-week-bar i {
+  display: block;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent-1));
+  opacity: 0.85;
+}
+.today-week-bar i:not([data-on]) {
+  background: var(--surface-3);
+  opacity: 1;
+}

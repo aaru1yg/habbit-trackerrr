@@ -526,6 +526,21 @@ console.log('\n— Week / Insights / Mind (mobile) —')
   check('deep dive shows consistency + weekday sections', /Consistency/.test(deepText) && /By weekday/.test(deepText))
   check('deep dive shows streak history + personal bests', /Streak history/.test(deepText) && /Personal bests/.test(deepText))
   check('deep dive shows monthly pulse', /month by month/i.test(deepText))
+  check('[insights 2.0] day clock draws four honest quadrants from timestamps', await page.evaluate(() => (
+    document.querySelectorAll('.dayclock .dayclock-arc').length === 4
+    && document.querySelectorAll('.dayclock-legend li').length === 4
+    && (document.querySelector('.dayclock svg')?.getAttribute('aria-label') || '').includes('timestamped')
+  )))
+  check('[insights 2.0] pulse ribbon keeps future months hollow', await page.evaluate(() => {
+    const cells = document.querySelectorAll('.ribbon-cell')
+    return cells.length === 12
+      && document.querySelectorAll('.ribbon-cell.is-future').length >= 1
+      && document.querySelectorAll('.ribbon-months span').length === 12
+  }))
+  check('[insights 2.0] mood scatter plots only real paired days and never overclaims', await page.evaluate(() => (
+    document.querySelectorAll('.scatter-dot').length >= 8
+    && /association, not causation/.test(document.body.textContent)
+  )))
   const hasCorr = /Patterns that travel together/.test(deepText) && /These travel together/.test(deepText)
   check('correlations never claim causation', !hasCorr || /not proof one causes the other/.test(deepText))
   check('deep dive has no invented numbers', !/estimated|projected/i.test(deepText))

@@ -194,7 +194,14 @@ export function seededState() {
       // deterministic "personality": run 85%, read 70%, meditate 60%, water 90%, guitar 40%
       const rate = { 'h-run': 0.85, 'h-read': 0.7, 'h-med': 0.6, 'h-water': 0.9, 'h-guitar': 0.4 }[h.id]
       const seed = (i * 7 + h.id.charCodeAt(2) * 13) % 100
-      if (seed < rate * 100) checkins[h.id][date] = { done: true }
+      if (seed < rate * 100) {
+        // deterministic check-in times per habit personality (morning runner,
+        // evening reader…) so time-of-day analytics have real timestamps
+        const hhmm = { 'h-run': '07:10', 'h-read': '21:30', 'h-med': '08:05', 'h-water': '14:20', 'h-guitar': '20:00' }[h.id] || '12:00'
+        const [hh, mm] = hhmm.split(':')
+        const jitter = (i * 7) % 40
+        checkins[h.id][date] = { done: true, at: `${date}T${hh}:${String(Number(mm) + jitter).padStart(2, '0')}:00` }
+      }
     }
   }
   const moods = {}

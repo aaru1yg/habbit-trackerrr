@@ -3350,3 +3350,60 @@ button.lb-row:hover {
   font-size: var(--fs-micro);
   color: var(--text-3);
 }
+
+/* ============================================================
+   INSIGHTS VIZ 2.0 — day clock, pulse ribbon, mood scatter
+   ============================================================ */
+.dayclock { display: grid; gap: 12px; }
+@media (min-width: 720px) {
+  .dayclock { grid-template-columns: minmax(0, 260px) 1fr; align-items: center; }
+}
+.dayclock-dial { max-width: 260px; margin-inline: auto; width: 100%; }
+.dayclock-legend {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px;
+}
+@media (min-width: 720px) { .dayclock-legend { grid-template-columns: 1fr; } }
+.dayclock-legend li {
+  display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 8px;
+  font-size: var(--fs-sm); color: var(--text-2);
+}
+.dayclock-legend i {
+  width: 10px; height: 10px; border-radius: 3px; background: var(--accent-2); opacity: .62;
+}
+.dayclock-legend i.peak { background: var(--accent-1); opacity: .95; }
+.dayclock-legend b { color: var(--text); font-weight: 650; }
+.dayclock-legend em { font-style: normal; color: var(--text-3); font-size: var(--fs-xs); min-width: 34px; text-align: right; }
+
+.ribbon { display: grid; gap: 8px; }
+.ribbon-strip {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px;
+  height: 56px; align-items: stretch;
+}
+.ribbon-cell {
+  position: relative; display: block; border-radius: 6px;
+  background: var(--surface-2); overflow: hidden; cursor: default;
+  outline: 1px solid var(--border);
+}
+.ribbon-cell.is-future { outline-style: dashed; outline-color: var(--border-2); background: transparent; }
+.ribbon-cell.is-empty { background: repeating-linear-gradient(45deg, var(--surface-2) 0 4px, transparent 4px 8px); }
+.ribbon-cell.is-sel { outline: 1.5px solid var(--accent-2); }
+.ribbon-fill {
+  position: absolute; inset: 0; display: block;
+  background: linear-gradient(180deg, var(--accent-1), var(--accent-2));
+  opacity: calc(0.25 + var(--v, 0) * 0.75);
+  transform-origin: bottom;
+}
+.ribbon-cell.is-future .ribbon-fill, .ribbon-cell.is-empty .ribbon-fill { display: none; }
+.ribbon-months {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px;
+  margin-top: -2px;
+}
+.ribbon-months span {
+  font-size: 9px; text-align: center; color: var(--text-3); letter-spacing: .02em;
+}
+.ribbon-detail { margin: 0; min-height: 1.2em; font-size: var(--fs-sm); color: var(--text-2); }
+
+.scatter { display: grid; gap: 6px; }
+.scatter-box svg { display: block; width: 100%; }
+.scatter-caption { margin: 0; }

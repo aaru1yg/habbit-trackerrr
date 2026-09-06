@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import Sheet from '../ui/Sheet.jsx'
 import { CATEGORIES, WEEKDAY_OPTIONS, categoryOf } from '../../lib/schedule.js'
+import { HABIT_COLOR_PALETTE, HABIT_PRIORITIES, habitColorInputValue } from '../../lib/habitIdentity.js'
 import { requestNotificationPermission, notificationState, notificationsSupported } from '../../lib/reminders.js'
-import { IconBell, IconBellOff } from '../../lib/icons.jsx'
+import { IconBell, IconBellOff, IconPalette } from '../../lib/icons.jsx'
 
-/* Add / edit habit — name, category, schedule, reminder, notes. */
+/* Add / edit habit — name, category, schedule, priority, color, reminder, notes. */
 export default function HabitForm({ open, onClose, editing }) {
   const { dispatch } = useStore()
   const [name, setName] = useState('')
@@ -14,6 +15,9 @@ export default function HabitForm({ open, onClose, editing }) {
   const [days, setDays] = useState([1, 2, 3, 4, 5])
   const [reminder, setReminder] = useState('')
   const [notes, setNotes] = useState('')
+  const [priority, setPriority] = useState(2)
+  const [color, setColor] = useState('violet')
+  const [customColor, setCustomColor] = useState('#8b6bff')
   const [error, setError] = useState('')
   const [permNote, setPermNote] = useState(null)
 
@@ -28,6 +32,10 @@ export default function HabitForm({ open, onClose, editing }) {
       setDays(editing.schedule?.days || [1, 2, 3, 4, 5])
       setReminder(editing.reminder || '')
       setNotes(editing.notes || '')
+      setPriority(Math.max(1, Math.min(5, Number(editing.priority) || 2)))
+      const c = habitColorInputValue(editing)
+      setColor(/^[a-z]+$/.test(c) ? c : '#custom')
+      if (!/^[a-z]+$/.test(c)) setCustomColor(c)
     } else {
       setName('')
       setCategory('fitness')
@@ -35,6 +43,9 @@ export default function HabitForm({ open, onClose, editing }) {
       setDays([1, 2, 3, 4, 5])
       setReminder('')
       setNotes('')
+      setPriority(2)
+      setColor('violet')
+      setCustomColor('#8b6bff')
     }
   }, [open, editing])
 
@@ -53,10 +64,19 @@ export default function HabitForm({ open, onClose, editing }) {
       : { type: 'daily' }
 
     let reminderVal = reminder || null
+    const habitPatch = {
+      name: trimmed,
+      category,
+      schedule,
+      reminder: reminderVal,
+      notes: notes.trim(),
+      priority,
+      color: color === '#custom' ? customColor : color,
+    }
     if (editing) {
-      dispatch({ type: 'UPDATE_HABIT', id: editing.id, patch: { name: trimmed, category, schedule, reminder: reminderVal, notes: notes.trim() } })
+      dispatch({ type: 'UPDATE_HABIT', id: editing.id, patch: habitPatch })
     } else {
-      dispatch({ type: 'ADD_HABIT', habit: { name: trimmed, category, schedule, reminder: reminderVal, notes: notes.trim() } })
+      dispatch({ type: 'ADD_HABIT', habit: habitPatch })
     }
 
     // Ask for notification permission ONLY because the user just set a reminder.
@@ -116,6 +136,83 @@ export default function HabitForm({ open, onClose, editing }) {
               </button>
             ))}
           </div>
+        </fieldset>
+
+        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+          <legend className="field-label">Priority</legend>
+          <div className="prio-picker" role="radiogroup" aria-label="Habit priority">
+            {HABIT_PRIORITIES.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                role="radio"
+                aria-checked={priority === p.value}
+                onClick={() => setPriority(p.value)}
+                className={`prio-option${priority === p.value ? ' is-active' : ''}`}
+                data-p={p.value}
+                title={`${p.value} — ${p.label}`}
+              >
+                <span className="prio-bars" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <i key={i} data-on={i <= p.value ? 'true' : undefined} />
+                  ))}
+                </span>
+                <span>{p.label}</span>
+              </button>
+            ))}
+          </div>
+          <p className="field-hint">
+            {priority === 5
+              ? 'Critical — protected time, shown first everywhere.'
+              : priority === 4
+                ? 'High — gets a ring on Today and stands out in lists.'
+                : priority === 3
+                  ? 'Medium — more than usual, less than urgent.'
+                  : priority === 1
+                    ? 'Low — keep it going without pressure.'
+                    : 'Normal — the everyday default.'}
+          </p>
+        </fieldset>
+
+        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+          <legend className="field-label">Color</legend>
+          <div className="color-picker" role="radiogroup" aria-label="Habit color">
+            {HABIT_COLOR_PALETTE.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                role="radio"
+                aria-checked={color === c.id}
+                aria-label={c.label}
+                title={c.label}
+                onClick={() => setColor(c.id)}
+                className={`swatch${color === c.id ? ' is-active' : ''}`}
+                style={{ background: c.hex, color: c.hex }}
+              >
+                {color === c.id && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7" stroke="#0b0f1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              </button>
+            ))}
+            <label
+              className={`swatch custom${color === '#custom' ? ' is-active' : ''}`}
+              style={{ background: 'conic-gradient(#fb7185, #fbbf24, #34d399, #22d3ee, #60a5fa, #8b6bff, #f472b6, #fb7185)', cursor: 'pointer' }}
+              title="Custom color"
+            >
+              <input
+                type="color"
+                value={customColor}
+                onChange={(e) => { setCustomColor(e.target.value); setColor('#custom') }}
+                aria-label="Pick a custom color"
+                className="sr-only"
+                tabIndex={0}
+              />
+              {color === '#custom' && <IconPalette size={15} />}
+            </label>
+          </div>
+          <p className="field-hint">
+            {color === '#custom'
+              ? `Custom ${customColor} — used for this habit in every graph and list.`
+              : 'One color follows this habit everywhere: master graph, rings, calendar and analytics.'}
+          </p>
         </fieldset>
 
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>

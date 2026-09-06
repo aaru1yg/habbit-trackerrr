@@ -64,6 +64,11 @@ function coerceHabit(raw, index) {
     id: isStr(raw.id) ? raw.id : uid(),
     name,
     category: HABIT_CATEGORIES.includes(raw.category) ? raw.category : 'mind',
+    // one habit = one visual identity — preserved across export/import
+    color: (typeof raw.color === 'string' && (/^[a-z]+$/.test(raw.color) || /^#[0-9a-f]{6}$/i.test(raw.color)) && raw.color.length <= 32)
+      ? raw.color
+      : null,
+    priority: int(raw.priority, 1, 5, null),
     schedule: coerceSchedule(raw.schedule, createdAt),
     reminder: isHHMM(raw.reminder) ? raw.reminder : null,
     notes: typeof raw.notes === 'string' ? raw.notes.slice(0, 2000) : '',

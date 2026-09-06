@@ -4,6 +4,7 @@ import { useStore } from '../../store.jsx'
 import { todayStr } from '../../lib/dates.js'
 import { scheduleLabel, categoryOf } from '../../lib/schedule.js'
 import { habitStreak } from '../../lib/stats.js'
+import { habitColorHex, habitPriority, priorityMeta } from '../../lib/habitIdentity.js'
 import HabitCheck from './HabitCheck.jsx'
 import AnimatedNumber from '../ui/AnimatedNumber.jsx'
 import Burst from '../motion/Burst.jsx'
@@ -34,6 +35,9 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
   const done = state.checkins?.[habit.id]?.[today]?.done === true
   const streak = habitStreak(state, habit)
   const cat = categoryOf(habit.category)
+  const hex = habitColorHex(habit)
+  const prio = habitPriority(habit)
+  const prioLabel = priorityMeta(prio).label
 
   const toggle = () => {
     // one channel for every interaction response (sound-ready, §25)
@@ -103,7 +107,7 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
       <motion.div
         className={`habit-row ${done ? 'done' : ''}`}
         data-category={habit.category || 'mind'}
-        style={{ x, position: 'relative' }}
+        style={{ x, position: 'relative', '--habit-cat': hex }}
         drag={editing || reduced ? false : 'x'}
         dragDirectionLock
         dragConstraints={{ left: -ACTIONS_W, right: 72 }}
@@ -159,10 +163,21 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
             )}
             <div className="habit-meta">
               <span className="chip" style={{ padding: '1px 8px', minHeight: 20 }}>
-                <span className="dot" style={{ background: `var(${cat.cssVar})` }} />
+                <span className="dot" style={{ background: hex }} />
                 {cat.label}
               </span>
               <span>{scheduleLabel(habit)}</span>
+              <span
+                className="prio-mini"
+                data-p={prio}
+                title={`Priority ${prio} — ${prioLabel}`}
+                aria-label={`Priority ${prio} — ${prioLabel}`}
+                role="img"
+              >
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <i key={i} data-on={i <= prio ? 'true' : undefined} aria-hidden="true" />
+                ))}
+              </span>
               {streak > 1 && (
                 <span className="habit-streak">
                   <IconFlame size={13} /> <AnimatedNumber value={streak} duration={520} />d

@@ -9,7 +9,8 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 import { todayStr, subDaysStr, weekDays, weekdayShort, shortDate, prettyDate } from '../lib/dates.js'
 import { activeHabits, isDone, weekStats, weekDelta, strongestHabit, weakestHabit, habitStreak } from '../lib/stats.js'
 import { IconWeek, IconChevronLeft, IconChevronRight, IconTrendUp, IconTrendDown, IconFlame } from '../lib/icons.jsx'
-import { isScheduled, categoryOf } from '../lib/schedule.js'
+import { isScheduled } from '../lib/schedule.js'
+import { habitColorHex } from '../lib/habitIdentity.js'
 import { calendarMarkers } from '../lib/work.js'
 import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
 import { Link } from '../lib/router.jsx'
@@ -186,7 +187,7 @@ export default function WeekScreen() {
                     aria-label={`Details for ${h.name}`}
                     style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 14, background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                   >
-                    <span className="dot" style={{ width: 8, height: 8, borderRadius: 99, background: `var(${categoryOf(h.category).cssVar})`, flex: 'none' }} />
+                    <span className="dot" style={{ width: 8, height: 8, borderRadius: 99, background: habitColorHex(h), flex: 'none' }} />
                     <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 'var(--fs-sm)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.name}</span>
                     {streak > 1 && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--warn)', fontSize: 'var(--fs-xs)', fontWeight: 700 }}>

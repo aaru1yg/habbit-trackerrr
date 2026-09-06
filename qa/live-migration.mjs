@@ -229,8 +229,9 @@ async function run() {
         await sleep(2500)
         if (await page.evaluate(() => !!document.querySelector('#auth-email'))) {
           const notice = await page.evaluate(() => document.body.innerText.slice(0, 600))
-          if (/confirmation|verify/i.test(notice)) {
-            console.error('⊘ Supabase requires email confirmation — throwaway signup cannot log in.')
+          if (/confirmation|verify|is invalid/i.test(notice)) {
+            console.error('⊘ Supabase did not open a session for the throwaway account')
+            console.error('  (email confirmation required, or the throwaway email domain was rejected).')
             console.error('  Add TEST_A_EMAIL/TEST_A_PASSWORD (+ TEST_B_*) repo secrets with pre-confirmed accounts.')
             process.exit(3)
           }

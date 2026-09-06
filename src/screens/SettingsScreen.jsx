@@ -15,10 +15,11 @@ import { IconUser, IconPalette, IconBell, IconBellOff, IconDownload, IconUpload,
 import { BUILD_ID, BUILD_TIME } from '../lib/buildInfo.js'
 
 const THEMES = [
-  { id: 'midnight', label: 'Midnight', hint: 'Deep navy · violet to cyan' },
-  { id: 'ember', label: 'Ember', hint: 'Warm dark · rose to amber' },
-  { id: 'verdant', label: 'Verdant', hint: 'Cool dark · emerald to teal' },
-  { id: 'daylight', label: 'Daylight', hint: 'Light mode · same accents' },
+  { id: 'midnight', label: 'Midnight', hint: 'Deep ink navy · violet to cyan' },
+  { id: 'aurora', label: 'Aurora', hint: 'Teal night · mint to teal' },
+  { id: 'verdant', label: 'Verdant', hint: 'Cool forest · emerald to teal' },
+  { id: 'ember', label: 'Warm', hint: 'Warm dark · amber to rose' },
+  { id: 'daylight', label: 'Light', hint: 'Warm daylight · same accents' },
 ]
 
 export default function SettingsScreen() {
@@ -157,10 +158,11 @@ export default function SettingsScreen() {
                 onClick={() => setTheme(t.id)}
                 aria-pressed={theme === t.id}
                 style={{
-                  display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 16,
+                  display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 'var(--r-md)',
                   border: `1.5px solid ${theme === t.id ? 'var(--accent-1)' : 'var(--border)'}`,
                   background: 'var(--surface-2)', textAlign: 'left',
                   boxShadow: theme === t.id ? '0 0 0 3px var(--accent-soft)' : 'none',
+                  minHeight: 'var(--touch)',
                 }}
               >
                 <ThemeSwatch id={t.id} />
@@ -324,10 +326,11 @@ export default function SettingsScreen() {
 
 function ThemeSwatch({ id }) {
   const looks = {
-    midnight: ['#0b0f1a', '#6d4aff', '#22d3ee'],
-    ember: ['#120e14', '#e0476c', '#fb923c'],
-    verdant: ['#0c1310', '#0fa971', '#2dd4bf'],
-    daylight: ['#f4f5f8', '#5a3df0', '#0891b2'],
+    midnight: ['#0b0f1a', '#7048f5', '#22d3ee'],
+    aurora: ['#08161d', '#14b8a6', '#6ee7b7'],
+    verdant: ['#0a1410', '#10b981', '#5eead4'],
+    ember: ['#14100e', '#f59e0b', '#fb7185'],
+    daylight: ['#f4f3ef', '#5b3df0', '#0e7490'],
   }
   const [bg, a, b] = looks[id]
   return (

@@ -174,26 +174,26 @@ export function BurndownChart({ rows, today }) {
 export function LoadBars({ rows, onSelect, today }) {
   const max = Math.max(1, ...rows.map((r) => r.count))
   return (
-    <div className="load-bars" role="img"
+    <div className="load-bars"
       aria-label={`Workload by day. ${rows.map((r) => `${r.label}: ${r.count} item${r.count === 1 ? '' : 's'}`).join(', ')}`}>
       {rows.map((r) => {
         const level = r.count === 0 ? 0 : r.count >= max * 0.85 && r.count >= 3 ? 3 : r.count >= max * 0.5 && r.count >= 2 ? 2 : 1
+        const label = `${r.label}: ${r.count} item${r.count === 1 ? '' : 's'} due${onSelect ? ' — open' : ''}`
+        // The whole row is the control: a full-width 44px target instead of a
+        // 17px number tucked in the corner.
+        const Row = onSelect ? 'button' : 'div'
         return (
-          <div className={`lb-row${r.date === today ? ' is-today' : ''}`} key={r.date}>
+          <Row
+            className={`lb-row${r.date === today ? ' is-today' : ''}`}
+            key={r.date}
+            {...(onSelect ? { type: 'button', onClick: () => onSelect(r), 'aria-label': label } : {})}
+          >
             <span className="lb-day">{weekdayShort(r.date).slice(0, 3)} {r.date.slice(8)}</span>
             <span className="lb-track">
               <i className="lb-fill" data-level={level} style={{ width: `${(r.count / max) * 100}%` }} />
             </span>
-            <button
-              type="button"
-              className="lb-n"
-              style={{ background: 'none', border: 'none', cursor: onSelect ? 'pointer' : 'default', color: r.count ? 'var(--text)' : 'var(--text-3)' }}
-              onClick={() => onSelect?.(r)}
-              aria-label={`${r.label}: ${r.count} item${r.count === 1 ? '' : 's'} due${onSelect ? ' — open' : ''}`}
-            >
-              {r.count || '—'}
-            </button>
-          </div>
+            <span className="lb-n" aria-hidden={onSelect ? 'true' : undefined}>{r.count || '—'}</span>
+          </Row>
         )
       })}
     </div>
@@ -363,7 +363,7 @@ export function DonutStat({ pct, label, sub, size = 108, tone }) {
           <defs>
             <linearGradient id={`donut-${gid}`} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor={color || 'var(--accent-1)'} />
-              <stop offset="100%" stopColor={tone === 'bad' ? 'var(--v3-pink, var(--bad))' : tone === 'warn' ? 'var(--v3-amber, var(--warn))' : tone === 'good' ? 'var(--v3-cyan, var(--good))' : 'var(--accent-2)'} />
+              <stop offset="100%" stopColor={tone === 'bad' ? 'var(--bad)' : tone === 'warn' ? 'var(--warn)' : tone === 'good' ? 'var(--good)' : 'var(--accent-2)'} />
             </linearGradient>
           </defs>
           <circle className="ring-track" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} />

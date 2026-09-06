@@ -130,45 +130,15 @@ svg {
   will-change: transform;
   pointer-events: none;
 }
+/* Geometry + motion live in system.css so the atmosphere has one owner. */
 .aurora-blob.a {
-  width: 55vmax;
-  height: 55vmax;
-  top: -22vmax;
-  left: -14vmax;
   background: radial-gradient(circle, var(--aurora-a) 0%, transparent 62%);
-  opacity: 0.55;
-  animation: drift-a 110s ease-in-out infinite alternate;
 }
 .aurora-blob.b {
-  width: 48vmax;
-  height: 48vmax;
-  bottom: -20vmax;
-  right: -16vmax;
   background: radial-gradient(circle, var(--aurora-b) 0%, transparent 62%);
-  opacity: 0.42;
-  animation: drift-b 130s ease-in-out infinite alternate;
 }
 .aurora-blob.c {
-  width: 38vmax;
-  height: 38vmax;
-  top: 38%;
-  left: 46%;
   background: radial-gradient(circle, var(--aurora-c) 0%, transparent 64%);
-  opacity: 0.5;
-  animation: drift-c 150s ease-in-out infinite alternate;
-}
-
-@keyframes drift-a {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(9vmax, 7vmax, 0) scale(1.14); }
-}
-@keyframes drift-b {
-  from { transform: translate3d(0, 0, 0) scale(1.05); }
-  to   { transform: translate3d(-8vmax, -6vmax, 0) scale(1); }
-}
-@keyframes drift-c {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(-6vmax, 5vmax, 0) scale(1.12); }
 }
 
 /* ============================================================

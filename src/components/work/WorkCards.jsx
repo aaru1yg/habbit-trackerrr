@@ -45,7 +45,7 @@ export function ProjectCard({ project, now = new Date(), showStepper = true }) {
             <StatusPill status={status} />
             <PriorityChip priority={project.priority} />
           </div>
-          <a className="work-title" href={`#/projects/${project.id}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+          <a className="work-title" href={`#/projects/${project.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
             {project.name}
           </a>
           <div className="work-sub">
@@ -146,7 +146,7 @@ export function AssignmentCard({ assignment, now = new Date() }) {
             <StatusPill status={status} />
             <PriorityChip priority={assignment.priority} />
           </div>
-          <a className="work-title" href={`#/assignments/${assignment.id}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+          <a className="work-title" href={`#/assignments/${assignment.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
             {assignment.name}
           </a>
           <div className="work-sub">

@@ -36,9 +36,10 @@ if (!URL_ || !KEY) {
 let pass = 0
 let fail = 0
 const failures = []
+const passNames = []
 const skipped = []
 const check = (name, ok, detail = '') => {
-  if (ok) { pass++; console.log(`  ✓ ${name}`) }
+  if (ok) { pass++; passNames.push(name); console.log(`  ✓ ${name}`) }
   else { fail++; failures.push(`${name}${detail ? ` — ${detail}` : ''}`); console.log(`  ✗ ${name}${detail ? ` — ${detail}` : ''}`) }
   return ok
 }
@@ -472,7 +473,19 @@ async function main() {
   check('User B can delete their own row (cleanup)', !cleanBErr, cleanBErr?.message)
 
   // ================= summary =================
-  console.log(`\n${pass} passed, ${fail} failed${skipped.length ? `, ${skipped.length} skipped` : ''}`)
+  const summary = `${pass} passed, ${fail} failed${skipped.length ? `, ${skipped.length} skipped` : ''}`
+  console.log(`\n${summary}`)
+  // GitHub caps ::notice:: annotations per step, which truncates long runs.
+  // Emit the roll-up and any failures as warnings/errors so the outcome is
+  // always retrievable via the API even when individual notices are dropped.
+  if (process.env.GITHUB_ACTIONS) {
+    console.log(`::warning::RESULT ${summary}`)
+    const names = (arr) => arr.join(' | ')
+    if (failures.length) console.log(`::error::FAILED: ${names(failures)}`)
+    if (skipped.length) console.log(`::warning::SKIPPED: ${names(skipped)}`)
+    // Compact roll-up of everything that passed, in one annotation.
+    console.log(`::warning::PASSED(${passNames.length}): ${names(passNames)}`)
+  }
   if (fail) {
     console.log('\nFAILURES:')
     failures.forEach((f) => console.log(`  ✗ ${f}`))

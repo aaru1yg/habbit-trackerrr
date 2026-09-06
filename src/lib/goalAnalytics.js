@@ -94,7 +94,7 @@ export function goalProgressAt(state, goal, day) {
  * Daily actual progress over a window ending today.
  * @returns {{day:string, pct:number|null}[]}
  */
-export function goalActualSeries(state, goal, { days = 30, now = new Date() } = {}) {
+export function goalActualSeries(state, goal, { days = 30 } = {}) {
   const end = todayStr()
   const rows = []
   for (let i = days - 1; i >= 0; i -= 1) {

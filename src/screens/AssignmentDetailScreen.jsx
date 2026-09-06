@@ -4,6 +4,7 @@
    ============================================================ */
 import { useMemo, useState } from 'react'
 import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
+import useNow from '../lib/useNow.js'
 import { useStore } from '../store.jsx'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
@@ -11,12 +12,12 @@ import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { StatusPill, KindTag, MeterRow, QuickProgress, DeadlineHero, WorkEmpty } from '../components/work/WorkKit.jsx'
 import DeadlinePressure from '../components/work/DeadlinePressure.jsx'
 import { AssignmentDeadlineField } from '../components/work/DeadlineField.jsx'
-import { LineSeries, DonutStat, BucketColumns, TimeVsWorkBars, HBarList } from '../components/charts/workCharts.jsx'
+import { LineSeries, DonutStat, BucketColumns, TimeVsWorkBars } from '../components/charts/workCharts.jsx'
 import {
   assignmentStatus, assignmentProgress, progressSeries, entityVelocity, timeVsWork, itemHistory,
   PRIORITIES, assignmentPressure,
 } from '../lib/work.js'
-import { todayStr, subDaysStr, shortDate, prettyDateTime, prettyDate, dayOf, minutesLabel } from '../lib/dates.js'
+import { todayStr, subDaysStr, shortDate, prettyDateTime,  dayOf, minutesLabel } from '../lib/dates.js'
 import {
   IconChevronLeft, IconPlus, IconTrash, IconPencil, IconAssignment, IconCheck, IconGrip,
   IconClock, IconLink, IconX, IconHourglass,
@@ -27,7 +28,7 @@ export default function AssignmentDetailScreen({ id }) {
   const work = useWorkUI()
   const toast = useToast()
   const reduced = useReducedMotion()
-  const now = new Date()
+  const now = useNow()
   const today = todayStr()
 
   const assignment = (state.assignments || []).find((a) => a.id === id) || null
@@ -35,7 +36,7 @@ export default function AssignmentDetailScreen({ id }) {
   const [newSub, setNewSub] = useState('')
   const [editingDeadline, setEditingDeadline] = useState(false)
 
-  const status = useMemo(() => (assignment ? assignmentStatus(assignment, now) : null), [assignment])
+  const status = useMemo(() => (assignment ? assignmentStatus(assignment, now) : null), [assignment, now])
   const progress = useMemo(() => (assignment ? assignmentProgress(assignment) : null), [assignment])
 
   if (!assignment) {
@@ -324,7 +325,7 @@ export default function AssignmentDetailScreen({ id }) {
   )
 }
 
-function SubtaskRow({ sub: s, assignment, dispatch, remove }) {
+function SubtaskRow({ sub: s, assignment, remove }) {
   const work = useWorkUI()
   const reduced = useReducedMotion()
   const controls = useDragControls()

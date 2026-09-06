@@ -5,6 +5,7 @@
    ============================================================ */
 import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
+import useNow from '../lib/useNow.js'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { WorkTabs } from '../components/layout/Navigation.jsx'
 import { ProjectCard } from '../components/work/WorkCards.jsx'
@@ -16,7 +17,7 @@ import {
   projectCompletionTrend, weeklyCompletionSpeed, projectComparison, timeDistribution, burndown,
 } from '../lib/work.js'
 import { activeHabits, habitRate } from '../lib/stats.js'
-import { todayStr, subDaysStr, addDaysStr, shortDate } from '../lib/dates.js'
+import { todayStr, subDaysStr } from '../lib/dates.js'
 import { IconProjects, IconPlus, IconSearch, IconX } from '../lib/icons.jsx'
 
 const SORTS = [
@@ -31,14 +32,13 @@ const SORTS = [
 export default function ProjectsScreen({ route = 'projects' }) {
   const { state } = useStore()
   const work = useWorkUI()
-  const now = new Date()
-  const today = todayStr()
+  const now = useNow()
   const [view, setView] = useState('overview')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('urgency')
   const [query, setQuery] = useState('')
 
-  const summary = useMemo(() => projectsSummary(state, now), [state])
+  const summary = useMemo(() => projectsSummary(state, now), [state, now])
 
   const counts = useMemo(() => {
     const c = {}
@@ -159,10 +159,10 @@ export default function ProjectsScreen({ route = 'projects' }) {
    ------------------------------------------------------------ */
 function ProjectAnalytics() {
   const { state } = useStore()
-  const now = new Date()
+  const now = useNow()
   const today = todayStr()
   const [range, setRange] = useState(30)
-  const summary = useMemo(() => projectsSummary(state, now), [state])
+  const summary = useMemo(() => projectsSummary(state, now), [state, now])
   const projects = summary.rows.map((r) => r.project)
 
   const trend = useMemo(() => projectCompletionTrend(state, range, now), [state, range, now])

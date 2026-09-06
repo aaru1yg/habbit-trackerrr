@@ -8,7 +8,7 @@ import HabitDetailSheet from './HabitDetailSheet.jsx'
 const HabitUIContext = createContext(null)
 export const useHabitUI = () => useContext(HabitUIContext)
 
-export default function HabitUIProvider({ children, onFire }) {
+export default function HabitUIProvider({ children }) {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const [formOpen, setFormOpen] = useState(false)

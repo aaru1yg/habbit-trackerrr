@@ -4,7 +4,7 @@
    do not have enough data say so instead of inventing a number.
    No causal claims — only "often appear together".
    ============================================================ */
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { HBarList, DonutStat, BucketColumns, CompareBars } from '../components/charts/workCharts.jsx'
 import DayClock from '../components/charts/DayClock.jsx'

@@ -12,7 +12,7 @@ import Burst from '../src/components/motion/Burst.jsx'
 import AnimateOnView from '../src/components/motion/AnimateOnView.jsx'
 import ProgressCore from '../src/components/ui/ProgressCore.jsx'
 import SceneLayer from '../src/components/three/SceneLayer.jsx'
-import { stagger, interactionFeedback, DUR, SPRING, useInViewOnce } from '../src/lib/motion.js'
+import { stagger, interactionFeedback, DUR, SPRING } from '../src/lib/motion.js'
 import { getCapability, particleBudget, allowsLiveScenes } from '../src/lib/capability.js'
 
 describe('motion tokens', () => {

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
-import Sheet from '../components/ui/Sheet.jsx'
+import '../components/ui/Sheet.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import AccountCard from '../components/auth/AccountCard.jsx'
 import { useAuth } from '../lib/cloud/AuthProvider.jsx'
@@ -10,8 +10,8 @@ import { notificationState } from '../lib/reminders.js'
 import { projectStatus, assignmentStatus } from '../lib/work.js'
 import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
 import { todayStr, daysBetween } from '../lib/dates.js'
-import { Link } from '../lib/router.jsx'
-import { IconUser, IconPalette, IconBell, IconBellOff, IconDownload, IconUpload, IconTrash, IconClock } from '../lib/icons.jsx'
+
+import { IconUser,  IconBell, IconBellOff, IconDownload, IconUpload, IconTrash, IconClock } from '../lib/icons.jsx'
 import { BUILD_ID, BUILD_TIME } from '../lib/buildInfo.js'
 
 const THEMES = [

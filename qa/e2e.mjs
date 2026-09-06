@@ -5,7 +5,7 @@
    mood, analytics, projects/celebration, data export/import,
    persistence, navigation, overflow, tap targets, contrast.
    ============================================================ */
-import { launch, newPage, VIEWPORTS, check, shot, clickByText, clickByLabel, sleep, setStoredState, seedAndGoto, getStoredState, seededState, seededStateV4, dayStr, subDays, report } from './helpers.mjs'
+import { launch, newPage, VIEWPORTS, check, shot, clickByText, clickByLabel, sleep,  seedAndGoto,   seededStateV4,   report } from './helpers.mjs'
 import { mkdirSync } from 'fs'
 import fs from 'fs'
 
@@ -134,7 +134,6 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
   // spy on permission requests — nothing may ask before the user opts in
   await page.evaluate(() => {
     window.__permAsked = 0
-    const orig = window.Notification && Notification.requestPermission
     window.Notification = {
       permission: 'default',
       requestPermission: async () => { window.__permAsked++; return 'granted' },
@@ -266,10 +265,9 @@ console.log('\n— Habit management (mobile) —')
   await sleep(300)
 
   // swipe left reveals archive/delete (framer drag: dispatch pointer events)
-  const swipe = await page.evaluate(() => {
+  await page.evaluate(() => {
     const row = document.querySelector('.habit-row')
     const rect = row.getBoundingClientRect()
-    const target = row.parentElement // motion.div wrapper? row itself is the motion element
     const startX = rect.left + rect.width - 30
     const y = rect.top + rect.height / 2
     const el = row
@@ -429,7 +427,7 @@ console.log('\n— Calendar (mobile) —')
     while (d.getDay() !== 0 || d <= new Date()) d.setDate(d.getDate() + 1)
     return d.getDate()
   })
-  const sundayInert = await page.evaluate((dayNum) => {
+  const sundayInert = await page.evaluate(() => {
     const cells = [...document.querySelectorAll('.cal-cell.off')]
     return cells.length > 0
   }, sunday)
@@ -495,7 +493,6 @@ console.log('\n— Week / Insights / Mind (mobile) —')
   check('habit performance renders 5 rows', await page.evaluate(() => document.querySelectorAll('.perf-row:not(.perf-head)').length === 5))
   check('performance rows show done/eligible', await page.evaluate(() => /\/\d+/.test(document.querySelector('.perf-row:not(.perf-head)')?.textContent || '')))
   const perfFirst = () => page.evaluate(() => document.querySelector('.perf-row:not(.perf-head) .perf-name-text')?.textContent)
-  const beforeName = await perfFirst()
   await page.evaluate(() => document.querySelector('[aria-label="Sort by habit name"]').click())
   await sleep(300)
   check('performance sorts by name (desc)', (await perfFirst()) === 'Read 20 pages', `first=${await perfFirst()}`)
@@ -570,7 +567,6 @@ console.log('\n— Week / Insights / Mind (mobile) —')
   const integrity = await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('aaru.habits.v4'))
     let done = 0, total = 0
-    const today = new Date()
     for (let i = 0; i < 30; i++) {
       const d = new Date()
       d.setDate(d.getDate() - i)
@@ -969,11 +965,6 @@ console.log('\n— Data: export, import, reset —')
   await page.close()
 }
 
-function dayStrLocal() {
-  const d = new Date()
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
 
 /* ============================================================
    PART 7 — Themes (mobile screenshots)
@@ -1245,6 +1236,58 @@ console.log('\n— Achievements 2.0 —')
     [...document.querySelectorAll('.ach-card.is-earned')].some((c) => /Clean sweep/.test(c.textContent))
   )))
   await noConsoleErrors(page, 'achievements')
+  await page.close()
+}
+
+/* ============================================================
+   PART — Keyboard & focus: the app works without a pointer
+   ============================================================ */
+console.log('\n— Keyboard & focus (a11y) —')
+{
+  const page = await newPage(browser, VIEWPORTS.mobile)
+  await seedAndGoto(page, seededStateV4(), 'today', BASE)
+  await sleep(800)
+  await page.evaluate(() => document.activeElement?.blur?.())
+  let reached = false
+  for (let i = 0; i < 40; i++) {
+    await page.keyboard.press('Tab')
+    const label = await page.evaluate(() => document.activeElement?.getAttribute?.('aria-label') || '')
+    if (/Mark .* complete/i.test(label)) { reached = true; break }
+  }
+  check('[a11y] keyboard alone reaches a habit complete control', reached)
+  await page.keyboard.press('Enter')
+  await sleep(600)
+  check('[a11y] Enter on the focused control completes the habit', await page.evaluate(() => (
+    document.querySelectorAll('.habit-row.done').length >= 1
+  )))
+  check('[a11y] focused control shows a visible focus ring', await page.evaluate(() => {
+    const el = document.activeElement
+    if (!el || el === document.body) return false
+    const cs = getComputedStyle(el)
+    return cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 1
+  }))
+
+  // Escape closes the search overlay (desktop, where the shortcut lives)
+  const desk = await newPage(browser, VIEWPORTS.desktop)
+  await seedAndGoto(desk, seededStateV4(), 'today', BASE)
+  await sleep(700)
+  await desk.bringToFront()
+  await desk.keyboard.press('/')
+  await sleep(700)
+  const opened = await desk.evaluate(() => !!document.querySelector('[role="dialog"]'))
+  await desk.keyboard.press('Escape')
+  await sleep(800)
+  const closed = await desk.evaluate(() => !document.querySelector('[role="dialog"]'))
+  check('[a11y] search opens with / and Escape closes it', opened && closed)
+  await desk.close()
+
+  await page.goto(`${BASE}/#/achievements`, { waitUntil: 'networkidle0' })
+  await sleep(600)
+  await contrastCheck(page, 'achievements')
+  await page.goto(`${BASE}/#/workload`, { waitUntil: 'networkidle0' })
+  await sleep(600)
+  await contrastCheck(page, 'workload')
+  await noConsoleErrors(page, 'a11y-keyboard')
   await page.close()
 }
 

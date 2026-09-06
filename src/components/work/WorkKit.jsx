@@ -51,7 +51,7 @@ export function DeadlineHero({ status, compact = false }) {
   )
 }
 
-export function CountdownChip({ status, prefix = 'Due' }) {
+export function CountdownChip({ status }) {
   if (!status?.hasDeadline) return <span className="count-chip">No deadline</span>
   return (
     <span className="count-chip" data-tone={status.tone === 'neutral' ? undefined : status.tone}>
@@ -133,7 +133,7 @@ export function QuickProgress({ value, onChange, label = 'Progress' }) {
 
 /* ---------------- Milestone stepper (§59) ---------------- */
 
-export function MilestoneStepper({ track, vertical = false, onSelect, pct = 0 }) {
+export function MilestoneStepper({ track, vertical = false, onSelect }) {
   if (!track?.length) return null
   return (
     <div className={`stepper${vertical ? ' vertical' : ''}`} role="list" aria-label="Milestone progression">

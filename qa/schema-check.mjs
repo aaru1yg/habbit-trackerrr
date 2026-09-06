@@ -207,7 +207,7 @@ async function main() {
   // anon sees nothing
   await db.exec('begin')
   await db.exec(`set local role anon;`)
-  let anonBlocked = false
+  let anonBlocked
   try {
     const r = await db.query(`select * from public.user_state`)
     anonBlocked = r.rows.length === 0

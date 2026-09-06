@@ -3,7 +3,7 @@
  * Writes qa/shots/<tag>/<viewport>-<route>.png
  */
 import { mkdirSync } from 'fs'
-import { launch, newPage, seedAndGoto, seededStateV4, sleep, VIEWPORTS } from './helpers.mjs'
+import { launch, newPage, seedAndGoto, seededStateV4, sleep } from './helpers.mjs'
 
 const base = process.argv[2] || 'http://localhost:5173'
 const tag = process.argv[3] || 'current'

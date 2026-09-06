@@ -42,7 +42,7 @@ const probe = (() => {
     ? window.matchMedia('(pointer: coarse)').matches
     : 'ontouchstart' in window
 
-  let webgl = false
+  let webgl
   try {
     const canvas = document.createElement('canvas')
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl')

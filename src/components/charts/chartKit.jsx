@@ -5,7 +5,7 @@
    labels for screen readers.
    ============================================================ */
 import { Fragment, useId, useMemo, useRef, useState } from 'react'
-import { shortDate, weekdayShort } from '../../lib/dates.js'
+import { shortDate } from '../../lib/dates.js'
 
 const TNUM = { fontVariantNumeric: 'tabular-nums' }
 

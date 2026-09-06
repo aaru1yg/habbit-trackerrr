@@ -9,7 +9,7 @@ import { DEADLINE_PRESETS, dayStr, addDaysTo, isoLocal, toLocalDate, dayOf, pret
 const PROJECT_DURATIONS = [2, 3, 5, 7, 14, 30, 60]
 
 /** Assignment deadline: hour presets + a datetime-local escape hatch. */
-export function AssignmentDeadlineField({ value, onChange, label = 'Deadline', autoFocusPreset = '2d' }) {
+export function AssignmentDeadlineField({ value, onChange, label = 'Deadline' }) {
   const [custom, setCustom] = useState(false)
   const hasCustom = !!value && !DEADLINE_PRESETS.some((p) => p.id === activePreset(value))
   useEffect(() => { if (hasCustom) setCustom(true) }, [hasCustom])

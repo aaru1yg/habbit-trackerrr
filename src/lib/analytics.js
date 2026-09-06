@@ -5,8 +5,8 @@
    statistic to fill a card.
    ============================================================ */
 import {
-  todayStr, dayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr,
-  prettyTime, partOfDay, PARTS_OF_DAY, shortDate, dayOf, minutesLabel,
+  todayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr,
+  partOfDay, PARTS_OF_DAY, shortDate, dayOf,
 } from './dates.js'
 import {
   activeHabits, dayStats, eligibleOn, isDone, habitRate, habitStreak, habitBestStreak,
@@ -240,7 +240,6 @@ export function moodCorrelations(state, days = 60) {
   const today = todayStr()
   const from = subDaysStr(today, days - 1)
   const dims = ['score', 'energy', 'focus', 'motivation']
-  const habits = activeHabits(state).filter((h) => habitRate(state, h, from, today).eligible >= 8)
   const out = []
   for (const dim of dims) {
     let highDone = 0, highTotal = 0, lowDone = 0, lowTotal = 0
@@ -425,7 +424,6 @@ export function personalBests(state) {
    ------------------------------------------------------------ */
 
 export function smartInsights(state, limit = 6) {
-  const today = todayStr()
   const habits = activeHabits(state)
   const out = []
   if (!habits.length) return out
@@ -649,7 +647,6 @@ export function timelineEvents(state, limit = 60) {
   const today = todayStr()
   const events = []
   const habits = state.habits || []
-  const habitName = (id) => habits.find((h) => h.id === id)?.name || 'Habit'
 
   for (const h of habits) {
     if (h.createdAt && isValidDayStr(h.createdAt)) {
@@ -716,7 +713,7 @@ export function timelineEvents(state, limit = 60) {
    SEARCH (§30) — habits, work, notes, dates, achievements
    ------------------------------------------------------------ */
 
-export function searchAll(state, query, limit = 24) {
+export function searchAll(state, query, _limit = 24) {
   const q = String(query || '').trim().toLowerCase()
   if (q.length < 2) return { groups: [], count: 0 }
   const tokens = q.split(/\s+/)

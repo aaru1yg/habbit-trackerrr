@@ -10,7 +10,7 @@
    ============================================================ */
 import { todayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr, toLocalDate } from './dates.js'
 import {
-  habitBestStreak, habitRate, dayStats, weekStats,
+  habitRate, dayStats, weekStats,
   eligibleOn, isDone, activeHabits,
 } from './stats.js'
 import { consistencyScore } from './analytics.js'
@@ -45,7 +45,7 @@ export function bestStreakEver(state) {
       .filter((d) => isValidDayStr(d) && isDone(state, h.id, d) && eligibleOn(h, d))
       .sort()
     let run = 0
-    let runEnd = null
+    let runEnd
     let prev = null
     for (const d of dates) {
       if (prev && addDaysStr(prev, 1) === d) {

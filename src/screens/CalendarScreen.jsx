@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
+import useNow from '../lib/useNow.js'
 import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
@@ -30,7 +31,7 @@ const localDate = (s) => new Date(`${s}T12:00:00`)
 
 export default function CalendarScreen({ ymParam }) {
   const { state, dispatch } = useStore()
-  const now = new Date()
+  const now = useNow()
   const [mode, setMode] = useState('month')
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [anchor90, setAnchor90] = useState(todayStr()) // 90d window ends at this date
@@ -139,12 +140,14 @@ export default function CalendarScreen({ ymParam }) {
     setYear(now.getFullYear())
   }
 
+  const navRef = useRef({ prev, next })
+  navRef.current = { prev, next }
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.closest('input, textarea, select, [role="dialog"]')) return
       if (noteFor) return
-      if (e.key === 'ArrowLeft') prev()
-      if (e.key === 'ArrowRight') next()
+      if (e.key === 'ArrowLeft') navRef.current.prev()
+      if (e.key === 'ArrowRight') navRef.current.next()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

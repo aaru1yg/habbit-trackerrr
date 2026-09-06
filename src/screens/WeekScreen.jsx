@@ -20,21 +20,18 @@ export default function WeekScreen() {
   const [offset, setOffset] = useState(0) // weeks back from current
   const today = todayStr()
 
-  const weekStart = useMemo(() => weekDays(subDaysStr(today, offset * 7))[0], [today, offset])
   const week = useMemo(() => weekDays(subDaysStr(today, offset * 7)), [today, offset])
   const prevWeek = useMemo(() => weekDays(subDaysStr(week[0], 7)), [week])
   const stats = useMemo(() => weekStats(state, week), [state, week])
   const delta = useMemo(() => weekDelta(state, week, prevWeek), [state, week, prevWeek])
 
   const rangeLabel = `${shortDate(week[0])} – ${shortDate(week[6])}`
-  const label = offset === 0 ? 'This week' : offset === 1 ? 'Last week' : rangeLabel
 
+  const isThisWeek = offset === 0
   const habits = activeHabits(state).filter((h) => week.some((d) => isScheduled(h, d)))
   const strong = useMemo(() => strongestHabit(state, week[0], week[6], 3), [state, week])
   const weak = useMemo(() => weakestHabit(state, week[0], week[6], 3), [state, week])
 
-  const isThisWeek = offset === 0
-  const daysElapsed = isThisWeek ? week.filter((d) => d <= today) : week
 
   // ---- work landing in this week (§72) ----
   const marks = useMemo(() => calendarMarkers(state, week), [state, week])

@@ -16,7 +16,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import { useAuth } from './AuthProvider.jsx'
-import { supabase, cloudConfigured } from './supabase.js'
+import {  cloudConfigured } from './supabase.js'
 import { pull, push, SYNC } from './syncEngine.js'
 import { friendlyError } from './errors.js'
 import { mergeDocs, summarise, hasData } from './merge.js'

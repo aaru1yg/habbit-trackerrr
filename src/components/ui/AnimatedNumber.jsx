@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import {  useReducedMotion } from 'framer-motion'
 
 /* Count-up number. Reduced motion → immediate value. */
 export default function AnimatedNumber({ value, duration = 700, format, className }) {

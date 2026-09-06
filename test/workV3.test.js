@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   projectPhase, phaseTone, PROJECT_PHASES, projectPace, assignmentPressure,
 } from '../src/lib/work.js'
-import { todayStr, subDaysStr, addDaysStr } from '../src/lib/dates.js'
+import { todayStr, subDaysStr } from '../src/lib/dates.js'
 
 const day = (offset) => (offset === 0 ? todayStr() : subDaysStr(todayStr(), -offset))
 const at = (offset, time = '09:00') => `${day(offset)}T${time}:00`

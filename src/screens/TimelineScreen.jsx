@@ -2,6 +2,7 @@
    DEADLINES — the chronological timeline across both systems (§72)
    ============================================================ */
 import { useMemo, useState } from 'react'
+import useNow from '../lib/useNow.js'
 import { useStore } from '../store.jsx'
 import { WorkTabs } from '../components/layout/Navigation.jsx'
 import { FilterBar, WorkEmpty, FadeIn } from '../components/work/WorkKit.jsx'
@@ -13,7 +14,7 @@ import { IconTimeline } from '../lib/icons.jsx'
 
 export default function TimelineScreen({ route = 'timeline' }) {
   const { state } = useStore()
-  const now = new Date()
+  const now = useNow()
   const [filter, setFilter] = useState('all')
 
   const timeline = useMemo(() => deadlineTimeline(state, { filter, now }), [state, filter, now])

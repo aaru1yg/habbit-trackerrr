@@ -10,8 +10,8 @@ import { AssignmentDeadlineField, ProjectDeadlineField } from './DeadlineField.j
 import { QuickProgress } from './WorkKit.jsx'
 import { PRIORITIES, WORK_CATEGORIES } from '../../lib/work.js'
 import { activeHabits } from '../../lib/stats.js'
-import { dayStr, todayStr, isoLocal, prettyDate } from '../../lib/dates.js'
-import { IconPlus, IconX, IconChevronDown, IconLink } from '../../lib/icons.jsx'
+import { dayStr, todayStr } from '../../lib/dates.js'
+import {   IconChevronDown, IconLink } from '../../lib/icons.jsx'
 
 function MoreOptions({ open, onToggle, children, id }) {
   return (

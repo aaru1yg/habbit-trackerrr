@@ -100,7 +100,7 @@ const MORE_FLAT = MORE_GROUPS.flatMap((g) => g.items)
 
 const isActive = (route, item) => (item.group ? item.group.includes(route) : route === item.to)
 
-export function BottomNav({ route, onMore, onSearch }) {
+export function BottomNav({ route, onMore }) {
   const moreActive = MORE_FLAT.some((m) => m.to === route)
   return (
     <nav className="bottom-nav" aria-label="Main">

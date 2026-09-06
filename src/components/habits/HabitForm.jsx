@@ -7,7 +7,7 @@ import { IconBell, IconBellOff } from '../../lib/icons.jsx'
 
 /* Add / edit habit — name, category, schedule, reminder, notes. */
 export default function HabitForm({ open, onClose, editing }) {
-  const { state, dispatch } = useStore()
+  const { dispatch } = useStore()
   const [name, setName] = useState('')
   const [category, setCategory] = useState('fitness')
   const [schedType, setSchedType] = useState('daily')

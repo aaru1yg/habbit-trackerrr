@@ -15,7 +15,7 @@
    ============================================================ */
 import { useMemo, useState } from 'react'
 import { todayStr, isValidDayStr, dayOf, shortDate, prettyDate, daysBetween } from '../../lib/dates.js'
-import { projectStatus, projectPhase, phaseTone, allTasks } from '../../lib/work.js'
+import { projectStatus, projectPhase, phaseTone } from '../../lib/work.js'
 import { IconCheck, IconFlag } from '../../lib/icons.jsx'
 
 export default function ProjectTrack({ project, now = new Date() }) {

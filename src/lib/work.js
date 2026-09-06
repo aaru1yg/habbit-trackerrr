@@ -464,7 +464,7 @@ export function timeVsWork(item, kind = 'project', now = new Date()) {
 }
 
 /** Completion history for a finished item (§69G). */
-export function itemHistory(item, kind = 'project', now = new Date()) {
+export function itemHistory(item, kind = 'project', _now = new Date()) {
   const progress = kind === 'project' ? projectProgress(item) : assignmentProgress(item)
   const start = item.startDate || item.assignedDate || item.createdAtDay || null
   const completedAt = item.completedAt || null
@@ -657,7 +657,6 @@ export function workloadSeries(state, { from = todayStr(), days = 14, now = new 
 /** Workload roll-up for the dashboard header. */
 export function workloadSummary(state, now = new Date()) {
   const today = dayStr(now)
-  const weekEnd = addDaysStr(today, 6)
   const series = workloadSeries(state, { from: today, days: 7, now })
   const p = projectsSummary(state, now)
   const a = assignmentsSummary(state, now)

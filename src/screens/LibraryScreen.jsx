@@ -3,17 +3,17 @@
    Routines are habit stacks (§21, §22): ordered groups that show
    routine-level completion as well as individual progress.
    ============================================================ */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect,  useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import { Link } from '../lib/router.jsx'
-import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
+import SectionCard from '../components/ui/SectionCard.jsx'
 import { Meter, WorkEmpty, FadeIn } from '../components/work/WorkKit.jsx'
 import { activeHabits, habitStreak, habitRate, routineStats, activeRoutines } from '../lib/stats.js'
 import { consistencyScore, consistencyLabel } from '../lib/analytics.js'
-import { CATEGORIES, ROUTINE_KINDS, categoryOf, scheduleLabel, scheduleState, isScheduled, nextScheduledDate } from '../lib/schedule.js'
+import {  ROUTINE_KINDS, categoryOf, scheduleLabel, scheduleState, isScheduled, nextScheduledDate } from '../lib/schedule.js'
 import { todayStr, subDaysStr, shortDate, addDaysStr } from '../lib/dates.js'
 import {
   IconStack, IconPlus, IconPencil, IconArchive, IconTrash, IconChevronRight, IconFlame,
@@ -23,8 +23,6 @@ import {
 export default function LibraryScreen({ title = 'Library', subtitle = null }) {
   const { state, dispatch } = useStore()
   const habitUI = useHabitUI()
-  const toast = useToast()
-  const today = todayStr()
   const [tab, setTab] = useState('habits')
   const [routineForm, setRoutineForm] = useState({ open: false, editing: null })
 

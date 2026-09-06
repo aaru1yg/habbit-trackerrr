@@ -5,10 +5,11 @@
 import { useMemo, useState } from 'react'
 import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import { useStore } from '../store.jsx'
+import useNow from '../lib/useNow.js'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
-import { StatusPill, KindTag, Meter, MeterRow, MilestoneStepper, QuickProgress, WorkEmpty, CountdownChip } from '../components/work/WorkKit.jsx'
+import { StatusPill, KindTag, Meter, MeterRow, MilestoneStepper, QuickProgress, WorkEmpty } from '../components/work/WorkKit.jsx'
 import { BurndownChart, LineSeries, BucketColumns, HBarList, DonutStat } from '../components/charts/workCharts.jsx'
 import PaceChart from '../components/charts/PaceChart.jsx'
 import ProjectTrack from '../components/work/ProjectTrack.jsx'
@@ -23,15 +24,13 @@ import { Link } from '../lib/router.jsx'
 import { todayStr, subDaysStr, shortDate, prettyDate, dayOf, minutesLabel, daysUntil, addDaysStr } from '../lib/dates.js'
 import {
   IconChevronLeft, IconPlus, IconTrash, IconPencil, IconProjects, IconGrip, IconCheck,
-  IconClock, IconLink, IconNote, IconX, IconFlag,
+  IconClock, IconX,
 } from '../lib/icons.jsx'
 
 export default function ProjectDetailScreen({ id }) {
   const { state, dispatch } = useStore()
   const work = useWorkUI()
-  const toast = useToast()
-  const reduced = useReducedMotion()
-  const now = new Date()
+  const now = useNow()
   const today = todayStr()
 
   const project = (state.projects || []).find((p) => p.id === id) || null
@@ -40,7 +39,7 @@ export default function ProjectDetailScreen({ id }) {
   const [addingMilestone, setAddingMilestone] = useState(false)
   const [milestoneName, setMilestoneName] = useState('')
 
-  const status = useMemo(() => (project ? projectStatus(project, now) : null), [project])
+  const status = useMemo(() => (project ? projectStatus(project, now) : null), [project, now])
   const progress = useMemo(() => (project ? projectProgress(project) : null), [project])
   const track = useMemo(() => (project ? milestoneTrack(project) : []), [project])
   const nextMilestone = useMemo(() => track.find((m) => !m.reached) || null, [track])
@@ -62,7 +61,6 @@ export default function ProjectDetailScreen({ id }) {
     )
   }
 
-  const tasks = allTasks(project)
   const linkedHabits = (project.linkedHabitIds || []).map((hid) => habits.find((h) => h.id === hid)).filter(Boolean)
 
   const addTask = (milestoneId) => {
@@ -569,11 +567,11 @@ function ProjectTimeline({ project, status, track }) {
    PROJECT ANALYTICS (single project)
    ------------------------------------------------------------ */
 function ProjectAnalyticsDetail({ project, status }) {
-  const now = new Date()
+  const now = useNow()
   const today = todayStr()
   const [range, setRange] = useState(30)
 
-  const bd = useMemo(() => burndown(project, now), [project])
+  const bd = useMemo(() => burndown(project, now), [project, now])
   const series = useMemo(() => {
     const from = subDaysStr(today, range - 1)
     return progressSeries(project, from, today)

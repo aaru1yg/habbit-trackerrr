@@ -9,17 +9,17 @@ import Reveal from '../components/motion/Reveal.jsx'
 import { CardHead } from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import SearchPalette from '../components/layout/SearchPalette.jsx'
-import { StatusPill } from '../components/work/WorkKit.jsx'
+
 import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween, weekdayShort } from '../lib/dates.js'
-import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak, habitStreak, routineStats, activeRoutines, trendSeries } from '../lib/stats.js'
-import { priorityWork } from '../lib/work.js'
+import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak,  routineStats, activeRoutines, trendSeries } from '../lib/stats.js'
+import { } from '../lib/work.js'
 import { todayPriorities, dayTimeline, todayGoals, todayProjectGoals, todayHeadline } from '../lib/today.js'
 import { streakMilestone } from '../lib/analytics.js'
 import { isScheduled } from '../lib/schedule.js'
 import { Link } from '../lib/router.jsx'
 import {
   IconSettings, IconPlus, IconSparkle, IconChevronRight, IconDownload, IconFlame,
-  IconSearch, IconAlert, IconStack,
+  IconSearch,
 } from '../lib/icons.jsx'
 
 export default function TodayScreen({ onFire }) {
@@ -66,7 +66,6 @@ export default function TodayScreen({ onFire }) {
     return out.slice(0, 3)
   }, [state, today])
 
-  const priority = useMemo(() => priorityWork(state, new Date(), 3), [state])
 
   /* hero side-rail: the honest last-7-days shape of this user's data */
   const week = useMemo(() => {

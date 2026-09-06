@@ -20,7 +20,7 @@ const CAT_ART = {
 
 /* 3-step onboarding: name → starter habits → optional reminder. Fast, skippable. */
 export default function Onboarding() {
-  const { state, dispatch } = useStore()
+  const { dispatch } = useStore()
   const reduce = useReducedMotion()
   const stepMotion = reduce
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2 } }

@@ -16,13 +16,17 @@ import { habitDetail, consistencyLabel } from '../lib/analytics.js'
 import { heatmapSeries } from '../lib/stats.js'
 import { categoryOf, scheduleLabel } from '../lib/schedule.js'
 import { prettyDate } from '../lib/dates.js'
+import { habitColorHex, habitPriority, priorityMeta } from '../lib/habitIdentity.js'
 import { Link, navigate } from '../lib/router.jsx'
-import { IconPencil, IconChevronLeft, IconFlame, IconClock, IconCalendar, IconLayers } from '../lib/icons.jsx'
+import { TrendChart } from '../components/charts/chartKit.jsx'
+import { IconPencil, IconChevronLeft, IconFlame, IconClock, IconCalendar, IconLayers, IconTarget } from '../lib/icons.jsx'
 
 const RANGES = [
+  { id: 7, label: '7D' },
   { id: 30, label: '30D' },
-  { id: 60, label: '60D' },
   { id: 90, label: '90D' },
+  { id: 182, label: '6M' },
+  { id: 365, label: '1Y' },
 ]
 
 export default function HabitDetailScreen({ id }) {
@@ -58,7 +62,10 @@ export default function HabitDetailScreen({ id }) {
   }
 
   const cat = categoryOf(habit.category)
+  const hex = habitColorHex(habit)
+  const prio = habitPriority(habit)
   const streaks = detail.streaks?.runs ?? []
+  const linkedGoals = (state.goals || []).filter((g) => !g.archived && (g.linkedHabitIds || []).includes(habit.id))
   const rate = detail.rate
   const pct = rate?.rate != null ? Math.round(rate.rate * 100) : null
 
@@ -77,7 +84,9 @@ export default function HabitDetailScreen({ id }) {
     .filter((w) => w.rate != null)
     .map((w) => ({ label: w.label, value: Math.round(w.rate * 100) }))
 
-  const trendValues = detail.trend.filter((t) => t.scheduled).map((t) => (t.pct ? 1 : 0))
+  const scheduledTrend = detail.trend.filter((t) => t.scheduled)
+  const trendValues = scheduledTrend.map((t) => (t.pct ? 1 : 0))
+  const perfData = scheduledTrend.map((t) => ({ date: t.date, pct: t.pct ? 100 : 0 }))
 
   return (
     <div className="screen" id="habit-detail-screen">
@@ -87,11 +96,15 @@ export default function HabitDetailScreen({ id }) {
             <IconChevronLeft size={15} /> Habits
           </button>
           <h1 className="screen-title habit-detail-title">
-            <span className="habit-dot" style={{ background: `var(--cat-${cat.id}, var(--accent-1))` }} aria-hidden="true" />
+            <span className="habit-dot" style={{ background: hex }} aria-hidden="true" />
             {habit.name}
           </h1>
           <p className="screen-sub">
-            {cat.label} · {scheduleLabel(habit)}{habit.reminder ? ` · ${habit.reminder}` : ''}
+            {cat.label} · {scheduleLabel(habit)}{habit.reminder ? ` · ${habit.reminder}` : ''} ·{' '}
+            <span className="prio-mini" data-p={prio} aria-label={`Priority ${prio} — ${priorityMeta(prio).label}`} title={`Priority ${prio} — ${priorityMeta(prio).label}`}>
+              {[1, 2, 3, 4, 5].map((i) => <i key={i} data-on={i <= prio ? 'true' : undefined} aria-hidden="true" />)}
+            </span>
+            {priorityMeta(prio).label}
           </p>
         </div>
         <div className="head-actions">
@@ -163,6 +176,23 @@ export default function HabitDetailScreen({ id }) {
               </div>
             ))}
           </div>
+        </SectionCard>
+
+        {/* ---------- Performance ---------- */}
+        <SectionCard className="pad" delay={0.02}>
+          <CardHead title="Performance">
+            <span className="tiny muted tnum">{detail.trend.filter((t) => t.scheduled).length} scheduled days</span>
+          </CardHead>
+          {trendValues.length >= 2 ? (
+            <>
+              <TrendChart data={perfData} color={hex} />
+              <p className="card-blurb" style={{ marginTop: 6 }}>
+                Every scheduled day in the window, oldest first — 100 when done, 0 when not.
+              </p>
+            </>
+          ) : (
+            <p className="empty-note">Not enough data yet — at least two scheduled days in this window are needed before a trend means anything.</p>
+          )}
         </SectionCard>
 
         {/* ---------- Consistency heatmap ---------- */}
@@ -238,19 +268,36 @@ export default function HabitDetailScreen({ id }) {
           </SectionCard>
         )}
 
-        {/* ---------- Links ---------- */}
-        {(detail.linkedProjects.length > 0 || detail.routines.length > 0) && (
+        {/* ---------- Links (goals · projects · routines) ---------- */}
+        {(linkedGoals.length > 0 || detail.linkedProjects.length > 0 || detail.routines.length > 0) && (
           <SectionCard className="pad" delay={0.14}>
             <CardHead title="Connected to">
-              <span className="tiny muted"><IconLayers size={13} /></span>
+              <span className="tiny muted"><IconLayers size={13} /> goals, projects &amp; routines that use this habit</span>
             </CardHead>
-            <div className="wrap-gap">
-              {detail.linkedProjects.map((p) => (
-                <Link key={p.id} to={`projects/${p.id}`} className="btn sm">{p.name}</Link>
-              ))}
-              {detail.routines.map((r) => (
-                <span key={r.id} className="chip">{r.name}</span>
-              ))}
+            <div className="stack" style={{ gap: 12 }}>
+              {linkedGoals.length > 0 && (
+                <div>
+                  <p className="eyebrow" style={{ marginBottom: 6 }}>Goals this habit feeds</p>
+                  <div className="wrap-gap">
+                    {linkedGoals.map((g) => (
+                      <Link key={g.id} to={`goals/${g.id}`} className="btn sm"><IconTarget size={14} /> {g.title}</Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(detail.linkedProjects.length > 0 || detail.routines.length > 0) && (
+                <div>
+                  <p className="eyebrow" style={{ marginBottom: 6 }}>Projects &amp; routines</p>
+                  <div className="wrap-gap">
+                    {detail.linkedProjects.map((p) => (
+                      <Link key={p.id} to={`projects/${p.id}`} className="btn sm">{p.name}</Link>
+                    ))}
+                    {detail.routines.map((r) => (
+                      <span key={r.id} className="chip">{r.name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </SectionCard>
         )}

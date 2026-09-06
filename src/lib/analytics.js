@@ -16,6 +16,7 @@ import { WEEKDAY_NAMES, WEEKDAY_SHORT, weekdayOf } from './schedule.js'
 import {
   projectStatus, assignmentStatus, projectProgress, assignmentProgress, allTasks,
 } from './work.js'
+import { areaOf, goalProgress } from './goals.js'
 
 const MIN_SAMPLES = 3
 
@@ -650,34 +651,34 @@ export function timelineEvents(state, limit = 60) {
 
   for (const h of habits) {
     if (h.createdAt && isValidDayStr(h.createdAt)) {
-      events.push({ at: h.createdAt, day: h.createdAt, kind: 'habit-created', title: `Started “${h.name}”`, tone: 'neutral' })
+      events.push({ at: h.createdAt, day: h.createdAt, kind: 'habit-created', title: `Started “${h.name}”`, tone: 'neutral', href: `habits/${h.id}` })
     }
     for (const [date, entry] of Object.entries(state.checkins?.[h.id] || {})) {
       if (entry?.note) {
-        events.push({ at: entry.at || date, day: date, kind: 'note', title: `Note on ${h.name}`, body: entry.note, tone: 'neutral' })
+        events.push({ at: entry.at || date, day: date, kind: 'note', title: `Note on ${h.name}`, body: entry.note, tone: 'neutral', href: `habits/${h.id}` })
       }
     }
     const runs = streakHistory(state, h).runs
     for (const r of runs) {
       if (r.length >= 7) {
-        events.push({ at: r.end, day: r.end, kind: 'streak', title: `${r.length}-day streak on ${h.name}`, tone: 'good' })
+        events.push({ at: r.end, day: r.end, kind: 'streak', title: `${r.length}-day streak on ${h.name}`, tone: 'good', href: `habits/${h.id}` })
       }
     }
   }
 
   for (const p of state.projects || []) {
-    if (p.startDate) events.push({ at: p.startDate, day: dayOf(p.startDate) || p.startDate, kind: 'project-start', title: `Project started: ${p.name}`, tone: 'neutral' })
+    if (p.startDate) events.push({ at: p.startDate, day: dayOf(p.startDate) || p.startDate, kind: 'project-start', title: `Project started: ${p.name}`, tone: 'neutral', href: `projects/${p.id}` })
     for (const e of p.progressLog || []) {
-      if (e.pct === 100) events.push({ at: e.at, day: dayOf(e.at), kind: 'project-progress', title: `${p.name} reached 100%`, tone: 'good' })
-      else if (e.pct === 50) events.push({ at: e.at, day: dayOf(e.at), kind: 'project-progress', title: `${p.name} reached the halfway mark`, tone: 'neutral' })
+      if (e.pct === 100) events.push({ at: e.at, day: dayOf(e.at), kind: 'project-progress', title: `${p.name} reached 100%`, tone: 'good', href: `projects/${p.id}` })
+      else if (e.pct === 50) events.push({ at: e.at, day: dayOf(e.at), kind: 'project-progress', title: `${p.name} reached the halfway mark`, tone: 'neutral', href: `projects/${p.id}` })
     }
-    if (p.completedAt) events.push({ at: p.completedAt, day: dayOf(p.completedAt), kind: 'project-complete', title: `Completed project “${p.name}”`, tone: 'good' })
+    if (p.completedAt) events.push({ at: p.completedAt, day: dayOf(p.completedAt), kind: 'project-complete', title: `Completed project “${p.name}”`, tone: 'good', href: `projects/${p.id}` })
   }
 
   for (const a of state.assignments || []) {
-    if (a.completedAt) events.push({ at: a.completedAt, day: dayOf(a.completedAt), kind: 'assignment-complete', title: `Submitted “${a.name}”`, tone: 'good' })
+    if (a.completedAt) events.push({ at: a.completedAt, day: dayOf(a.completedAt), kind: 'assignment-complete', title: `Submitted “${a.name}”`, tone: 'good', href: `assignments/${a.id}` })
     for (const e of a.progressLog || []) {
-      if (e.pct === 100) events.push({ at: e.at, day: dayOf(e.at), kind: 'assignment-progress', title: `${a.name} reached 100%`, tone: 'good' })
+      if (e.pct === 100) events.push({ at: e.at, day: dayOf(e.at), kind: 'assignment-progress', title: `${a.name} reached 100%`, tone: 'good', href: `assignments/${a.id}` })
     }
   }
 
@@ -742,6 +743,14 @@ export function searchAll(state, query, _limit = 24) {
     groups.push({
       id: 'assignments', label: 'Assignments',
       items: assignments.slice(0, 8).map((a) => ({ id: a.id, type: 'assignment', title: a.name, sub: `${assignmentProgress(a).pct}% · ${assignmentStatus(a).label}`, entity: a })),
+    })
+  }
+
+  const goals = (state.goals || []).filter((g) => !g.archived && (hit(g.title) || hit(g.why) || hit(g.notes)))
+  if (goals.length) {
+    groups.push({
+      id: 'goals', label: 'Goals',
+      items: goals.slice(0, 8).map((g) => ({ id: g.id, type: 'goal', title: g.title, sub: `${goalProgress(state, g).pct}% · ${areaOf(g.area).label}`, entity: g })),
     })
   }
 

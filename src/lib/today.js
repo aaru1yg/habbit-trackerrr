@@ -10,6 +10,7 @@ import { activeHabits, isDone, eligibleOn, habitStreak } from './stats.js'
 import { assignmentStatus, projectStatus, projectProgress, assignmentProgress } from './work.js'
 import { isScheduled } from './schedule.js'
 import { openGoals, goalHealth, nextMilestone, goalTodayActions } from './goals.js'
+import { habitPriorityWeight } from './habitIdentity.js'
 
 const PRIORITY_RANK = { high: 0, normal: 1, low: 2 }
 
@@ -91,16 +92,18 @@ export function todayPriorities(state, { now = new Date(), limit = 4 } = {}) {
     if (!isScheduled(h, today) || !eligibleOn(h, today)) continue
     if (isDone(state, h.id, today)) continue
     const streak = habitStreak(state, h)
+    const prio = Number(h.priority)
+    const isImportant = Number.isFinite(prio) && prio >= 4
     rows.push({
       kind: 'habit',
       id: h.id,
       name: h.name,
       href: `habits/${h.id}`,
-      tone: streak >= 7 ? 'warn' : 'neutral',
+      tone: streak >= 7 || isImportant ? (streak >= 7 ? 'warn' : 'neutral') : 'neutral',
       pct: 0,
-      reason: streak >= 7 ? `${streak}-day streak at risk` : 'Scheduled today',
+      reason: streak >= 7 ? `${streak}-day streak at risk` : isImportant ? 'High priority' : 'Scheduled today',
       urgency: streak >= 7 ? 1 : 3,
-      weight: PRIORITY_RANK[h.priority] ?? 1,
+      weight: habitPriorityWeight(h), // 1 Low … 5 Critical → sooner when higher
     })
   }
 

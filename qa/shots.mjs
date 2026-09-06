@@ -33,9 +33,9 @@ try {
     for (const route of ROUTES) {
       await seedAndGoto(page, seededStateV4(), route, base)
       await sleep(900)
-      await page.screenshot({ path: `${dir}/${vname}-${route}.png` })
+      await page.screenshot({ path: `${dir}/${vname}-${route.replaceAll('/', '_')}.png` })
       const errs = page._qa.pageErrors.length + page._qa.consoleErrors.length
-      console.log(`${vname}-${route}  (errors: ${errs})`)
+      console.log(`${vname}-${route.replaceAll('/', '_')}  (errors: ${errs})`)
     }
     await page.close()
   }

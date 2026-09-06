@@ -20,9 +20,16 @@ accounts.
 2. Paste the entire contents of [`schema.sql`](./schema.sql) and click **Run**.
 3. Confirm success. The script is idempotent — re-running it is safe.
 
-This creates `profiles` and `user_state`, enables Row Level Security on both,
-adds `auth.uid()`-scoped policies for select/insert/update/delete, installs the
-signup trigger, and creates `delete_own_account()`.
+This creates `profiles` and `user_state`, enables **and forces** Row Level
+Security on both, adds `auth.uid()`-scoped policies for
+select/insert/update/delete (8 in total, `authenticated` role only), revokes
+all table access from the `anon` role, adds the supporting indexes, installs
+the signup trigger, and creates `delete_own_account()`.
+
+> The exact same file is executed against a real PostgreSQL engine in CI by
+> `npm run test:schema`, which asserts that User B cannot read, update or
+> delete User A's rows. If that job is green, the SQL in this repo is known
+> to parse, run, and isolate correctly.
 
 ## 3. Verify RLS is actually on
 
@@ -32,10 +39,20 @@ signup trigger, and creates `delete_own_account()`.
 You can also confirm in SQL:
 
 ```sql
-select relname, relrowsecurity
-from pg_class
-where relname in ('profiles', 'user_state');
--- both rows must show relrowsecurity = true
+select c.relname,
+       c.relrowsecurity      as rls_enabled,
+       c.relforcerowsecurity as rls_forced
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'public'
+   and c.relname in ('profiles', 'user_state');
+-- both rows must show rls_enabled = true AND rls_forced = true
+
+select tablename, policyname, cmd, roles
+  from pg_policies
+ where schemaname = 'public'
+ order by tablename, cmd;
+-- expect 8 rows (4 per table), every one with roles = {authenticated}
 ```
 
 ## 4. Collect the two public values

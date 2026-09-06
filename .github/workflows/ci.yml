@@ -23,6 +23,12 @@ jobs:
       - name: Unit tests (vitest)
         run: npm test
 
+      # Executes supabase/schema.sql against a real PostgreSQL engine and
+      # asserts the RLS policies actually deny cross-user access. Catches a
+      # broken or weakened schema before it can reach the database.
+      - name: Schema + RLS isolation (real PostgreSQL)
+        run: npm run test:schema
+
       - name: Build
         run: npm run build
 

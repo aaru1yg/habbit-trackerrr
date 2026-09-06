@@ -1,4 +1,4 @@
-/* Aaru Habits — offline-capable service worker.
+/* Habit OS — offline-capable service worker.
    Strategy: network-first for the app shell so deployments are picked up
    immediately; cache-first only for immutable hashed build assets and
    same-origin fonts. Old caches are evicted on activate.

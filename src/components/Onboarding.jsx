@@ -58,7 +58,7 @@ export default function Onboarding() {
       <div style={{ width: 'min(480px, 100% - 48px)', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
           <BrandMark size={30} />
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem' }}>Aaru Habits</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem' }}>Habit OS</span>
         </div>
 
         <AnimatePresence mode="wait">

@@ -13,9 +13,9 @@ import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
 import { Heatmap } from '../components/charts/chartKit.jsx'
 import { HBarList, Sparkline } from '../components/charts/workCharts.jsx'
 import { habitDetail, consistencyLabel } from '../lib/analytics.js'
-import { habitStreak, heatmapSeries } from '../lib/stats.js'
+import { heatmapSeries } from '../lib/stats.js'
 import { categoryOf, scheduleLabel } from '../lib/schedule.js'
-import { todayStr, prettyDate, subDaysStr } from '../lib/dates.js'
+import { prettyDate } from '../lib/dates.js'
 import { Link, navigate } from '../lib/router.jsx'
 import { IconPencil, IconChevronLeft, IconFlame, IconClock, IconCalendar, IconLayers } from '../lib/icons.jsx'
 
@@ -256,4 +256,3 @@ export default function HabitDetailScreen({ id }) {
   )
 }
 
-export { habitStreak, todayStr, subDaysStr }

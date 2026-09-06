@@ -13,7 +13,7 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 import { achievementSummary } from '../lib/achievements.js'
 import { prettyDate } from '../lib/dates.js'
 import { Link } from '../lib/router.jsx'
-import { IconTrophy, IconLock, IconCheck, IconSparkle, IconFlame } from '../lib/icons.jsx'
+import { IconTrophy, IconLock, IconCheck, IconSparkle } from '../lib/icons.jsx'
 
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond']
 
@@ -230,4 +230,3 @@ function AchievementArt({ tier, earned }) {
   )
 }
 
-export { IconFlame }

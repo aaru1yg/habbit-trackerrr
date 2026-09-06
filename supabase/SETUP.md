@@ -45,10 +45,10 @@ where relname in ('profiles', 'user_state');
 | Value | Where it goes |
 | --- | --- |
 | Project URL | `VITE_SUPABASE_URL` |
-| `anon` `public` key | `VITE_SUPABASE_ANON_KEY` |
+| `anon` / `publishable` key | `VITE_SUPABASE_PUBLISHABLE_KEY` |
 
 > **Never** copy the `service_role` key into this project. Anything prefixed
-> `VITE_` is compiled into the public JavaScript bundle. The anon key is
+> `VITE_` is compiled into the public JavaScript bundle. The publishable key is
 > designed to be public; its power is limited entirely by the RLS policies
 > applied in step 2.
 
@@ -99,7 +99,7 @@ The Pages workflow reads the same two values from repository secrets.
 **Repo → Settings → Secrets and variables → Actions → New repository secret**:
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 The deploy workflow fails the build if either is missing, and additionally
 asserts that no `service_role` reference reached the bundle — so a

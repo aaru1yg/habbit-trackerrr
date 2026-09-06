@@ -5,10 +5,10 @@
  * against the real project, writes real rows, reloads, and attempts a
  * cross-user read that MUST be refused by Row Level Security.
  *
- * It never prints the anon key and never needs the service-role key.
+ * It never prints the publishable key and never needs the service-role key.
  *
  * Usage:
- *   VITE_SUPABASE_URL=... VITE_SUPABASE_ANON_KEY=... node qa/verify-supabase.mjs
+ *   VITE_SUPABASE_URL=... VITE_SUPABASE_PUBLISHABLE_KEY=... node qa/verify-supabase.mjs
  *
  * Exit code 0 only if every check passes. Anything else means the backend is
  * NOT ready to be called live.
@@ -16,10 +16,10 @@
 import { createClient } from '@supabase/supabase-js'
 
 const URL = process.env.VITE_SUPABASE_URL?.trim()
-const KEY = process.env.VITE_SUPABASE_ANON_KEY?.trim()
+const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()
 
 if (!URL || !KEY) {
-  console.error('✗ VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set.')
+  console.error('✗ VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY must be set.')
   process.exit(2)
 }
 

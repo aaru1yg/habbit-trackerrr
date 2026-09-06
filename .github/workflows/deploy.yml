@@ -30,28 +30,49 @@ jobs:
 
       # Public Supabase client config must be injected at BUILD time — Vite
       # inlines VITE_* into the bundle, and CI has no .env file. Both values
-      # are public-safe (the anon key is constrained by RLS); the service_role
+      # are public-safe (the publishable key is constrained by RLS); the service_role
       # key must never appear here.
       - name: Build (Pages subpath base)
         run: npm run build
         env:
           GH_PAGES: 'true'
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       # Fail loudly rather than deploying a build whose login screen cannot
       # possibly create an account.
       - name: Verify Supabase config was injected
         run: |
           set -euo pipefail
-          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ] || [ -z "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
-            echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY repository secrets are not set."
+          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ] || [ -z "${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}" ]; then
+            echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY repository secrets are not set."
             echo "Add them under Settings → Secrets and variables → Actions."
             exit 1
           fi
-          grep -rq "supabase.co" dist/assets/*.js || {
-            echo "::error::Supabase URL is not present in the built bundle."; exit 1; }
-          echo "Supabase config present in build."
+          # NOTE: do not grep for a bare "supabase.co" — supabase-js hardcodes
+          # "*.supabase.co" internally, so that matches even with NO config and
+          # would be a false pass. Assert the *actual* injected values instead.
+          # Secrets are compared inside node and never echoed to the log.
+          node -e '
+            const fs = require("fs");
+            const path = "dist/assets";
+            const js = fs.readdirSync(path).filter(f => f.endsWith(".js"))
+              .map(f => fs.readFileSync(path + "/" + f, "utf8")).join("");
+            const url = process.env.SUPA_URL, key = process.env.SUPA_KEY;
+            const host = new URL(url).host;
+            if (!js.includes(host)) {
+              console.error("::error::Injected Supabase URL host is absent from the bundle.");
+              process.exit(1);
+            }
+            if (!js.includes(key)) {
+              console.error("::error::Injected Supabase publishable key is absent from the bundle.");
+              process.exit(1);
+            }
+            console.log("Verified: Supabase URL host and publishable key are both present in the bundle.");
+          '
+        env:
+          SUPA_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPA_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       # Guard against a service-role key ever reaching the public bundle.
       - name: Assert no service-role key in bundle

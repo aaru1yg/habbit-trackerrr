@@ -3423,3 +3423,63 @@ button.lb-row:hover {
   38% { transform: scale(1.025); }
   100% { transform: scale(1); }
 }
+
+/* ============================================================
+   CALENDAR + WORKLOAD 2.0 — density row & deadline lanes
+   ============================================================ */
+.cal-dens {
+  position: relative; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  min-height: var(--cal-cell, 34px);
+}
+.cal-dens.is-null {
+  background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--surface-2) 70%, transparent) 0 3px, transparent 3px 7px);
+}
+.cal-dens.is-today { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-2) 55%, transparent); }
+.cal-dens-fill {
+  position: absolute; left: 0; right: 0; bottom: 0; display: block;
+  height: calc(var(--v, 0) * 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--good) 72%, transparent), color-mix(in srgb, var(--good) 45%, transparent));
+}
+.cal-dens-corner { color: var(--text-3); font-size: 0.5625rem; text-transform: uppercase; letter-spacing: .06em; }
+
+.lanes { position: relative; display: grid; gap: 6px; padding-bottom: 4px; --lanes-name: 108px; }
+@media (max-width: 560px) { .lanes { --lanes-name: 84px; } }
+.lanes-head { display: grid; grid-template-columns: var(--lanes-name) 1fr; gap: 8px; }
+.lanes-days {
+  display: grid; grid-template-columns: repeat(var(--lane-days, 14), minmax(0, 1fr));
+}
+.lanes-head .lanes-days span {
+  display: grid; justify-items: center; gap: 0; font-size: 9px; color: var(--text-3); line-height: 1.1;
+}
+.lanes-head .lanes-days span em { font-style: normal; font-size: 8px; opacity: .8; }
+.lanes-head .lanes-days span.is-today { color: var(--accent-2); font-weight: 800; }
+.lane-row {
+  display: grid; grid-template-columns: var(--lanes-name) 1fr; gap: 8px; align-items: center;
+  min-height: 44px; text-decoration: none; color: inherit; border-radius: 8px;
+}
+.lane-row:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.lane-name {
+  font-size: var(--fs-sm); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lane-track { position: relative; height: 14px; border-radius: 7px; background: var(--surface-2); }
+.lane-bar {
+  position: absolute; top: 2px; bottom: 2px; border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-2) 22%, var(--surface-2));
+  outline: 1px solid color-mix(in srgb, var(--accent-2) 35%, transparent);
+  overflow: hidden;
+}
+.lane-bar[data-tone="warn"] { background: color-mix(in srgb, var(--warn) 20%, var(--surface-2)); outline-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+.lane-bar[data-tone="good"] { background: color-mix(in srgb, var(--good) 18%, var(--surface-2)); outline-color: color-mix(in srgb, var(--good) 40%, transparent); }
+.lane-bar[data-tone="neutral"] { background: var(--surface-2); outline-color: var(--border-2); }
+.lane-bar[data-passed="true"] { outline-style: dashed; outline-color: color-mix(in srgb, var(--bad) 55%, transparent); }
+.lane-fill {
+  position: absolute; inset: 0; display: block; transform-origin: left;
+  transform: scaleX(var(--p, 0));
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  opacity: .85;
+}
+.lanes-today {
+  position: absolute; top: 22px; bottom: 6px; width: 1.5px; background: var(--accent-2); opacity: .75;
+  pointer-events: none;
+}

@@ -5,7 +5,7 @@ import Sheet from '../components/ui/Sheet.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { todayStr, monthDays, monthLabel, weekdayInitial, dayNum, isFuture, prettyDate, shortDate, addDaysStr, subDaysStr } from '../lib/dates.js'
 import { isScheduled, categoryOf } from '../lib/schedule.js'
-import { activeHabits, isDone, checkinOf, habitRate } from '../lib/stats.js'
+import { activeHabits, isDone, checkinOf, habitRate, dayDensity } from '../lib/stats.js'
 import { IconChevronLeft, IconChevronRight, IconCalendar, IconCheck } from '../lib/icons.jsx'
 import { calendarMarkers } from '../lib/work.js'
 import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
@@ -73,6 +73,7 @@ export default function CalendarScreen({ ymParam }) {
     }
     return out
   }, [mode, ym, anchor90, year])
+  const density = useMemo(() => dayDensity(state, days.map((d) => d.date)), [state, days])
 
   const bands = useMemo(() => {
     const out = []
@@ -251,6 +252,7 @@ export default function CalendarScreen({ ymParam }) {
             <div className="cal-wrap" data-testid="cal-scroll">
               <div
                 className="cal-grid"
+                key={title}
                 style={{ gridTemplateColumns: `${NAME_COL}px repeat(${days.length}, var(--cal-cell, ${CELL}px))`, minWidth: 'max-content' }}
               >
                 <div className="cal-corner">Habit</div>
@@ -306,6 +308,18 @@ export default function CalendarScreen({ ymParam }) {
                         })}
                       </span>
                     )}
+                  </div>
+                ))}
+                <div className="cal-corner cal-dens-corner">Done</div>
+                {density.map((d, i) => (
+                  <div
+                    key={d.date}
+                    className={`cal-dens${d.pct == null ? ' is-null' : ''}${d.date === today ? ' is-today' : ''}`}
+                    style={{ '--i': i, ...(bandIdx.get(d.date) % 2 === 1 && d.pct == null ? { background: 'var(--surface-2)' } : {}) }}
+                    role="img"
+                    aria-label={`${prettyDate(d.date)}: ${d.pct == null ? 'nothing scheduled' : `${d.pct} percent of scheduled checks done`}`}
+                  >
+                    {d.pct != null && <i className="cal-dens-fill" style={{ '--v': d.pct / 100 }} />}
                   </div>
                 ))}
                 {habits.map((h) => (

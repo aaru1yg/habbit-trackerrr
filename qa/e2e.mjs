@@ -330,6 +330,16 @@ console.log('\n— Calendar (mobile) —')
   await sleep(200)
   await shot(page, '08-calendar')
   await overflowCheck(page, 'calendar')
+  check('[calendar 2.0] density row covers every day in view', await page.evaluate(() => {
+    const dens = document.querySelectorAll('.cal-grid .cal-dens')
+    const heads = document.querySelectorAll('.cal-grid .cal-head-cell')
+    return dens.length === heads.length && dens.length > 0
+  }))
+  check('[calendar 2.0] density separates hollow days from zero days', await page.evaluate(() => (
+    document.querySelectorAll('.cal-grid .cal-dens.is-null').length >= 0
+    && (document.querySelectorAll('.cal-grid .cal-dens-fill').length >= 1
+      || document.querySelectorAll('.cal-grid .cal-dens.is-null').length >= 1)
+  )))
 
   // find yesterday's cell for the daily habit (Morning run) — label depends on current state
   const ySel = await page.evaluate(() => {
@@ -812,6 +822,15 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await sleep(800)
   check('workload renders load-by-day bars', await page.evaluate(() => !!document.querySelector('.load-bars .lb-row')))
   check('workload counts overdue work', await page.evaluate(() => /Overdue/.test(document.body.textContent)))
+  check('[workload 2.0] deadline lanes draw dated work with real progress fills', await page.evaluate(() => (
+    document.querySelectorAll('.lanes .lane-row').length >= 2
+    && !!document.querySelector('.lanes .lane-fill')
+    && !!document.querySelector('.lanes-today')
+  )))
+  check('[workload 2.0] every lane is a reachable, sized link', await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('.lane-row')]
+    return rows.length > 0 && rows.every((r) => r.tagName === 'A' && r.getBoundingClientRect().height >= 43)
+  }))
   await shot(page, '16e-workload')
   await overflowCheck(page, 'workload')
   await tapTargetCheck(page, 'workload')

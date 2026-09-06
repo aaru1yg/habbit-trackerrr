@@ -9,8 +9,10 @@ import { StatStrip, WorkEmpty, Meter, StatusPill, KindTag, FadeIn } from '../com
 import { WorkRow } from '../components/work/WorkCards.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { LoadBars, LoadColumns } from '../components/charts/workCharts.jsx'
+import DeadlineLanes from '../components/work/DeadlineLanes.jsx'
 import {
   workloadSummary, workloadSeries, projectsSummary, assignmentsSummary, priorityWork, sortWorkRows,
+  deadlineLanes,
 } from '../lib/work.js'
 import { todayStr, addDaysStr, weekDays, shortDate, weekdayShort, minutesLabel, prettyDate } from '../lib/dates.js'
 import { IconWorkload, IconPlus, IconAlert } from '../lib/icons.jsx'
@@ -29,6 +31,7 @@ export default function WorkloadScreen({ route = 'workload' }) {
   const projects = useMemo(() => projectsSummary(state, now), [state, now])
   const assignments = useMemo(() => assignmentsSummary(state, now), [state, now])
   const priority = useMemo(() => priorityWork(state, now, 6), [state, now])
+  const lanes = useMemo(() => deadlineLanes(state, { from: today, days: 14, now }), [state, today, now])
 
   const week = useMemo(() => weekDays(today), [today])
   const weekLoad = useMemo(() => workloadSeries(state, { from: week[0], days: 7, now }), [state, week, now])
@@ -106,6 +109,16 @@ export default function WorkloadScreen({ route = 'workload' }) {
             </div>
           </SectionCard>
         )}
+
+        <SectionCard className="pad">
+          <CardHead title="The next 14 days, lane by lane">
+            <a className="btn ghost sm" href="#/timeline">All deadlines</a>
+          </CardHead>
+          <DeadlineLanes model={lanes} />
+          <p className="card-blurb">
+            Each lane runs from a real start to a real deadline; the fill inside is completed work. Lanes are ordered by what lands first.
+          </p>
+        </SectionCard>
 
         <SectionCard className="pad">
           <CardHead title="Load by day">

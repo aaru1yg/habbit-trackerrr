@@ -497,3 +497,31 @@
   .medal-shine::after { display: none; }
   .ach-card.is-fresh { animation: none; }
 }
+
+/* calendar density: columns rise left→right when a range mounts */
+.cal-dens-fill {
+  animation: dens-rise 460ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 16ms);
+}
+@keyframes dens-rise {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.cal-dens-fill { transform-origin: bottom; }
+
+/* deadline lanes: bars grow from their start edge, staggered */
+.lanes-in .lane-bar {
+  transform: scaleX(0.15);
+  transform-origin: left;
+  opacity: .4;
+  transition: transform 520ms var(--ease-spring), opacity 420ms var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 60ms);
+}
+.lanes-in.is-in .lane-bar { transform: scaleX(1); opacity: 1; }
+.lanes-in .lanes-today { opacity: 0; transition: opacity 400ms var(--ease-out) 700ms; }
+.lanes-in.is-in .lanes-today { opacity: .75; }
+@media (prefers-reduced-motion: reduce) {
+  .cal-dens-fill { animation: none; transform: none; }
+  .lanes-in .lane-bar { transform: none; opacity: 1; transition: none; }
+  .lanes-in .lanes-today { opacity: .75; transition: none; }
+}

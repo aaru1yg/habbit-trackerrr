@@ -271,6 +271,44 @@ export function assignmentPressure(assignment, now = new Date()) {
 }
 
 /** Urgency 0..1 for sorting (1 = most urgent). Deadline first, then progress. */
+/**
+ * DEADLINE LANES — the next N days as one strip of lanes.
+ * Each open project/assignment with a deadline gets a lane from its
+ * start (clamped to the window) to its deadline; the inner fill is
+ * real progress. Items whose deadline already passed the window, or
+ * that have no deadline, are not drawn — the strip never guesses.
+ */
+export function deadlineLanes(state, { from = todayStr(), days = 14, now = new Date() } = {}) {
+  const to = addDaysStr(from, days - 1)
+  const lanes = []
+  const add = (kind, item, status) => {
+    const end = item.deadline ? dayOf(item.deadline) : item.due ? dayOf(item.due) : null
+    if (!end) return
+    const rawStart = item.startDate || item.createdAtDay || null
+    const start = rawStart && rawStart > from ? rawStart : from
+    if (end < from || start > to) return
+    const phase = kind === 'project' ? projectPhase(item, now) : null
+    lanes.push({
+      id: `${kind}-${item.id}`,
+      kind,
+      name: item.name,
+      href: kind === 'project' ? `#/projects/${item.id}` : `#/assignments/${item.id}`,
+      start,
+      end: end > to ? to : end,
+      clipped: end > to,
+      progress: status?.pct ?? 0,
+      tone: kind === 'project'
+        ? phaseTone(phase)
+        : status?.passed ? 'warn' : 'info',
+      passed: !!status?.passed,
+    })
+  }
+  for (const r of projectsSummary(state, now).open) add('project', r.project, r.status)
+  for (const r of assignmentsSummary(state, now).open) add('assignment', r.assignment, r.status)
+  lanes.sort((a, b) => (a.end === b.end ? a.start.localeCompare(b.start) : a.end.localeCompare(b.end)))
+  return { lanes, from, to, days, today: todayStr(now) }
+}
+
 export function urgencyOf(status) {
   if (status.id === 'completed') return -1
   if (!status.hasDeadline) return 0.05

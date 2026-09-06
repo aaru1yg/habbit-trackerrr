@@ -67,8 +67,42 @@ const preB = process.env.TEST_B_EMAIL && process.env.TEST_B_PASSWORD
   ? { email: process.env.TEST_B_EMAIL.trim(), password: process.env.TEST_B_PASSWORD }
   : null
 
+/* Validate the shape of supplied test credentials before spending network
+ * calls, so a malformed secret reports as a config error rather than
+ * resurfacing later as a confusing "Invalid login credentials". */
+function preflight() {
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const problems = []
+  for (const [label, creds] of [['TEST_A', preA], ['TEST_B', preB]]) {
+    if (!creds) continue
+    if (!EMAIL_RE.test(creds.email)) {
+      const at = (creds.email.match(/@/g) || []).length
+      problems.push(
+        `${label}_EMAIL is not a valid email address ` +
+        `(length=${creds.email.length}, "@" count=${at}` +
+        `${at === 0 ? ' — the value contains no "@" at all' : ''}` +
+        `${/\s/.test(creds.email) ? ', contains whitespace' : ''}` +
+        `${/^["']|["']$/.test(creds.email) ? ', wrapped in quotes' : ''})`
+      )
+    }
+    if (!creds.password) problems.push(`${label}_PASSWORD is empty`)
+  }
+  if (problems.length) {
+    console.log('  ✗ test credential preflight failed\n')
+    for (const p of problems) {
+      console.log(`    • ${p}`)
+      if (process.env.GITHUB_ACTIONS) console.log(`::error::${p}`)
+    }
+    console.log('')
+    console.log('    Fix the repository secret, then re-run. Values are never printed —')
+    console.log('    only their shape, so the secret itself stays protected.')
+    process.exit(2)
+  }
+}
+
 async function main() {
   console.log(`\nLIVE Supabase verification → ${URL_}\n`)
+  preflight()
 
   // ================= 1. reachability =================
   // Raw fetch first: a supabase-js query that fails to connect returns

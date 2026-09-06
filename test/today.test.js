@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
-  todayPriorities, dayTimeline, todayGoals, todayHeadline,
+  todayPriorities, dayTimeline, todayGoals, todayProjectGoals, todayHeadline,
 } from '../src/lib/today.js'
 import { todayStr, subDaysStr, addDaysStr } from '../src/lib/dates.js'
 
-// Fixed midday avoids making the due-today assertion depend on the CI start hour.
+// Pin the hour so the due-today assertion is independent of CI start time.
 const NOW = new Date()
 NOW.setHours(12, 0, 0, 0)
 
@@ -128,12 +128,12 @@ describe('today plan', () => {
     expect(todayPriorities(s, { now: NOW, limit: 2 }).length).toBe(2)
   })
 
-  it('goals: sorts by closeness of deadline and reports pace honestly', () => {
+  it('goals: real goals lead, sorted by how close the target date is', () => {
     const s = base({
-      projects: [
-        { id: 'far', name: 'Far', deadline: isoIn(40), startDate: subDaysStr(todayStr(), 5), milestones: [] },
-        { id: 'near', name: 'Near', deadline: isoIn(2), startDate: subDaysStr(todayStr(), 5), milestones: [] },
-        { id: 'done', name: 'Done', deadline: isoIn(2), completedAt: isoIn(-1), milestones: [] },
+      goals: [
+        { id: 'far', title: 'Far', targetDate: isoIn(40).slice(0, 10), startDate: subDaysStr(todayStr(), 5), milestones: [], status: 'active', area: 'mind', linkedHabitIds: [] },
+        { id: 'near', title: 'Near', targetDate: isoIn(2).slice(0, 10), startDate: subDaysStr(todayStr(), 5), milestones: [], status: 'active', area: 'mind', linkedHabitIds: [] },
+        { id: 'reached', title: 'Reached', targetDate: isoIn(2).slice(0, 10), startDate: subDaysStr(todayStr(), 5), status: 'active', area: 'mind', linkedHabitIds: [], milestones: [{ id: 'm', name: 'A', done: true }] },
       ],
     })
     const goals = todayGoals(s, { now: NOW, limit: 5 })
@@ -141,7 +141,30 @@ describe('today plan', () => {
     for (const g of goals) {
       expect(g.expected).toBeGreaterThanOrEqual(0)
       expect(typeof g.behind).toBe('number')
+      expect(g.kind).toBe('goal')
     }
+  })
+
+  it('goals: a goal with milestones done is no longer counted as open', () => {
+    const s = base({
+      goals: [{ id: 'g', title: 'G', targetDate: isoIn(5).slice(0, 10), startDate: subDaysStr(todayStr(), 1),
+        status: 'active', area: 'mind', linkedHabitIds: [],
+        milestones: [{ id: 'm', name: 'Only', done: true }] }],
+    })
+    expect(todayGoals(s, { now: NOW, limit: 5 })).toEqual([])
+  })
+
+  it('projects stand in as goals only when no real goal exists', () => {
+    const s = base({
+      projects: [
+        { id: 'far', name: 'Far', deadline: isoIn(40), startDate: subDaysStr(todayStr(), 5), milestones: [] },
+        { id: 'near', name: 'Near', deadline: isoIn(2), startDate: subDaysStr(todayStr(), 5), milestones: [] },
+        { id: 'done', name: 'Done', deadline: isoIn(2), completedAt: isoIn(-1), milestones: [] },
+      ],
+    })
+    const rows = todayProjectGoals(s, { now: NOW, limit: 5 })
+    expect(rows.map((g) => g.id)).toEqual(['near', 'far'])
+    expect(todayGoals(s, { now: NOW, limit: 5 })).toEqual([])
   })
 
   it('headline counts overdue items and says so', () => {

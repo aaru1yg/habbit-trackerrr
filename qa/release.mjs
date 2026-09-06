@@ -215,6 +215,21 @@ async function addWork(page, route, viewport, mobile) {
   check(`${viewport}: ${kind} Add action is reachable and saves`, true)
 }
 
+async function addGoal(page, viewport) {
+  await clickVisible(page, '#goals-screen .head-actions .btn.primary')
+  await page.waitForSelector('#goal-title', { visible: true })
+  await dialogFits(page, `${viewport} New goal`)
+  const title = `QA V2 goal ${viewport} ${proof.buildId}`
+  await page.type('#goal-title', title)
+  await screenshot(page, `${viewport}-add-goal`)
+  await clickVisible(page, '[role="dialog"] .sheet-footer .btn.primary')
+  await page.waitForFunction((title) => {
+    const doc = JSON.parse(localStorage.getItem('aaru.habits.v4') || '{}')
+    return doc.goals?.some((g) => g.title === title) && !document.querySelector('#goal-title')
+  }, { timeout: 15000 }, title)
+  check(`${viewport}: first-class Goal Add action is reachable and saves`, true)
+}
+
 async function screenSweep(page, viewport, mobile) {
   for (const route of Object.keys(titles)) {
     await navigate(page, route, mobile)
@@ -245,6 +260,7 @@ async function screenSweep(page, viewport, mobile) {
     if (route === 'achievements') {
       check(`${viewport}: 17 real-data achievement cards`, await page.$$eval('.ach-card', (cards) => cards.length === 17))
     }
+    if (route === 'goals') await addGoal(page, viewport)
     if (route === 'projects' || route === 'assignments') await addWork(page, route, viewport, mobile)
     if (route === 'settings' && REQUIRE_AUTH) await synced(page)
   }
@@ -277,11 +293,12 @@ try {
           await device.goto(`${BASE}#/today`, { waitUntil: 'networkidle0' })
           await login(device)
           const marker = `QA V2 ${viewport} ${proof.buildId}`
-          await device.waitForFunction((marker) => {
+          const goalTitle = `QA V2 goal ${viewport} ${proof.buildId}`
+          await device.waitForFunction((marker, goalTitle) => {
             const doc = JSON.parse(localStorage.getItem('aaru.habits.v4') || '{}')
-            return doc.habits?.some((h) => h.name === marker)
-          }, { timeout: 30000 }, marker)
-          check(`${viewport}: second clean browser pulls the UI-created habit from Supabase`, true)
+            return doc.habits?.some((h) => h.name === marker) && doc.goals?.some((g) => g.title === goalTitle)
+          }, { timeout: 30000 }, marker, goalTitle)
+          check(`${viewport}: second clean browser pulls the UI-created habit AND goal from Supabase`, true)
           await navigate(device, 'settings', viewport === 'mobile')
           await synced(device)
           await clickVisible(device, '::-p-text(Sign out)')

@@ -1,10 +1,11 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
+import { normalizeImport } from '../src/lib/importExport.js'
 import { StoreProvider } from '../src/store.jsx'
 import HabitDetailScreen from '../src/screens/HabitDetailScreen.jsx'
 import { Sidebar } from '../src/components/layout/Navigation.jsx'
 import { achievementList, achievementSummary, onTimeAssignments, perfectWeeks } from '../src/lib/achievements.js'
-import { todayGoals, todayPriorities, dayTimeline } from '../src/lib/today.js'
+import { todayProjectGoals, todayPriorities, dayTimeline } from '../src/lib/today.js'
 import { projectStatus } from '../src/lib/work.js'
 import { todayStr, subDaysStr, weekDays } from '../src/lib/dates.js'
 
@@ -22,6 +23,13 @@ const mount = (doc, child) => {
 afterEach(() => { cleanup(); localStorage.clear(); vi.useRealTimers() })
 
 describe('V2 shipping regressions', () => {
+  it('all five V2 themes survive normalization on reload/import', () => {
+    for (const theme of ['midnight', 'aurora', 'ember', 'verdant', 'daylight']) {
+      const doc = state({ profile: { name: 'QA', onboarded: true, theme } })
+      expect(normalizeImport(doc).profile.theme).toBe(theme)
+    }
+  })
+
   it('habit detail heatmap contains only that habit, not the aggregate', () => {
     mount(state({ habits: [habit('A'), habit('B')], checkins: { A: doneDays(1) } }), <HabitDetailScreen id="A" />)
     const heatmap = screen.getByRole('img', { name: 'A consistency heatmap' })
@@ -73,7 +81,7 @@ describe('V2 shipping regressions', () => {
   it('Today goal pace and overdue wording agree with the work engine', () => {
     const now = new Date(2026, 8, 6, 15)
     const p = { id: 'p', name: 'Goal', startDate: '2026-09-01', deadline: '2026-09-05', milestones: [] }
-    const goal = todayGoals(state({ projects: [p] }), { now })[0]
+    const goal = todayProjectGoals(state({ projects: [p] }), { now })[0]
     const status = projectStatus(p, now)
     expect(goal.dueText).toBe('Overdue')
     expect(goal.expected).toBe(status.elapsedPct)
@@ -83,7 +91,7 @@ describe('V2 shipping regressions', () => {
   it('a date-only goal due today uses end-of-day pace, not midnight', () => {
     const now = new Date(2026, 8, 6, 1)
     const p = { id: 'p', name: 'Goal', startDate: '2026-09-01', deadline: '2026-09-06', milestones: [] }
-    const goal = todayGoals(state({ projects: [p] }), { now })[0]
+    const goal = todayProjectGoals(state({ projects: [p] }), { now })[0]
     expect(goal.dueText).toBe('Due today')
     expect(goal.expected).toBeLessThan(100)
     expect(goal.expected).toBe(projectStatus(p, now).elapsedPct)
@@ -93,7 +101,7 @@ describe('V2 shipping regressions', () => {
     const p = { id: 'p', name: 'Done', deadline: subDaysStr(todayStr(), 1), milestones: [{ tasks: [{ done: true }] }] }
     const doc = state({ projects: [p] })
     expect(todayPriorities(doc)).toEqual([])
-    expect(todayGoals(doc)).toEqual([])
+    expect(todayProjectGoals(doc)).toEqual([])
   })
 
   it('untimed deadlines stay untimed and sort after real reminder times', () => {

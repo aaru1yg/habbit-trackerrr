@@ -13,7 +13,7 @@ import { StatusPill } from '../components/work/WorkKit.jsx'
 import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween } from '../lib/dates.js'
 import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak, habitStreak, routineStats, activeRoutines } from '../lib/stats.js'
 import { priorityWork } from '../lib/work.js'
-import { todayPriorities, dayTimeline, todayGoals, todayHeadline } from '../lib/today.js'
+import { todayPriorities, dayTimeline, todayGoals, todayProjectGoals, todayHeadline } from '../lib/today.js'
 import { streakMilestone } from '../lib/analytics.js'
 import { isScheduled } from '../lib/schedule.js'
 import { Link } from '../lib/router.jsx'
@@ -72,7 +72,10 @@ export default function TodayScreen({ onFire }) {
     return {
       rows: todayPriorities(state, { now, limit: 4 }),
       timeline: dayTimeline(state, { now, date: today }),
+      // Real goals lead. Until the user creates one, projects stand in —
+      // labelled as projects, never as goals they did not create.
       goals: todayGoals(state, { now, limit: 3 }),
+      projectGoals: todayProjectGoals(state, { now, limit: 3 }),
       headline: todayHeadline(state, { now }),
     }
   }, [state, today])
@@ -211,14 +214,16 @@ export default function TodayScreen({ onFire }) {
         )}
 
         {/* Goals in progress */}
-        {plan.goals.length > 0 && (
+        {(plan.goals.length > 0 || plan.projectGoals.length > 0) && (
           <SectionCard className="pad today-goals" delay={0.08}>
-            <CardHead title="Goals in progress">
-              <Link to="goals" className="btn ghost sm">All goals <IconChevronRight size={14} /></Link>
+            <CardHead title={plan.goals.length ? 'Goals in progress' : 'Projects in progress'}>
+              <Link to={plan.goals.length ? 'goals' : 'projects'} className="btn ghost sm">
+                {plan.goals.length ? 'All goals' : 'All projects'} <IconChevronRight size={14} />
+              </Link>
             </CardHead>
             <div className="goal-strip">
-              {plan.goals.map((g) => (
-                <Link key={g.id} to={g.href} className="goal-chip">
+              {(plan.goals.length ? plan.goals : plan.projectGoals).map((g) => (
+                <Link key={g.id} to={g.href} className="goal-chip" data-tone={g.tone}>
                   <span className="goal-chip-head">
                     <span className="goal-chip-name">{g.name}</span>
                     <span className="tnum goal-chip-pct">{g.pct}%</span>
@@ -230,6 +235,7 @@ export default function TodayScreen({ onFire }) {
                     {g.dueText}
                     {g.behind != null && g.behind > 10 ? ` · ${g.behind} points behind pace` : ''}
                     {g.behind != null && g.behind < -10 ? ` · ${Math.abs(g.behind)} points ahead of pace` : ''}
+                    {g.pendingToday ? ` · ${g.pendingToday} to do today` : ''}
                   </span>
                 </Link>
               ))}

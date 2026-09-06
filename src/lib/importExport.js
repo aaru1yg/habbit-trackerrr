@@ -12,9 +12,11 @@ const HABIT_CATEGORIES = ['fitness', 'mind', 'learning', 'health', 'creative', '
 const ROUTINE_KINDS = ['morning', 'workout', 'study', 'night', 'custom']
 const PRIORITIES = ['low', 'normal', 'high']
 const TASK_STATUSES = ['todo', 'doing', 'blocked', 'done']
-const THEMES = ['midnight', 'ember', 'verdant', 'daylight']
+const THEMES = ['midnight', 'aurora', 'ember', 'verdant', 'daylight']
 
 const isStr = (v) => typeof v === 'string' && v.trim().length > 0
+const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3)
+const GOAL_AREA_IDS = new Set(['fitness', 'health', 'mind', 'learning', 'creative', 'social', 'finance', 'productivity'])
 const isHHMM = (v) => typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v)
 const str = (v, max, fallback = '') => (isStr(v) ? v.trim().slice(0, max) : fallback)
 const int = (v, min, max, fallback = null) => (Number.isFinite(v) ? Math.max(min, Math.min(max, Math.round(v))) : fallback)
@@ -92,6 +94,44 @@ function coerceCheckins(raw) {
 }
 
 /* ---------------- Routines ---------------- */
+
+function coerceGoal(raw, index, habitIds, projectIds) {
+  if (!raw || typeof raw !== 'object') return null
+  const titleStr = typeof raw.title === 'string' ? raw.title.trim() : (typeof raw.name === 'string' ? raw.name.trim() : '')
+  if (!titleStr) return null
+  const status = ['active', 'paused', 'completed', 'archived'].includes(raw.status) ? raw.status : 'active'
+  return {
+    id: isStr(raw.id) ? raw.id : newId(),
+    title: titleStr.slice(0, 120),
+    why: typeof raw.why === 'string' ? raw.why.slice(0, 500) : '',
+    area: GOAL_AREA_IDS.has(raw.area) ? raw.area : 'mind',
+    startDate: isValidDayStr(raw.startDate) ? raw.startDate : null,
+    targetDate: isValidDayStr(raw.targetDate) ? raw.targetDate : null,
+    status,
+    milestones: (Array.isArray(raw.milestones) ? raw.milestones : [])
+      .map((m, mi) => (m && typeof m === 'object' && String(m.name || '').trim()
+        ? {
+            id: isStr(m.id) ? m.id : newId(),
+            name: String(m.name).trim().slice(0, 120),
+            targetDate: isValidDayStr(m.targetDate) ? m.targetDate : null,
+            done: m.done === true,
+            doneAt: typeof m.doneAt === 'string' ? m.doneAt : (m.done === true ? new Date().toISOString() : null),
+            order: Number.isFinite(m.order) ? m.order : mi,
+          }
+        : null))
+      .filter(Boolean),
+    linkedHabitIds: (Array.isArray(raw.linkedHabitIds) ? raw.linkedHabitIds : []).filter((id) => habitIds.has(id)),
+    linkedProjectIds: (Array.isArray(raw.linkedProjectIds) ? raw.linkedProjectIds : []).filter((id) => projectIds.has(id)),
+    linkedAssignmentIds: (Array.isArray(raw.linkedAssignmentIds) ? raw.linkedAssignmentIds : []).filter(isStr),
+    manualPercent: Number.isFinite(raw.manualPercent) ? Math.max(0, Math.min(100, Math.round(raw.manualPercent))) : null,
+    notes: typeof raw.notes === 'string' ? raw.notes.slice(0, 2000) : '',
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
+    completedAt: typeof raw.completedAt === 'string' ? raw.completedAt : null,
+    archived: raw.archived === true || status === 'archived',
+    order: Number.isFinite(raw.order) ? raw.order : index,
+  }
+}
 
 function coerceRoutine(raw, index, habitIds) {
   if (!raw || typeof raw !== 'object') return null
@@ -318,6 +358,9 @@ export function normalizeImport(parsed) {
     .map((raw, i) => coerceAssignment(raw, i, projectIds))
     .filter(Boolean)
   const routines = (Array.isArray(source.routines) ? source.routines : []).map((r, i) => coerceRoutine(r, i, habitIds)).filter(Boolean)
+  const goals = (Array.isArray(source.goals) ? source.goals : [])
+    .map((raw, i) => coerceGoal(raw, i, habitIds, projectIds))
+    .filter(Boolean)
   const checkins = coerceCheckins(source.checkins)
   const moods = coerceMoods(source.moods ?? source.mood ?? {})
   const profile = coerceProfile(source.profile)
@@ -327,7 +370,7 @@ export function normalizeImport(parsed) {
 
   // A well-formed but EMPTY state is valid (fresh user, or a post-reset backup).
   const emptyButWellFormed = Array.isArray(source.habits) && source.habits.length === 0
-  if (!emptyButWellFormed && !habits.length && !projects.length && !assignments.length && !Object.keys(moods).length) {
+  if (!emptyButWellFormed && !habits.length && !projects.length && !assignments.length && !goals.length && !Object.keys(moods).length) {
     throw new Error('No habits, projects, assignments, or moods found in this file.')
   }
 
@@ -339,6 +382,7 @@ export function normalizeImport(parsed) {
     routines,
     projects: projects.map((p) => ({ ...p, linkedHabitIds: (p.linkedHabitIds || []).filter((id) => habitIds.has(id)) })),
     assignments: assignments.map((a) => ({ ...a, projectId: a.projectId && projectIds.has(a.projectId) ? a.projectId : null })),
+    goals,
     moods,
   }
 }
@@ -353,6 +397,7 @@ export function exportPayload(state) {
       projects: (state.projects || []).length,
       assignments: (state.assignments || []).length,
       routines: (state.routines || []).length,
+      goals: (state.goals || []).length,
       checkinDays: Object.values(state.checkins || {}).reduce((n, d) => n + Object.keys(d || {}).length, 0),
     },
     data: {
@@ -362,6 +407,7 @@ export function exportPayload(state) {
       checkins: state.checkins,
       routines: state.routines,
       projects: state.projects,
+      goals: state.goals || [],
       assignments: state.assignments,
       moods: state.moods,
     },

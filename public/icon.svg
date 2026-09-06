@@ -1,16 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Habit OS">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7c5cff"/>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b6bff"/>
+      <stop offset="52%" stop-color="#7048f5"/>
       <stop offset="100%" stop-color="#22d3ee"/>
     </linearGradient>
-    <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0%" stop-color="#ff5d8f"/>
-      <stop offset="100%" stop-color="#ffb703"/>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
-  <path d="M256 96c-10 70-78 92-78 168a78 78 0 0 0 156 0c0-40-22-62-34-96-10 20-22 34-22 58 0 16 10 26 22 30-40-10-56-46-44-92zm0 0z" fill="url(#flame)"/>
-  <circle cx="256" cy="300" r="26" fill="#fff"/>
-  <circle cx="256" cy="300" r="12" fill="#070a14"/>
+  <rect width="512" height="512" rx="136" fill="url(#g)"/>
+  <rect width="512" height="512" rx="136" fill="url(#sheen)"/>
+  <path d="M158 258 L226 326 L354 190" fill="none" stroke="#070a14" stroke-width="52"
+        stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

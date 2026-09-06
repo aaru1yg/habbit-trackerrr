@@ -792,7 +792,7 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
 
   await page.goto(`${BASE}/#/goals`, { waitUntil: 'networkidle0' })
   await sleep(700)
-  check('goals read as direction and link habits', await page.evaluate(() => /Habits carrying this goal/.test(document.body.textContent)))
+  check('first-class goals show their outcome and link supporting habits', await page.evaluate(() => /Run a half marathon/.test(document.body.textContent) && !!document.querySelector('.goal-card .goal-habit[href^="#/habits/"]')))
   await shot(page, '16j-goals')
   await overflowCheck(page, 'goals')
   await noConsoleErrors(page, 'work-layer')

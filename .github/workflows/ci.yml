@@ -45,12 +45,26 @@ jobs:
             }
             process.exit(1);
           '
-          npm run test:e2e
-          npm run test:release
-          node qa/audit.mjs http://localhost:4173
-          for theme in midnight aurora ember verdant daylight; do
-            node qa/contrast.mjs http://localhost:4173 "$theme"
+          mkdir -p qa/shots
+          # Independent browser profiles; no cloud credentials in this build.
+          npm run test:e2e > qa/shots/e2e.log 2>&1 &
+          E2E_PID=$!
+          npm run test:release > qa/shots/release.log 2>&1 &
+          RELEASE_PID=$!
+          node qa/audit.mjs http://localhost:4173 > qa/shots/layout.log 2>&1 &
+          LAYOUT_PID=$!
+          (
+            for theme in midnight aurora ember verdant daylight; do
+              node qa/contrast.mjs http://localhost:4173 "$theme"
+            done
+          ) > qa/shots/contrast.log 2>&1 &
+          CONTRAST_PID=$!
+          STATUS=0
+          for PID in "$E2E_PID" "$RELEASE_PID" "$LAYOUT_PID" "$CONTRAST_PID"; do
+            wait "$PID" || STATUS=1
           done
+          tail -n 35 qa/shots/{e2e,release,layout,contrast}.log
+          exit "$STATUS"
 
       - name: Upload browser evidence
         if: always()

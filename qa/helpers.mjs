@@ -329,6 +329,57 @@ export function seededStateV4() {
     { id: 'r2', name: 'Wind down', kind: 'night', habitIds: ['h-read'], active: true, order: 1, createdAt: shift(-30) },
   ]
 
+  // Goals — the outcome layer, linked down to real habits and projects.
+  const goals = [
+    {
+      id: 'g-run', title: 'Run a half marathon', area: 'fitness',
+      why: 'For the version of me who finishes things.',
+      startDate: shift(-60), targetDate: shift(45),
+      status: 'active', archived: false, order: 0,
+      milestones: [
+        { id: 'gm1', name: 'Comfortable at 10k', targetDate: shift(-30), done: true, doneAt: at(-30, '09:00'), order: 0 },
+        { id: 'gm2', name: '16km long run', targetDate: shift(10), done: false, doneAt: null, order: 1 },
+        { id: 'gm3', name: 'Race day', targetDate: shift(45), done: false, doneAt: null, order: 2 },
+      ],
+      linkedHabitIds: ['h-run'], linkedProjectIds: [], linkedAssignmentIds: [],
+      manualPercent: null, notes: 'Keep the long run easy.',
+      createdAt: at(-60, '09:00'), updatedAt: at(-1, '09:00'), completedAt: null,
+    },
+    {
+      id: 'g-thesis', title: 'Finish the thesis', area: 'learning',
+      why: 'It has been open long enough.',
+      startDate: shift(-20), targetDate: shift(2),
+      status: 'active', archived: false, order: 1,
+      milestones: [
+        { id: 'gm4', name: 'Methods section', targetDate: shift(1), done: false, doneAt: null, order: 0 },
+        { id: 'gm5', name: 'Results and figures', targetDate: shift(2), done: false, doneAt: null, order: 1 },
+      ],
+      linkedHabitIds: ['h-read'], linkedProjectIds: ['p2'], linkedAssignmentIds: [],
+      manualPercent: null, notes: '',
+      createdAt: at(-20, '09:00'), updatedAt: at(-1, '09:00'), completedAt: null,
+    },
+    {
+      id: 'g-guitar', title: 'Play three songs end to end', area: 'creative',
+      why: 'Something that is only mine.',
+      startDate: shift(-90), targetDate: shift(-5),
+      status: 'active', archived: false, order: 2,
+      milestones: [{ id: 'gm6', name: 'Clean chord changes', targetDate: shift(-10), done: false, doneAt: null, order: 0 }],
+      linkedHabitIds: ['h-guitar'], linkedProjectIds: [], linkedAssignmentIds: [],
+      manualPercent: null, notes: '',
+      createdAt: at(-90, '09:00'), updatedAt: at(-2, '09:00'), completedAt: null,
+    },
+    {
+      id: 'g-sleep', title: 'Sleep before midnight for a month', area: 'health',
+      why: 'Everything is easier on eight hours.',
+      startDate: shift(-40), targetDate: shift(-12),
+      status: 'completed', archived: false, order: 3,
+      milestones: [{ id: 'gm7', name: 'Fourteen days', targetDate: shift(-25), done: true, doneAt: at(-25, '22:00'), order: 0 }],
+      linkedHabitIds: ['h-water'], linkedProjectIds: [], linkedAssignmentIds: [],
+      manualPercent: null, notes: '',
+      createdAt: at(-40, '09:00'), updatedAt: at(-12, '09:00'), completedAt: at(-12, '22:30'),
+    },
+  ]
+
   return {
     version: 4,
     profile: { ...base.profile, workReminders: true, workReminderHours: 24 },
@@ -337,6 +388,7 @@ export function seededStateV4() {
     routines,
     projects,
     assignments,
+    goals,
     moods,
   }
 }

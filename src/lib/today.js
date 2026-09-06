@@ -5,10 +5,11 @@
    nothing to say, the functions return empty arrays rather than
    inventing a suggestion.
    ============================================================ */
-import { dayStr, prettyTime, minutesLabel } from './dates.js'
+import { dayStr, prettyTime, minutesLabel, daysUntil, dueLabel } from './dates.js'
 import { activeHabits, isDone, eligibleOn, habitStreak } from './stats.js'
 import { assignmentStatus, projectStatus, projectProgress, assignmentProgress } from './work.js'
 import { isScheduled } from './schedule.js'
+import { openGoals, goalHealth, nextMilestone, goalTodayActions } from './goals.js'
 
 const PRIORITY_RANK = { high: 0, normal: 1, low: 2 }
 
@@ -178,12 +179,36 @@ export function dayTimeline(state, { now = new Date(), date = dayStr(now) } = {}
   return entries
 }
 
-/**
- * Open goals — outcomes with a deadline, ordered by how close they are.
- * (Goals are currently expressed as projects; this keeps the Today view
- * honest about that rather than inventing a second, empty concept.)
- */
+/** Real goals, ordered by how close the target date is. */
 export function todayGoals(state, { now = new Date(), limit = 3 } = {}) {
+  const goals = openGoals(state, { now })
+  const rows = goals.map((g) => {
+    const health = goalHealth(state, g, { now })
+    const next = nextMilestone(g)
+    const actions = goalTodayActions(state, g, { date: dayStr(now) })
+    const dueIn = g.targetDate ? daysUntil(g.targetDate, now) : null
+    return {
+      kind: 'goal',
+      id: g.id,
+      name: g.title,
+      href: 'goals',
+      pct: health.prog.pct,
+      expected: health.pace ? health.pace.expected : null,
+      behind: health.pace ? health.pace.expected - health.prog.pct : null,
+      tone: health.tone,
+      dueIn,
+      dueText: dueLabel(g.targetDate, {}, now),
+      note: health.note,
+      nextMilestone: next ? next.name : null,
+      pendingToday: actions.filter((a) => !a.done).length,
+    }
+  })
+  rows.sort((a, b) => (a.dueIn ?? 1e9) - (b.dueIn ?? 1e9) || b.pct - a.pct)
+  return rows.slice(0, limit)
+}
+
+/** Project fallback for accounts without open goals. */
+export function todayProjectGoals(state, { now = new Date(), limit = 3 } = {}) {
   const rows = []
   for (const p of state.projects || []) {
     if (p.archived || p.completedAt) continue

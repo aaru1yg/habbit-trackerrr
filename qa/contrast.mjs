@@ -47,6 +47,8 @@ try {
     if (theme) state.profile.theme = theme
     await seedAndGoto(page, state, route, base)
     await sleep(700)
+    const applied = await page.evaluate(() => document.documentElement.dataset.theme)
+    if (theme && applied !== theme) throw new Error(`Requested theme ${theme}, but ${applied} rendered`)
     const rows = await page.evaluate(() => {
       const out = []
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)

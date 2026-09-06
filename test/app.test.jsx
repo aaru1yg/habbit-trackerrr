@@ -189,7 +189,7 @@ describe('core flows', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /Close it out/i }))
   })
 
-  it('goals: direction links a habit to a project and shows the real 30-day rate', async () => {
+  it('goals: create a goal with a milestone, link a habit, reach it (§8)', async () => {
     await onboard()
     await addHabit('Write')
     fireEvent.click(await screen.findByRole('button', { name: /Mark Write complete/i }))
@@ -203,20 +203,36 @@ describe('core flows', () => {
     fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
     await screen.findByText('Write a novella')
 
+    // Goals are a first-class entity, not a re-labelled project list.
     window.location.hash = '#/goals'
     await screen.findByRole('heading', { name: 'Goals' })
-    await screen.findByText('Write a novella')
-    expect(screen.getByText(/Habits not tied to a goal/)).toBeTruthy()
+    await screen.findByText('No goals yet')
 
-    fireEvent.click(screen.getByRole('button', { name: /Link habits/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Set your first goal/i }))
+    const goalForm = await screen.findByRole('dialog', { name: 'New goal' })
+    fireEvent.change(within(goalForm).getByLabelText(/What do you want to achieve/i), { target: { value: 'Write a novella' } })
+    fireEvent.change(within(goalForm).getByLabelText(/Milestone 1 name/i), { target: { value: 'Finish a draft' } })
+    fireEvent.click(within(goalForm).getByRole('button', { name: /Create goal/i }))
+    await screen.findByText('Write a novella')
+    // the milestone came through, and progress is measured from it
+    expect(screen.getAllByText('Finish a draft').length).toBeGreaterThan(0)
+    // nothing has been reached yet, so progress is honestly 0
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: /Link work/i }))
     fireEvent.click(await screen.findByRole('button', { name: 'Write' }))
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
 
-    await waitFor(() => expect(screen.queryByText(/Habits not tied to a goal/)).toBeNull())
     // a real completion today means a real rate, never a placeholder
-    expect(screen.getByText(/100% · 30d/)).toBeTruthy()
-    // the direction summary counts the link
-    expect(screen.getByText('Habits linked')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText(/100% 30d/)).toBeTruthy())
+    // the summary reports the open goal
+    expect(screen.getByText('Open goals')).toBeTruthy()
+
+    // completing the only milestone completes the goal and moves it out of Open
+    fireEvent.click(screen.getByRole('button', { name: 'Finish a draft', pressed: false }))
+    await waitFor(() => expect(screen.getAllByText('Reached').length).toBeGreaterThan(0))
+    fireEvent.click(screen.getByRole('tab', { name: /Reached/ }))
+    await screen.findByText('Write a novella')
   })
 
   it('settings: switch theme → persists; export/import round-trip via store', async () => {

@@ -131,6 +131,25 @@ afterEach(() => { window.__probe = null })
 /* ---------------- the bug report, as a contract ---------------- */
 
 describe('migration prompt (refresh / re-login stability)', () => {
+  it('merges goal-only devices without overwriting the cloud as if it were empty', async () => {
+    cloud.session = { user: USER_A }
+    seedLocal(normalizeImport({ ...doc([]), goals: [{ id: 'local-goal', title: 'Local goal' }] }))
+    cloud.doc = normalizeImport({ ...doc([]), goals: [{ id: 'cloud-goal', title: 'Cloud goal' }] })
+    let u = mount()
+    await screen.findByText('Existing data found')
+    expect(screen.getAllByText('goals').length).toBe(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Merge both' }))
+    await waitFor(dialogGone)
+    await synced()
+    expect(cloud.pushes.at(-1).goals.map((g) => g.id).sort()).toEqual(['cloud-goal', 'local-goal'])
+    u.unmount()
+    u = mount()
+    await synced()
+    dialogGone()
+    expect(window.__probe.state.goals).toHaveLength(2)
+    u.unmount()
+  })
+
   it('prompts exactly once for a genuine first link, then never again across 10 refreshes', async () => {
     cloud.session = { user: USER_A }
     seedLocal(doc([habit('h-local', 'Morning run')]))

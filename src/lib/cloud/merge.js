@@ -67,6 +67,7 @@ export function mergeDocs(local, cloud) {
     routines: mergeById(local.routines, cloud.routines),
     projects: mergeById(local.projects, cloud.projects),
     assignments: mergeById(local.assignments, cloud.assignments),
+    goals: mergeById(local.goals, cloud.goals),
     checkins: mergeMap(local.checkins, cloud.checkins),
     moods: mergeMap(local.moods, cloud.moods),
   }
@@ -74,13 +75,14 @@ export function mergeDocs(local, cloud) {
 
 /** Human-readable counts for the migration prompt. */
 export function summarise(doc) {
-  if (!doc) return { habits: 0, projects: 0, assignments: 0, routines: 0, checkins: 0, moods: 0 }
+  if (!doc) return { habits: 0, projects: 0, assignments: 0, goals: 0, routines: 0, checkins: 0, moods: 0 }
   const countCheckins = Object.values(doc.checkins || {})
     .reduce((n, m) => n + Object.keys(m || {}).length, 0)
   return {
     habits: (doc.habits || []).filter((h) => !h.deletedAt).length,
     projects: (doc.projects || []).filter((p) => !p.deletedAt).length,
     assignments: (doc.assignments || []).filter((a) => !a.deletedAt).length,
+    goals: (doc.goals || []).filter((g) => !g.deletedAt).length,
     routines: (doc.routines || []).filter((r) => !r.deletedAt).length,
     checkins: countCheckins,
     moods: Object.keys(doc.moods || {}).length,
@@ -90,5 +92,5 @@ export function summarise(doc) {
 /** True when a document holds anything worth migrating. */
 export function hasData(doc) {
   const s = summarise(doc)
-  return s.habits + s.projects + s.assignments + s.routines + s.checkins + s.moods > 0
+  return s.habits + s.projects + s.assignments + s.goals + s.routines + s.checkins + s.moods > 0
 }

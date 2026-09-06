@@ -313,7 +313,7 @@ export default function SettingsScreen() {
         <SectionCard className="pad">
           <CardHead title="About" />
           <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', lineHeight: 1.6 }}>
-            Aaru Habits — a calm habit tracker. Works offline, installs to your home screen, and never sends your data anywhere.
+            Habit OS — habits, goals, projects and analytics in one place. Works offline, installs to your home screen, and never sends your data anywhere.
           </p>
           <p data-build-id={BUILD_ID} style={{ color: 'var(--text-3)', fontSize: 'var(--fs-xs)', marginTop: 8 }}>
             Build {BUILD_ID}{BUILD_TIME !== 'dev' ? ` · ${BUILD_TIME.slice(0, 10)}` : ''}

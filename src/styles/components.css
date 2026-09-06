@@ -163,6 +163,7 @@ html[data-theme='daylight'] .card {
 .tag-good { color: var(--good); background: var(--good-soft); border-color: transparent; }
 .tag-warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
 .tag-bad  { color: var(--bad);  background: var(--bad-soft);  border-color: transparent; }
+.tag-info { color: var(--accent-2); background: var(--accent-soft); border-color: transparent; }
 
 /* ---------------- Fields ---------------- */
 

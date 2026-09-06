@@ -2,6 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { StoreProvider } from './store.jsx'
 import App from './App.jsx'
+import AuthProvider from './lib/cloud/AuthProvider.jsx'
+import SyncProvider from './lib/cloud/SyncProvider.jsx'
+import AuthGate from './components/auth/AuthGate.jsx'
 import './index.css'
 import { BUILD_ID, BUILD_TIME } from './lib/buildInfo.js'
 
@@ -16,9 +19,15 @@ if (import.meta.env.PROD) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
+    <AuthProvider>
+      <StoreProvider>
+        <SyncProvider>
+          <AuthGate>
+            <App />
+          </AuthGate>
+        </SyncProvider>
+      </StoreProvider>
+    </AuthProvider>
   </React.StrictMode>
 )
 

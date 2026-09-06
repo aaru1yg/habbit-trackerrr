@@ -3,6 +3,8 @@ import { useStore } from '../store.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
+import AccountCard from '../components/auth/AccountCard.jsx'
+import { useAuth } from '../lib/cloud/AuthProvider.jsx'
 import { exportPayload, normalizeImport } from '../lib/importExport.js'
 import { notificationState } from '../lib/reminders.js'
 import { projectStatus, assignmentStatus } from '../lib/work.js'
@@ -21,6 +23,7 @@ const THEMES = [
 
 export default function SettingsScreen() {
   const { state, dispatch } = useStore()
+  const auth = useAuth()
   const toast = useToast()
   const fileRef = useRef(null)
   const [confirmReset, setConfirmReset] = useState(false)
@@ -116,11 +119,17 @@ export default function SettingsScreen() {
       <header className="screen-head">
         <div>
           <h1 className="screen-title">Settings</h1>
-          <p className="screen-sub">Everything is stored on this device — no account, no cloud.</p>
+          <p className="screen-sub">
+            {auth?.configured && auth?.user
+              ? 'Synced to your account and backed up in the cloud.'
+              : 'Everything is stored on this device — no account, no cloud.'}
+          </p>
         </div>
       </header>
 
       <div className="stack">
+        <AccountCard />
+
         <SectionCard className="pad">
           <CardHead title="Your name" />
           <div style={{ display: 'flex', gap: 8 }}>

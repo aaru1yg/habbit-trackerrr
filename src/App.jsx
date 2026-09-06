@@ -30,11 +30,14 @@ const ProjectDetailScreen = lazy(() => import('./screens/ProjectDetailScreen.jsx
 const AssignmentsScreen = lazy(() => import('./screens/AssignmentsScreen.jsx'))
 const AssignmentDetailScreen = lazy(() => import('./screens/AssignmentDetailScreen.jsx'))
 const WorkloadScreen = lazy(() => import('./screens/WorkloadScreen.jsx'))
+const HabitsScreen = lazy(() => import('./screens/HabitsScreen.jsx'))
+const HabitDetailScreen = lazy(() => import('./screens/HabitDetailScreen.jsx'))
 const TimelineScreen = lazy(() => import('./screens/TimelineScreen.jsx'))
+const AchievementsScreen = lazy(() => import('./screens/AchievementsScreen.jsx'))
 
 const ROUTES = [
   'today', 'calendar', 'week', 'insights', 'mind', 'goals', 'library', 'settings',
-  'projects', 'assignments', 'workload', 'timeline', 'record',
+  'projects', 'assignments', 'workload', 'timeline', 'record', 'habits', 'achievements',
 ]
 
 function ScreenFallback() {
@@ -126,6 +129,8 @@ export default function App() {
                 {active === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <AssignmentsScreen route={active} />)}
                 {active === 'workload' && <WorkloadScreen route={active} />}
                 {active === 'timeline' && <TimelineScreen route={active} />}
+                {active === 'achievements' && <AchievementsScreen route={active} />}
+                {active === 'habits' && (param ? <HabitDetailScreen id={param} /> : <HabitsScreen route={active} />)}
               </Suspense>
             </main>
 

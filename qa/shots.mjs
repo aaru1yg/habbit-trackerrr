@@ -19,6 +19,7 @@ const VIEWPORTS_TO_USE = {
 const ROUTES = [
   'today', 'calendar', 'week', 'habits', 'goals', 'projects', 'assignments',
   'workload', 'timeline', 'insights', 'mind', 'library', 'record', 'settings',
+  'achievements', 'habits/h-run',
 ]
 
 const dir = `qa/shots/${tag}`

@@ -8,6 +8,7 @@ import { useStore } from '../store.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
+import { Link } from '../lib/router.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { Meter, WorkEmpty, FadeIn } from '../components/work/WorkKit.jsx'
 import { activeHabits, habitStreak, habitRate, routineStats, activeRoutines } from '../lib/stats.js'
@@ -19,7 +20,7 @@ import {
   IconCheck, IconX, IconLayers, IconClock,
 } from '../lib/icons.jsx'
 
-export default function LibraryScreen() {
+export default function LibraryScreen({ title = 'Library', subtitle = null }) {
   const { state, dispatch } = useStore()
   const habitUI = useHabitUI()
   const toast = useToast()
@@ -36,8 +37,10 @@ export default function LibraryScreen() {
     <div className="screen" id="library-screen">
       <header className="screen-head">
         <div>
-          <h1 className="screen-title">Library</h1>
-          <p className="screen-sub">{habits.length} active habit{habits.length === 1 ? '' : 's'} · {routines.length} routine{routines.length === 1 ? '' : 's'}</p>
+          <h1 className="screen-title">{title}</h1>
+          <p className="screen-sub">
+            {subtitle ?? `${habits.length} active habit${habits.length === 1 ? '' : 's'} · ${routines.length} routine${routines.length === 1 ? '' : 's'}`}
+          </p>
         </div>
         <div className="head-actions">
           {tab === 'routines'
@@ -232,6 +235,7 @@ function HabitCard({ habit, index }) {
             <button className="btn ghost sm" onClick={skipToday}>Skip today</button>
           )}
           <span style={{ flex: 1 }} />
+          <Link to={`habits/${habit.id}`} className="btn ghost sm" aria-label={`Open the ${habit.name} detail page`}>Details</Link>
           <button className="btn ghost sm" onClick={() => habitUI.archive(habit)} aria-label={`Archive ${habit.name}`}><IconArchive size={15} /></button>
           <button className="btn ghost sm" style={{ color: 'var(--bad)' }} onClick={() => habitUI.remove(habit)} aria-label={`Delete ${habit.name}`}><IconTrash size={15} /></button>
           <button className="btn ghost icon" onClick={() => habitUI.openDetail(habit)} aria-label={`Details for ${habit.name}`}><IconChevronRight size={18} /></button>

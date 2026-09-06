@@ -50,7 +50,15 @@ function buildIdentity() {
     // placeholder is missing, so a mis-versioned worker can never deploy.
     closeBundle() {
       const swPath = resolve(outDir, 'sw.js')
-      if (!existsSync(swPath)) throw new Error('aaru-build-identity: dist/sw.js missing')
+      if (!existsSync(swPath)) {
+        // A failed build never reaches the emit stage. Throwing here would
+        // mask the real error, so warn and let that error surface instead.
+        if (!existsSync(outDir)) {
+          console.warn('[aaru-build-identity] no build output — skipping sw.js stamp')
+          return
+        }
+        throw new Error('aaru-build-identity: dist/sw.js missing')
+      }
       const text = readFileSync(swPath, 'utf8')
       if (!text.includes('__BUILD_ID__')) {
         throw new Error('aaru-build-identity: __BUILD_ID__ placeholder missing from sw.js')

@@ -283,7 +283,7 @@ describe('core flows', () => {
     // More sheet carries the secondary routes
     fireEvent.click(within(nav).getByRole('button', { name: 'More sections' }))
     const sheet = await screen.findByRole('dialog')
-    for (const label of ['Week', 'Mind', 'Workload', 'Deadlines', 'Habit library', 'Goals', 'Record', 'Settings']) {
+    for (const label of ['Habits', 'Goals', 'Workload', 'Deadlines', 'Week', 'Achievements', 'Mind', 'Record']) {
       expect(within(sheet).getByText(label)).toBeTruthy()
     }
     fireEvent.click(within(sheet).getByText('Week'))
@@ -293,8 +293,8 @@ describe('core flows', () => {
   it('desktop sidebar exposes every route and the search shortcut (§78, §30)', async () => {
     await onboard()
     const links = [...document.querySelectorAll('.sidebar-nav a, .sidebar-settings')].map((a) => a.getAttribute('href'))
-    for (const to of ['#/today', '#/calendar', '#/week', '#/projects', '#/assignments', '#/workload',
-      '#/timeline', '#/insights', '#/mind', '#/library', '#/goals', '#/record', '#/settings']) {
+    for (const to of ['#/today', '#/calendar', '#/habits', '#/goals', '#/projects', '#/assignments',
+      '#/workload', '#/timeline', '#/week', '#/insights', '#/achievements', '#/mind', '#/record', '#/settings']) {
       expect(links).toContain(to)
     }
     expect(document.querySelector('.sidebar-search')).toBeTruthy()

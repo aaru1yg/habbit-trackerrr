@@ -21,6 +21,7 @@ const VIEWPORTS = [
 const ROUTES = [
   'today', 'calendar', 'week', 'goals', 'projects', 'assignments',
   'workload', 'timeline', 'insights', 'mind', 'library', 'record', 'settings',
+  'habits', 'achievements', 'habits/h-run',
 ]
 
 const findings = []

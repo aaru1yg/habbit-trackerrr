@@ -1,52 +1,55 @@
-import { useEffect, useState } from 'react'
 import { Link } from '../../lib/router.jsx'
 import Sheet from '../ui/Sheet.jsx'
+import { useStore } from '../../store.jsx'
 import {
   IconToday, IconCalendar, IconWeek, IconInsights, IconMind, IconGoals, IconSettings,
   IconProjects, IconAssignment, IconWorkload, IconTimeline, IconSearch, IconStack, IconX,
+  IconHabits, IconTrophy, IconRecord,
 } from '../../lib/icons.jsx'
 
 /* ============================================================
    NAVIGATION
-   Desktop: a grouped sidebar (the product is an operating system,
-   so the groups tell you what each area is FOR).
-   Mobile: five bottom tabs + a More sheet. Projects, Assignments,
-   Workload and Timeline share the Work hub segment control.
+   Desktop: a grouped persistent sidebar — the groups say what
+   each area is FOR, so a ten-section product still reads as
+   one operating system.
+   Mobile: five bottom tabs + a More sheet. Projects,
+   Assignments, Workload and Deadlines share the Work segment.
    ============================================================ */
 
 const WORK_ROUTES = ['projects', 'assignments', 'workload', 'timeline']
 
 const GROUPS = [
   {
-    label: 'Track',
+    label: 'Today',
     items: [
       { to: 'today', label: 'Today', Icon: IconToday },
       { to: 'calendar', label: 'Calendar', Icon: IconCalendar },
-      { to: 'week', label: 'Week', Icon: IconWeek },
     ],
   },
   {
-    label: 'Work',
+    label: 'Build',
     items: [
+      { to: 'habits', label: 'Habits', Icon: IconHabits },
+      { to: 'goals', label: 'Goals', Icon: IconGoals },
       { to: 'projects', label: 'Projects', Icon: IconProjects },
       { to: 'assignments', label: 'Assignments', Icon: IconAssignment },
+    ],
+  },
+  {
+    label: 'Plan',
+    items: [
       { to: 'workload', label: 'Workload', Icon: IconWorkload },
       { to: 'timeline', label: 'Deadlines', Icon: IconTimeline },
+      { to: 'week', label: 'Week', Icon: IconWeek },
     ],
   },
   {
     label: 'Understand',
     items: [
       { to: 'insights', label: 'Insights', Icon: IconInsights },
+      { to: 'achievements', label: 'Achievements', Icon: IconTrophy },
       { to: 'mind', label: 'Mind', Icon: IconMind },
-    ],
-  },
-  {
-    label: 'Organize',
-    items: [
-      { to: 'library', label: 'Habit library', Icon: IconStack },
-      { to: 'goals', label: 'Goals', Icon: IconGoals },
-      { to: 'record', label: 'Record', Icon: IconTimeline },
+      { to: 'record', label: 'Record', Icon: IconRecord },
     ],
   },
 ]
@@ -58,25 +61,49 @@ const MOBILE_TABS = [
   { to: 'insights', label: 'Insights', Icon: IconInsights },
 ]
 
-const MORE_ITEMS = [
-  { to: 'week', label: 'Week', Icon: IconWeek },
-  { to: 'mind', label: 'Mind', Icon: IconMind },
-  { to: 'workload', label: 'Workload', Icon: IconWorkload },
-  { to: 'timeline', label: 'Deadlines', Icon: IconTimeline },
-  { to: 'library', label: 'Habit library', Icon: IconStack },
-  { to: 'goals', label: 'Goals', Icon: IconGoals },
-  { to: 'record', label: 'Record', Icon: IconTimeline },
-  { to: 'settings', label: 'Settings', Icon: IconSettings },
+const MORE_GROUPS = [
+  {
+    label: 'Build',
+    items: [
+      { to: 'habits', label: 'Habits', Icon: IconHabits },
+      { to: 'goals', label: 'Goals', Icon: IconGoals },
+    ],
+  },
+  {
+    label: 'Plan',
+    items: [
+      { to: 'workload', label: 'Workload', Icon: IconWorkload },
+      { to: 'timeline', label: 'Deadlines', Icon: IconTimeline },
+      { to: 'week', label: 'Week', Icon: IconWeek },
+    ],
+  },
+  {
+    label: 'Understand',
+    items: [
+      { to: 'achievements', label: 'Achievements', Icon: IconTrophy },
+      { to: 'mind', label: 'Mind', Icon: IconMind },
+      { to: 'record', label: 'Record', Icon: IconRecord },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { to: 'library', label: 'Habit library', Icon: IconStack },
+      { to: 'settings', label: 'Settings', Icon: IconSettings },
+    ],
+  },
 ]
+
+const MORE_FLAT = MORE_GROUPS.flatMap((g) => g.items)
 
 const isActive = (route, item) => (item.group ? item.group.includes(route) : route === item.to)
 
 export function BottomNav({ route, onMore, onSearch }) {
-  const moreActive = MORE_ITEMS.some((m) => m.to === route)
+  const moreActive = MORE_FLAT.some((m) => m.to === route)
   return (
     <nav className="bottom-nav" aria-label="Main">
       {MOBILE_TABS.map(({ to, label, Icon, group }) => {
-        const active = group ? group.includes(route) : route === to
+        const active = isActive(route, { to, group })
         return (
           <Link key={to} to={to} aria-current={active ? 'page' : undefined}>
             <span className="nav-pill"><Icon size={21} /></span>
@@ -93,9 +120,11 @@ export function BottomNav({ route, onMore, onSearch }) {
 }
 
 export function Sidebar({ route, name, onSearch }) {
+  const { state } = useStore()
+  const unlocked = unlockedCount(state)
   return (
     <aside className="sidebar">
-      <Link to="today" className="sidebar-brand" aria-label="Aaru Habits home">
+      <Link to="today" className="sidebar-brand" aria-label="Habit OS home">
         <BrandMark size={30} />
         <span className="brand-name">Habit OS</span>
       </Link>
@@ -114,6 +143,9 @@ export function Sidebar({ route, name, onSearch }) {
               <Link key={to} to={to} aria-current={route === to ? 'page' : undefined}>
                 <Icon size={18} />
                 {label}
+                {to === 'achievements' && unlocked > 0 && (
+                  <span className="sidebar-count tnum" aria-label={`${unlocked} unlocked`}>{unlocked}</span>
+                )}
               </Link>
             ))}
           </div>
@@ -131,6 +163,39 @@ export function Sidebar({ route, name, onSearch }) {
   )
 }
 
+/** Cheap unlocked count for the sidebar badge — avoids importing the
+ *  whole achievement engine into the nav. */
+let cache = { state: null, n: 0 }
+function unlockedCount(state) {
+  if (cache.state === state) return cache.n
+  let checkins = 0
+  for (const days of Object.values(state.checkins || {})) {
+    for (const c of Object.values(days || {})) if (c && c.done === true) checkins++
+  }
+  cache = { state, n: checkins > 0 ? countFast(state) : 0 }
+  return cache.n
+}
+
+function countFast(state) {
+  // Mirrors the rules in lib/achievements.js without the heavier walks.
+  let n = 0
+  let checkins = 0
+  for (const days of Object.values(state.checkins || {})) {
+    for (const c of Object.values(days || {})) if (c && c.done === true) checkins++
+  }
+  if (checkins >= 1) n++
+  if (checkins >= 100) n++
+  if (checkins >= 500) n++
+  const done = (state.projects || []).filter((p) => p.completedAt).length
+  if (done >= 1) n++
+  if (done >= 5) n++
+  if ((state.routines || []).length >= 1) n++
+  if (Object.keys(state.moods || {}).length >= 10) n++
+  const cats = new Set((state.habits || []).filter((h) => !h.archived).map((h) => h.category).filter(Boolean))
+  if (cats.size >= 5) n++
+  return n
+}
+
 /** Mobile "More" sheet — the rest of the operating system. */
 export function MoreSheet({ open, onClose, route, onSearch }) {
   return (
@@ -142,11 +207,16 @@ export function MoreSheet({ open, onClose, route, onSearch }) {
             <span>Search everything</span>
           </button>
         )}
-        {MORE_ITEMS.map(({ to, label, Icon }) => (
-          <Link key={to} to={to} className="more-link" onClick={onClose} aria-current={route === to ? 'page' : undefined}>
-            <Icon size={19} />
-            <span>{label}</span>
-          </Link>
+        {MORE_GROUPS.map((group) => (
+          <div key={group.label} className="more-group">
+            <p className="more-group-label">{group.label}</p>
+            {group.items.map(({ to, label, Icon }) => (
+              <Link key={to} to={to} className="more-link" onClick={onClose} aria-current={route === to ? 'page' : undefined}>
+                <Icon size={19} />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </div>
         ))}
       </div>
     </Sheet>
@@ -178,12 +248,14 @@ export function BrandMark({ size = 24 }) {
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
       <defs>
         <linearGradient id="bm-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#6d4aff" />
-          <stop offset="100%" stopColor="#22d3ee" />
+          <stop offset="0%" stopColor="var(--accent-1)" />
+          <stop offset="100%" stopColor="var(--accent-2)" />
         </linearGradient>
       </defs>
       <rect x="3" y="3" width="42" height="42" rx="13" fill="url(#bm-g)" />
-      <path d="M15 24.5l6 6L34 17" stroke="#0b0f1a" strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M15 24.5l6 6L34 17" stroke="var(--bg-deep)" strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   )
 }
+
+export { IconX }

@@ -235,3 +235,29 @@ export const IconStack = ({ size }) => wrap(<>
 </>, size)
 
 export const IconArrowUpRight = ({ size }) => wrap(<path d="M7 17 17 7M9 7h8v8" />, size)
+
+export const IconTrophy = ({ size }) => wrap(<>
+  <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
+  <path d="M8 5H5.5a2.5 2.5 0 0 0 2.5 2.5" />
+  <path d="M16 5h2.5A2.5 2.5 0 0 1 16 7.5" />
+  <path d="M12 13v3" />
+  <path d="M9.5 20h5" />
+  <path d="M10 20a2 2 0 0 1 4 0" />
+</>, size)
+
+export const IconLock = ({ size }) => wrap(<>
+  <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+  <path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7" />
+  <path d="M12 14.6v1.8" />
+</>, size)
+
+export const IconHabits = ({ size }) => wrap(<>
+  <path d="M4 7h10M4 12h16M4 17h12" />
+  <path d="M18 5.5l1.6 1.6L23 3.7" />
+</>, size)
+
+export const IconRecord = ({ size }) => wrap(<>
+  <circle cx="12" cy="12" r="8.5" />
+  <circle cx="12" cy="12" r="3.4" />
+  <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2" />
+</>, size)

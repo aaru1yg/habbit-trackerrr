@@ -11,9 +11,10 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 import SearchPalette from '../components/layout/SearchPalette.jsx'
 import { WorkRow } from '../components/work/WorkCards.jsx'
 import { StatusPill } from '../components/work/WorkKit.jsx'
-import { todayStr, prettyDate, greeting, weekDays, daysBetween } from '../lib/dates.js'
+import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween } from '../lib/dates.js'
 import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak, habitStreak, routineStats, activeRoutines } from '../lib/stats.js'
 import { priorityWork } from '../lib/work.js'
+import { todayPriorities, dayTimeline, todayGoals, todayHeadline } from '../lib/today.js'
 import { streakMilestone } from '../lib/analytics.js'
 import { isScheduled } from '../lib/schedule.js'
 import { Link } from '../lib/router.jsx'
@@ -67,7 +68,15 @@ export default function TodayScreen({ onFire }) {
   }, [state, today])
 
   const priority = useMemo(() => priorityWork(state, new Date(), 3), [state])
-  const hasPriority = priority.overdue.length + priority.dueToday.length + priority.upcoming.length > 0
+  const plan = useMemo(() => {
+    const now = new Date()
+    return {
+      rows: todayPriorities(state, { now, limit: 4 }),
+      timeline: dayTimeline(state, { now, date: today }),
+      goals: todayGoals(state, { now, limit: 3 }),
+      headline: todayHeadline(state, { now }),
+    }
+  }, [state, today])
   const routinesToday = useMemo(
     () => activeRoutines(state).filter((r) => routineStats(state, r, today).total > 0),
     [state, today]
@@ -171,6 +180,68 @@ export default function TodayScreen({ onFire }) {
           </div>
         </SectionCard>
 
+        {/* Today's priorities — what actually needs doing, in order */}
+        {plan.rows.length > 0 && (
+          <SectionCard className="pad today-priorities" delay={0.06}>
+            <CardHead title="Today's priorities">
+              <span className="tiny muted tnum">{plan.rows.length} item{plan.rows.length === 1 ? '' : 's'}</span>
+            </CardHead>
+            <p className={`pace-note`} data-tone={plan.headline.tone} style={{ marginTop: 0, marginBottom: 12 }}>
+              {plan.headline.text}
+            </p>
+            <ol className="priority-list">
+              {plan.rows.map((row, i) => (
+                <li key={`${row.kind}-${row.id}`} className="priority-row" data-tone={row.tone}>
+                  <Link to={row.href} className="priority-row-inner">
+                    <span className="priority-index tnum" aria-hidden="true">{i + 1}</span>
+                    <span className="priority-body">
+                      <span className="priority-name">{row.name}</span>
+                      <span className="priority-reason">{row.reason}</span>
+                      {row.pct > 0 && (
+                        <span className="meter" role="img" aria-label={`${row.name}: ${row.pct} percent complete`}>
+                          <i style={{ width: `${row.pct}%` }} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="priority-kind">{row.kind}</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </SectionCard>
+        )}
+
+        {/* Goals in progress */}
+        {plan.goals.length > 0 && (
+          <SectionCard className="pad today-goals" delay={0.08}>
+            <CardHead title="Goals in progress">
+              <Link to="goals" className="btn ghost sm">All goals <IconChevronRight size={14} /></Link>
+            </CardHead>
+            <div className="goal-strip">
+              {plan.goals.map((g) => (
+                <Link key={g.id} to={g.href} className="goal-chip">
+                  <span className="goal-chip-head">
+                    <span className="goal-chip-name">{g.name}</span>
+                    <span className="tnum goal-chip-pct">{g.pct}%</span>
+                  </span>
+                  <span className="meter" role="img" aria-label={`${g.name}: ${g.pct} percent complete`}>
+                    <i style={{ width: `${g.pct}%` }} />
+                  </span>
+                  <span className="goal-chip-meta">
+                    {g.dueIn == null
+                      ? 'No deadline'
+                      : g.dueIn <= 0
+                        ? 'Due today'
+                        : `${g.dueIn} day${g.dueIn === 1 ? '' : 's'} left`}
+                    {g.behind != null && g.behind > 10 ? ` · ${g.behind} points behind pace` : ''}
+                    {g.behind != null && g.behind < -10 ? ` · ${Math.abs(g.behind)} points ahead of pace` : ''}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
         {/* Today's habits */}
         <SectionCard className="pad today-section" delay={0.12}>
           <CardHead title="What needs to be done">
@@ -219,17 +290,26 @@ export default function TodayScreen({ onFire }) {
         </SectionCard>
 
 
-        {/* Priority work — contextual layer; habits stay primary (§82) */}
-        {hasPriority && (
-          <SectionCard className="pad today-work" delay={0.04}>
-            <CardHead title="Priority work">
-              <Link to="workload" className="btn ghost sm">Workload <IconChevronRight size={14} /></Link>
+        {/* Day timeline — built from reminder times and real deadlines */}
+        {plan.timeline.length > 0 && (
+          <SectionCard className="pad today-timeline" delay={0.14}>
+            <CardHead title="Your day">
+              <span className="tiny muted">{plan.timeline.filter((e) => !e.done).length} remaining</span>
             </CardHead>
-            <div className="deadline-strip">
-              {[...priority.overdue, ...priority.dueToday, ...priority.upcoming].slice(0, 3).map((o) => (
-                <WorkRow key={`${o.kind}-${o.item.id}`} kind={o.kind} item={o.item} status={o.status} progressPct={o.status.pct} />
+            <ol className="timeline">
+              {plan.timeline.map((e, i) => (
+                <li key={`${e.kind}-${e.label}-${i}`}>
+                  <Link to={e.href} className={`tl-row${e.done ? ' is-done' : ''}`}>
+                    <span className="tl-time tnum">{e.time ? prettyTime(`${today}T${e.time}`) : '—'}</span>
+                    <span className="tl-marker" data-tone={e.tone || (e.done ? 'good' : 'neutral')} aria-hidden="true" />
+                    <span className="tl-body">
+                      <span className="tl-label">{e.label}</span>
+                      <span className="tl-note">{e.note}</span>
+                    </span>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ol>
           </SectionCard>
         )}
 

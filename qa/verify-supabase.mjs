@@ -353,10 +353,32 @@ async function main() {
   const uidB = bData.session.user.id
   check('User A and User B are distinct users', uidA !== uidB)
 
-  await clientB.from('user_state').upsert(
-    { user_id: uidB, doc: { version: 4, habits: [{ id: 'hB', name: `B-habit-${stamp}` }] }, revision: 1 },
+  // ---- User B cloud write + read-back from an independent client ----
+  const markerB = `B-habit-${stamp}`
+  const { error: bwErr } = await clientB.from('user_state').upsert(
+    {
+      user_id: uidB,
+      doc: {
+        version: 4,
+        profile: { name: 'QA User B' },
+        habits: [{ id: `hB-${stamp}`, name: markerB, order: 0, updatedAt: new Date().toISOString() }],
+        checkins: {}, moods: {}, projects: [], assignments: [], routines: [],
+      },
+      revision: 1,
+    },
     { onConflict: 'user_id' }
   )
+  check('User B can write their own row', !bwErr, bwErr?.message)
+
+  const clientB2 = mkClient()
+  const { error: bReErr } = await clientB2.auth
+    .signInWithPassword({ email: preB.email, password: preB.password })
+  check('User B can log in again from a fresh client', !bReErr, bReErr?.message)
+  const { data: bReread } = await clientB2.from('user_state')
+    .select('doc').eq('user_id', uidB).maybeSingle()
+  check('User B cloud read-back from a second independent client',
+    bReread?.doc?.habits?.[0]?.name === markerB,
+    `got ${bReread?.doc?.habits?.[0]?.name}`)
 
   // ================= 6. THE ISOLATION MATRIX =================
   console.log('\n  — two-user isolation —')
@@ -393,6 +415,45 @@ async function main() {
   check('User A data intact after all User B attempts',
     afterAttack?.doc?.habits?.[0]?.name === marker)
 
+  // ---- the reverse direction: A must not reach B either ----
+  // Isolation is only proven if it holds symmetrically; testing one direction
+  // could pass on an accidentally asymmetric policy.
+  console.log('\n  — reverse direction (A → B) —')
+
+  const { data: aReadsB } = await clientA2.from('user_state').select('*').eq('user_id', uidB)
+  check('User A CANNOT read User B rows', !aReadsB || aReadsB.length === 0,
+    aReadsB?.length ? `LEAKED ${aReadsB.length} rows` : '')
+
+  const { data: aAll } = await clientA2.from('user_state').select('*')
+  const aLeaked = (aAll || []).filter((r) => r.user_id !== uidA)
+  check('User A unfiltered SELECT returns only their own row', aLeaked.length === 0,
+    aLeaked.length ? `LEAKED ${aLeaked.length} foreign rows` : '')
+
+  const { data: aMod } = await clientA2.from('user_state')
+    .update({ doc: { hacked: true } }).eq('user_id', uidB).select()
+  check('User A CANNOT update User B rows', !aMod || aMod.length === 0)
+
+  const { data: aDel } = await clientA2.from('user_state')
+    .delete().eq('user_id', uidB).select()
+  check('User A CANNOT delete User B rows', !aDel || aDel.length === 0)
+
+  const { error: aForgeErr, data: aForge } = await clientA2.from('user_state')
+    .insert({ user_id: uidB, doc: { forged: true } }).select()
+  check('User A CANNOT forge a row owned by User B (WITH CHECK)',
+    !!aForgeErr || !aForge || aForge.length === 0)
+
+  const { data: aProfiles } = await clientA2.from('profiles').select('*')
+  const aProfLeak = (aProfiles || []).filter((r) => r.id !== uidA)
+  check('User A CANNOT read other profiles', aProfLeak.length === 0,
+    aProfLeak.length ? `LEAKED ${aProfLeak.length}` : '')
+
+  // B's data must survive everything A just attempted
+  const { data: bIntact } = await clientB2.from('user_state')
+    .select('doc').eq('user_id', uidB).maybeSingle()
+  check('User B data intact after all User A attempts',
+    bIntact?.doc?.habits?.[0]?.name === markerB,
+    `got ${bIntact?.doc?.habits?.[0]?.name}`)
+
   // ================= 7. logout =================
   await clientB.auth.signOut()
   const { data: afterOut } = await clientB.auth.getSession()
@@ -407,6 +468,8 @@ async function main() {
   // deletes only their OWN row, which RLS permits.
   const { error: cleanAErr } = await clientA2.from('user_state').delete().eq('user_id', uidA)
   check('User A can delete their own row (cleanup)', !cleanAErr, cleanAErr?.message)
+  const { error: cleanBErr } = await clientB2.from('user_state').delete().eq('user_id', uidB)
+  check('User B can delete their own row (cleanup)', !cleanBErr, cleanBErr?.message)
 
   // ================= summary =================
   console.log(`\n${pass} passed, ${fail} failed${skipped.length ? `, ${skipped.length} skipped` : ''}`)

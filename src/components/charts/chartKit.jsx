@@ -72,17 +72,18 @@ export function TrendChart({ data, className = '' }) {
         {/* grid + y labels */}
         {gridYs.map((g) => (
           <g key={g.v}>
-            <line x1={L} y1={g.y} x2={W - R} y2={g.y} stroke="var(--border)" strokeWidth="1" />
-            <text x={L - 6} y={g.y + 3} textAnchor="end" fontSize="10" fill="var(--text-3)" style={TNUM}>{g.v}</text>
+            <line x1={L} y1={g.y} x2={W - R} y2={g.y} stroke="var(--grid)" strokeWidth="1" strokeDasharray="2 6" />
+            <text x={L - 8} y={g.y + 3} textAnchor="end" fontSize="10" fontWeight="500" fill="var(--text-3)" style={TNUM}>{g.v}</text>
           </g>
         ))}
         {/* x labels */}
         {labels.map((lab) => (
-          <text key={lab.i} x={lab.x} y={H - 7} textAnchor="middle" fontSize="10" fill="var(--text-3)">{shortDate(lab.label)}</text>
+          <text key={lab.i} x={lab.x} y={H - 7} textAnchor="middle" fontSize="10" fontWeight="500" fill="var(--text-3)">{shortDate(lab.label)}</text>
         ))}
-        {/* area + line */}
+        {/* area + line (a soft glow underlay gives the trend presence) */}
         {area && <path d={area} fill={`url(#t${gid})`} />}
-        {line && <path d={line} fill="none" stroke={`url(#tline${gid})`} strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />}
+        {line && <path d={line} fill="none" stroke="var(--accent-2)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" opacity="0.12" />}
+        {line && <path d={line} fill="none" stroke={`url(#tline${gid})`} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
         {/* interactive points */}
         {points.map((p) => (
           <g key={p.i}>
@@ -100,9 +101,11 @@ export function TrendChart({ data, className = '' }) {
         {selP && selP.y != null && (
           <g pointerEvents="none">
             <line x1={selP.x} y1={T} x2={selP.x} y2={H - B} stroke="var(--border-2)" strokeWidth="1" strokeDasharray="3 3" />
-            <g transform={`translate(${Math.min(Math.max(selP.x, L + 30), W - R - 62)}, ${Math.max(T, selP.y - 40)})`}>
-              <rect width="104" height="26" rx="8" fill="var(--surface-solid)" stroke="var(--border-2)" />
-              <text x="8" y="17" fontSize="11" fontWeight="700" fill="var(--text)">{shortDate(selP.date)} · {selP.pct}%</text>
+            <g transform={`translate(${Math.min(Math.max(selP.x, L + 34), W - R - 66)}, ${Math.max(T, selP.y - 40)})`}>
+              <rect width="116" height="28" rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
+              <circle cx="13" cy="14" r="4" fill="var(--accent-2)" />
+              <text x="25" y="18" fontSize="11" fontWeight="700" fill="var(--text)">{shortDate(selP.date)}</text>
+              <text x="108" y="18" fontSize="11" fontWeight="700" fill="var(--accent-2)" textAnchor="end">{selP.pct}%</text>
             </g>
           </g>
         )}

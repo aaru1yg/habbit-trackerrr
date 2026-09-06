@@ -6,6 +6,7 @@ import HabitRow from '../components/habits/HabitRow.jsx'
 import RoutineStrip from '../components/habits/RoutineStrip.jsx'
 import TodayHero from '../components/today/TodayHero.jsx'
 import Reveal from '../components/motion/Reveal.jsx'
+import { SpatialStage } from '../components/spatial/Depth.jsx'
 import { CardHead } from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import SearchPalette from '../components/layout/SearchPalette.jsx'
@@ -153,6 +154,7 @@ export default function TodayScreen({ onFire }) {
         </div>
       </header>
 
+      <SpatialStage className="today-stage" focus={1700} parallax={10}>
       <div className="stack">
         {/* The immersive command center: one composition, three depths. */}
         <TodayHero
@@ -166,7 +168,7 @@ export default function TodayScreen({ onFire }) {
 
         {/* Today's priorities — what actually needs doing, in order */}
         {plan.rows.length > 0 && (
-          <Reveal as="section" variant="up" delay={0} className="card pad today-priorities">
+          <Reveal as="section" variant="up" delay={0} className="card pad today-priorities sp-depth lane-left">
             <CardHead title="Today's priorities">
               <span className="tiny muted tnum">{plan.rows.length} item{plan.rows.length === 1 ? '' : 's'}</span>
             </CardHead>
@@ -197,7 +199,7 @@ export default function TodayScreen({ onFire }) {
 
         {/* Goals in progress */}
         {(plan.goals.length > 0 || plan.projectGoals.length > 0) && (
-          <Reveal as="section" variant="left" delay={60} className="card pad today-goals">
+          <Reveal as="section" variant="left" delay={60} className="card pad today-goals sp-depth lane-right">
             <CardHead title={plan.goals.length ? 'Goals in progress' : 'Projects in progress'}>
               <Link to={plan.goals.length ? 'goals' : 'projects'} className="btn ghost sm">
                 {plan.goals.length ? 'All goals' : 'All projects'} <IconChevronRight size={14} />
@@ -226,7 +228,7 @@ export default function TodayScreen({ onFire }) {
         )}
 
         {/* Today's habits */}
-        <Reveal as="section" variant="depth" delay={90} className="card pad today-section">
+        <Reveal as="section" variant="depth" delay={90} className="card pad today-section sp-depth lane-mid">
           <CardHead title="What needs to be done">
             <button className="btn sm" onClick={habitUI.openAdd}>
               <IconPlus size={15} /> Add
@@ -275,7 +277,7 @@ export default function TodayScreen({ onFire }) {
 
         {/* Day timeline — built from reminder times and real deadlines */}
         {plan.timeline.length > 0 && (
-          <Reveal as="section" variant="right" delay={60} className="card pad today-timeline">
+          <Reveal as="section" variant="right" delay={60} className="card pad today-timeline sp-depth lane-right">
             <CardHead title="Your day">
               <span className="tiny muted">{plan.timeline.filter((e) => !e.done).length} remaining</span>
             </CardHead>
@@ -373,6 +375,7 @@ export default function TodayScreen({ onFire }) {
       </div>
 
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+      </SpatialStage>
     </div>
   )
 }

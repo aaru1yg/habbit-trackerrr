@@ -8,6 +8,15 @@ name: Verify Supabase (live)
 
 on:
   workflow_dispatch:
+  # Also runs automatically when the backend contract changes, so the proof is
+  # attached to the PR that changes it. Note: pull_request from a fork cannot
+  # read secrets — this repo's branches are same-repo, so secrets are available.
+  pull_request:
+    paths:
+      - 'supabase/schema.sql'
+      - 'qa/verify-supabase.mjs'
+      - 'src/lib/cloud/**'
+      - '.github/workflows/verify-supabase.yml'
   push:
     branches: [main]
     paths:

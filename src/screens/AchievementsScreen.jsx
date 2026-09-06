@@ -169,6 +169,10 @@ export default function AchievementsScreen() {
 
 /* ---------------------------------------------------------- */
 
+/* Honest rarity names for the existing rule tiers — the tier still comes
+   from the achievement rules themselves; this is presentation, nothing more. */
+const RARITY = { bronze: 'common', silver: 'rare', gold: 'epic', diamond: 'legendary' }
+
 function AchievementCard({ item, index }) {
   const pct = Math.round(item.progress * 100)
   const [fresh, setFresh] = useState(false)
@@ -188,8 +192,10 @@ function AchievementCard({ item, index }) {
 
   return (
     <div
-      className={`ach-card${item.earned ? ' is-earned' : ''}${fresh ? ' is-fresh' : ''}`}
+      className={`ach-card badge3d${item.earned ? ' is-earned' : ''}${fresh ? ' is-fresh' : ''}`}
       data-tier={item.tier}
+      data-rarity={RARITY[item.tier] || 'common'}
+      data-locked={item.earned ? undefined : 'true'}
       style={{ animationDelay: `${Math.min(index, 11) * 40}ms` }}
     >
       <div className="ach-card-top">
@@ -206,6 +212,12 @@ function AchievementCard({ item, index }) {
         <div style={{ minWidth: 0 }}>
           <p className="ach-title">{item.title}</p>
           <p className="ach-sub">{item.blurb}</p>
+          {RARITY[item.tier] && (
+            <span className={`rarity-label rarity-${RARITY[item.tier]}`} aria-label={`Rarity: ${RARITY[item.tier].toUpperCase()}`}>
+              <i className="rarity-dot" aria-hidden="true" />
+              {RARITY[item.tier].toUpperCase()}
+            </span>
+          )}
         </div>
       </div>
 

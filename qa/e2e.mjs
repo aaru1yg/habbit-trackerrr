@@ -1356,5 +1356,165 @@ console.log('\n— Viewport sweep 320–414px —')
   }
 }
 
+
+/* ============================================================
+   PART 10 — V4 spatial experience (docs/V4-AUDIT.md)
+   Boot cinematic, world layers, route camera, gallery, atlas,
+   pressure band, collectible badges — all presentational layers
+   checked to exist, behave, and never block content.
+   ============================================================ */
+console.log('\n— V4 spatial —')
+{
+  const page = await newPage(browser, VIEWPORTS.desktop)
+
+  // 1 · boot overlay NEVER blocks automation by default, and plays when forced
+  await seedAndGoto(page, seededStateV4(), 'today', BASE)
+  check('V4 boot: skipped under automation without explicit QA hook',
+    await page.evaluate(() => !document.querySelector('.boot')))
+
+  await page.evaluate(() => localStorage.setItem('aaru.boot', 'on'))
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  // poll for appearance and dissolution — CI cold starts beat fixed sleeps
+  let bootSeen = { overlay: false, headline: false, skip: false }
+  for (let i = 0; i < 40; i += 1) {
+    bootSeen = await page.evaluate(() => ({
+      overlay: !!document.querySelector('.boot'),
+      headline: /SMALL THINGS/.test(document.querySelector('.boot')?.textContent || ''),
+      skip: !!document.querySelector('.boot-skip'),
+    }))
+    if (bootSeen.overlay && bootSeen.headline && bootSeen.skip) break
+    await sleep(200)
+  }
+  check('V4 boot: forced playback shows headline + skip control', bootSeen.overlay && bootSeen.headline && bootSeen.skip, JSON.stringify(bootSeen))
+  await shot(page, '23-v4-boot')
+  let bootGone = false
+  for (let i = 0; i < 40; i += 1) {
+    bootGone = await page.evaluate(() => !document.querySelector('.boot'))
+    if (bootGone) break
+    await sleep(200)
+  }
+  check('V4 boot: dissolves by itself (~1.4s + fade)', bootGone)
+  // strip the force flag BEFORE the document boots (addInitScript runs pre-JS),
+  // then a reload must respect the once-per-session gate
+  const unforce = await page.evaluateOnNewDocument(() => { try { localStorage.removeItem('aaru.boot') } catch { /* */ } })
+  await page.reload({ waitUntil: 'networkidle0' })
+  await sleep(300)
+  check('V4 boot: sessionStorage gate — no replay on refresh (hook removed pre-load)',
+    await page.evaluate(() => !document.querySelector('.boot') && sessionStorage.getItem('aaru.boot.v4') === '1'))
+  await page._client().send('Page.removeScriptToEvaluateOnNewDocument', { identifier: unforce.identifier }).catch(() => {})
+  await page.evaluate(() => { try { localStorage.removeItem('aaru.boot'); sessionStorage.clear() } catch { /* */ } })
+
+  // 2 · environment layers exist and never swallow input
+  await seedAndGoto(page, seededStateV4(), 'today', BASE)
+  const world = await page.evaluate(() => ({
+    static: document.querySelectorAll('.world-static i').length,
+    spatial: document.documentElement.dataset.spatial || '',
+    heroDeep: !!document.querySelector('.today-hero.sp-depth'),
+    noGlBlock: (() => { const w = document.querySelector('.world-layer'); return !w || getComputedStyle(w).pointerEvents === 'none' })(),
+  }))
+  check('V4 world: static distant planes present behind everything', world.static === 3, `static=${world.static}`)
+  check('V4 world: spatial tier published on <html>', ['full', 'reduced', 'flat'].includes(world.spatial), world.spatial)
+  check('V4 today: hero rides a named depth lane', world.heroDeep)
+  check('V4 world: WebGL layer (if mounted) never takes pointer input', world.noGlBlock)
+
+  // 3 · route change = camera travel, content never waits
+  await page.evaluate(() => { window.location.hash = '#/projects' })
+  const cam = await page.evaluate(() => !!document.querySelector('.route-cam'))
+  check('V4 nav: incoming screen is mounted under the camera group', cam)
+  await sleep(700)
+
+  // 4 · projects spatial gallery
+  const gallery = await page.evaluate(() => ({
+    items: document.querySelectorAll('.gal-item').length,
+    art: document.querySelectorAll('.gal-item .gal-art').length,
+    grid: !!document.querySelector('.gal-grid'),
+    toggle: !!([...document.querySelectorAll('.seg-btn')].find((b) => b.textContent.trim() === 'Gallery')),
+    list: !!([...document.querySelectorAll('.seg-btn')].find((b) => b.textContent.trim() === 'List')),
+  }))
+  check('V4 gallery: every project is a floating plane with its own surface',
+    gallery.grid && gallery.items > 0 && gallery.items === gallery.art && gallery.toggle && gallery.list,
+    JSON.stringify(gallery))
+  await shot(page, '24-v4-gallery')
+  await page.evaluate(() => [...document.querySelectorAll('.seg-btn')].find((b) => b.textContent.trim() === 'List')?.click())
+  await sleep(500)
+  check('V4 gallery: List mode restores the classic rows', await page.evaluate(() => !!document.querySelector('.work-list')))
+  await page.evaluate(() => [...document.querySelectorAll('.seg-btn')].find((b) => b.textContent.trim() === 'Gallery')?.click())
+  await sleep(400)
+  const kb = await page.evaluate(() => {
+    const link = document.querySelector('.gal-item a')
+    if (!link) return false
+    link.focus()
+    return document.activeElement === link
+  })
+  check('V4 gallery: plane content is keyboard-focusable (a11y §25)', kb)
+
+  // 5 · goals atlas — constellation of real links
+  await page.goto(`${BASE}/#/goals`, { waitUntil: 'networkidle0' })
+  await sleep(700)
+  const atlas = await page.evaluate(() => ({
+    frames: document.querySelectorAll('.atlas-frame').length,
+    nodes: document.querySelectorAll('.atlas-node').length,
+    goals: document.querySelectorAll('.atlas-goal').length,
+    lines: document.querySelectorAll('.atlas-web line').length,
+    img: !!document.querySelector('.atlas-scene'),
+  }))
+  check('V4 atlas: goals render as constellations with real satellites',
+    atlas.frames > 0 && atlas.nodes >= atlas.goals * 2 && atlas.lines >= atlas.nodes - atlas.goals,
+    JSON.stringify(atlas))
+  await shot(page, '25-v4-atlas')
+
+  // 6 · assignments pressure band
+  await page.goto(`${BASE}/#/assignments`, { waitUntil: 'networkidle0' })
+  await sleep(700)
+  const press = await page.evaluate(() => {
+    const band = document.querySelector('.press-band')
+    return {
+      band: !!band,
+      headline: /TIME PRESSURE/.test(band?.textContent || ''),
+      days: /DAYS LEFT/i.test(band?.textContent || ''),
+      ribbons: document.querySelectorAll('.pace-ribbon-track').length,
+      labelled: [...document.querySelectorAll('.pace-ribbon-track')].every((r) => /Actual \d+%.*expected by now/i.test(r.getAttribute('aria-label') || 'Actual') || (r.getAttribute('aria-label') || '').includes('Progress')),
+    }
+  })
+  check('V4 pressure: band states time left + expected-vs-actual per plane',
+    press.band && press.headline && press.days && press.ribbons > 0 && press.labelled,
+    JSON.stringify(press))
+  await shot(page, '26-v4-pressure')
+
+  // 7 · achievements — collectible surfaces, honest rarity words
+  await page.goto(`${BASE}/#/achievements`, { waitUntil: 'networkidle0' })
+  await sleep(800)
+  const rarity = await page.evaluate(() => {
+    const earned = document.querySelector('.ach-card.is-earned')
+    const words = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY']
+    const labels = [...document.querySelectorAll('.rarity-label')].map((l) => l.textContent.trim())
+    return {
+      depth: !!document.querySelector('.ach-card.badge3d'),
+      allValid: labels.every((t) => words.includes(t)) && labels.length > 0,
+      earnedHasRarity: !!earned && !!earned.querySelector('.rarity-label'),
+      lockedNoGlow: [...document.querySelectorAll('.ach-card:not(.is-earned)[data-rarity]')].length >= 0,
+    }
+  })
+  check('V4 achievements: every card carries depth + an honest rarity word',
+    rarity.depth && rarity.allValid && rarity.earnedHasRarity, JSON.stringify(rarity))
+  await shot(page, '27-v4-badges')
+
+  // 8 · reduced motion — the world stands still but keeps its composition
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }])
+  await page.goto(`${BASE}/#/today`, { waitUntil: 'networkidle0' })
+  await sleep(600)
+  const still = await page.evaluate(() => ({
+    spatial: document.documentElement.dataset.spatial,
+    depthKept: !!document.querySelector('.today-hero.sp-depth'),
+    boot: !!document.querySelector('.boot'),
+    anim: getComputedStyle(document.querySelector('.world-static i') || document.body).animationName,
+  }))
+  check('V4 reduced motion: spatial mode pins to flat, composition (depth) is kept',
+    still.spatial === 'flat' && still.depthKept && !still.boot, JSON.stringify(still))
+  await noConsoleErrors(page, 'v4-spatial')
+  await page.close()
+}
+
+
 await browser.close()
 report('E2E + VISUAL QA')

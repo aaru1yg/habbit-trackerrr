@@ -1,6 +1,6 @@
 # 🔥 Aaru · Next-Level Habit Tracker
 
-> **V2 foundation release:** the unified Midnight/Aurora/Warm/Verdant/Light system, Today command center, Habits detail and Achievements work is preserved. See [the shipping audit](docs/V2-RELEASE.md) for recovered commits, validation, known scope limits and the public-build proof contract. The live build identifies itself at [`release.json`](https://aaru1yg.github.io/habbit-trackerrr/release.json).
+> **V4 spatial release:** Habit OS is now a 3D-first *environment* — a boot cinematic on entry, a camera that travels between screens, floating depth planes on Today/Projects/Goals/Insights/Achievements, and a lazy WebGL world layer — while every V2/V3 system (auth, Supabase, RLS, sync, offline, PWA) stays untouched. See [the V4 audit](docs/V4-AUDIT.md) and [release notes](docs/V4-RELEASE.md) for architecture, budgets and QA. The live build identifies itself at [`release.json`](https://aaru1yg.github.io/habbit-trackerrr/release.json).
 
 Aaru's personal, next-level habit tracker. Dark, glassy, heavily animated, and packed with more graphs and features than any ordinary habit app. Your data lives entirely in your browser (localStorage) — no account, no server, just *you* and your streak.
 

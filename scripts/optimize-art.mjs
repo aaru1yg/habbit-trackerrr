@@ -48,6 +48,12 @@ const PLAN = {
   'productivity': { box: [560, 420], quality: 78 },
   'onboarding': { box: [1120, 900], quality: 80 },
 
+  // V4 scene art — cinematic environments, used as masked backdrops
+  'scene-hero': { box: [1200, 675], quality: 70 },
+  'scene-gallery': { box: [960, 420], quality: 70 },
+  'scene-data-room': { box: [840, 560], quality: 72 },
+  'scene-constellation': { box: [840, 470], quality: 72 },
+
   // Achievement badges — square, shown at 44–72px
   'badge-bronze': { box: [192, 192], quality: 82 },
   'badge-silver': { box: [192, 192], quality: 82 },

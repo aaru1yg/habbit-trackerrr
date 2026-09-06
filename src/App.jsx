@@ -7,6 +7,9 @@ import HabitUIProvider, { useHabitUI } from './components/habits/HabitUIProvider
 import WorkUIProvider, { useWorkUI } from './components/work/WorkUIProvider.jsx'
 import Backdrop from './components/layout/Backdrop.jsx'
 import PointerLight from './components/motion/PointerLight.jsx'
+import WorldLayer from './components/spatial/WorldLayer.jsx'
+import BootSequence from './components/spatial/BootSequence.jsx'
+import { applySpatialMode } from './lib/spatial.js'
 import { BottomNav, Sidebar, MoreSheet } from './components/layout/Navigation.jsx'
 import SearchPalette from './components/layout/SearchPalette.jsx'
 import Onboarding from './components/Onboarding.jsx'
@@ -59,6 +62,9 @@ export default function App() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
+  // V4: publish the device's spatial tier once, keep it honest on change.
+  useEffect(() => applySpatialMode(), [])
+
   useEffect(() => {
     const on = () => setOnline(true)
     const off = () => setOnline(false)
@@ -97,6 +103,8 @@ export default function App() {
     return (
       <>
         <Backdrop />
+        <WorldLayer />
+        <BootSequence />
         <Onboarding />
       </>
     )
@@ -107,6 +115,11 @@ export default function App() {
   return (
     <>
       <Backdrop />
+      {/* V4: the ambient environment sits under the whole app; the boot
+          cinematic runs once per session above everything (skippable,
+          reduced-motion aware). Neither holds data — see docs/V4-AUDIT.md. */}
+      <WorldLayer />
+      <BootSequence />
       <PointerLight />
       <Sidebar route={active} name={state.profile.name} onSearch={() => setSearchOpen(true)} />
       {!online && (
@@ -120,23 +133,28 @@ export default function App() {
         <WorkUIProvider>
           <HabitUIProvider onFire={onFire}>
             <main id="content" style={{ position: 'relative' }}>
-              <Suspense fallback={<ScreenFallback />}>
-                {active === 'today' && <TodayScreen onFire={onFire} />}
-                {active === 'calendar' && <CalendarScreen key={param || 'current'} ymParam={param} />}
-                {active === 'week' && <WeekScreen />}
-                {active === 'insights' && <InsightsScreen />}
-                {active === 'mind' && <MindScreen />}
-                {active === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
-                {active === 'library' && <LibraryScreen />}
-                {active === 'record' && <RecordScreen />}
-                {active === 'settings' && <SettingsScreen />}
-                {active === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <ProjectsScreen route={active} />)}
-                {active === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <AssignmentsScreen route={active} />)}
-                {active === 'workload' && <WorkloadScreen route={active} />}
-                {active === 'timeline' && <TimelineScreen route={active} />}
-                {active === 'achievements' && <AchievementsScreen route={active} />}
-                {active === 'habits' && (param ? <HabitDetailScreen id={param} /> : <HabitsScreen route={active} />)}
-              </Suspense>
+              {/* Route change = camera travel, not a swap (spec §8): the screen
+                  rises ~90px out of depth in 420ms. Keyed so any route/param
+                  change re-plays it; reduced motion disables it in CSS. */}
+              <div key={`${active}${param ? `/${param}` : ''}`} className="route-cam">
+                <Suspense fallback={<ScreenFallback />}>
+                  {active === 'today' && <TodayScreen onFire={onFire} />}
+                  {active === 'calendar' && <CalendarScreen key={param || 'current'} ymParam={param} />}
+                  {active === 'week' && <WeekScreen />}
+                  {active === 'insights' && <InsightsScreen />}
+                  {active === 'mind' && <MindScreen />}
+                  {active === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
+                  {active === 'library' && <LibraryScreen />}
+                  {active === 'record' && <RecordScreen />}
+                  {active === 'settings' && <SettingsScreen />}
+                  {active === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <ProjectsScreen route={active} />)}
+                  {active === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <AssignmentsScreen route={active} />)}
+                  {active === 'workload' && <WorkloadScreen route={active} />}
+                  {active === 'timeline' && <TimelineScreen route={active} />}
+                  {active === 'achievements' && <AchievementsScreen route={active} />}
+                  {active === 'habits' && (param ? <HabitDetailScreen id={param} /> : <HabitsScreen route={active} />)}
+                </Suspense>
+              </div>
             </main>
 
             <Fab route={active} />

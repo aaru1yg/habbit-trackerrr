@@ -91,6 +91,7 @@ export default function AuthScreen() {
   return (
     <div className="auth-shell">
       <aside className="auth-brand" aria-hidden="true">
+        <img className="auth-scene" src="art/scene-hero.webp" alt="" width="1200" height="675" loading="eager" decoding="async" />
         <div className="auth-brand-inner">
           <div className="auth-logo">
             <span className="auth-logo-mark"><IconCheck size={20} /></span>
@@ -98,8 +99,9 @@ export default function AuthScreen() {
           </div>
           <h1 className="auth-brand-title">Small things,<br />done daily.</h1>
           <p className="auth-brand-sub">
-            Habits, projects and deadlines in one calm place — backed up to your
-            private cloud and waiting on every device you own.
+            A personal productivity environment — habits, goals, projects and
+            deadlines living in one spatial place, backed up to your private
+            cloud and waiting on every device you own.
           </p>
           <ul className="auth-points">
             <li><IconFlame size={16} /> Streaks that survive a bad week</li>
@@ -107,10 +109,25 @@ export default function AuthScreen() {
             <li><IconCheck size={16} /> Private by default, yours alone</li>
           </ul>
         </div>
+        {/* V4: the product previewed as floating planes in depth (decorative). */}
+        <div className="auth-planes">
+          <i>Today</i>
+          <i>Habits · streaks</i>
+          <i>Projects · goals</i>
+          <i>Deadlines · insights</i>
+        </div>
         <div className="auth-glow" />
       </aside>
 
       <main className="auth-panel">
+        <div className="auth-hero-mobile" aria-hidden="true">
+          <div className="auth-logo" style={{ justifyContent: 'center' }}>
+            <span className="auth-logo-mark"><IconCheck size={16} /></span>
+            <span className="auth-logo-word">Habit OS</span>
+          </div>
+          <h1>SMALL THINGS.<br />DONE DAILY.</h1>
+          <p>Your personal productivity environment.</p>
+        </div>
         <div className="auth-card">
           <div className="auth-logo auth-logo-mobile">
             <span className="auth-logo-mark"><IconCheck size={18} /></span>

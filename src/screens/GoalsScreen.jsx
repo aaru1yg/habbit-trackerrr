@@ -14,6 +14,8 @@ import { useStore } from '../store.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
+import GoalAtlas from '../components/goals/GoalAtlas.jsx'
+import Reveal from '../components/motion/Reveal.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { Meter, StatStrip, WorkEmpty, FadeIn } from '../components/work/WorkKit.jsx'
 import {
@@ -123,6 +125,13 @@ export default function GoalsScreen() {
 
       <div className="stack">
         <StatStrip cells={cells} />
+
+        {/* V4: the spatial relationship of each goal — real links only (spec §12) */}
+        {goals.length > 0 && filter !== 'reached' && (
+          <Reveal as="div" variant="depth" delay={40}>
+            <GoalAtlas goals={ordered} />
+          </Reveal>
+        )}
 
         <div className="seg seg-wide" role="tablist" aria-label="Goal filters">
           {[

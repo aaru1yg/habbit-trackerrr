@@ -14,6 +14,7 @@
 @import './styles/work.css';
 @import './styles/system.css';
 @import './styles/motion.css';
+@import './styles/spatial.css';
 @import './styles/auth.css';
 
 .spinner {

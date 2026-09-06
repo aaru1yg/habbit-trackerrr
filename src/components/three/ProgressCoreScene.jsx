@@ -184,18 +184,22 @@ export default function ProgressCoreScene({ pct = 0, theme = 'midnight', classNa
       const target = pctRef.current / 100
       smooth += (target - smooth) * 0.06
 
-      ring.rotation.z = t * 0.12
+      /* progress drives everything in this scene — light intensity,
+         orbit speed, shell expansion, surface energy (spec §7). It
+         stays an ornament: the SVG core in front owns the number. */
+      ring.rotation.z = t * (0.12 + smooth * 0.14)
       ring.rotation.x = Math.PI / 2.35 + Math.sin(t * 0.22) * 0.12
-      ring2.rotation.z = -t * 0.08
+      ring2.rotation.z = -t * (0.08 + smooth * 0.1)
       ring2.rotation.y = Math.sin(t * 0.18) * 0.24
-      core.rotation.y = t * 0.16
+      core.rotation.y = t * (0.16 + smooth * 0.12)
       core.rotation.x = Math.sin(t * 0.3) * 0.2
       core.scale.setScalar(0.9 + smooth * 0.3)
       coreMat.opacity = 0.14 + smooth * 0.3
-      points.rotation.y = t * 0.05
+      points.rotation.y = t * (0.05 + smooth * 0.08)
+      points.scale.setScalar(0.94 + smooth * 0.14)
       partMat.opacity = 0.26 + smooth * 0.42
       glowMat.opacity = 0.22 + smooth * 0.42
-      glow.scale.setScalar(3.1 + smooth * 2.4 + Math.sin(t * 0.8) * 0.08)
+      glow.scale.setScalar(3.1 + smooth * 2.4 + Math.sin(t * (0.8 + smooth * 0.9)) * 0.1)
       ringMat.opacity = 0.3 + smooth * 0.3
 
       camera.position.x += (targetX - camera.position.x) * 0.045

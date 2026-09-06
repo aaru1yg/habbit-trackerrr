@@ -214,7 +214,8 @@ describe('core flows', () => {
     fireEvent.change(within(goalForm).getByLabelText(/What do you want to achieve/i), { target: { value: 'Write a novella' } })
     fireEvent.change(within(goalForm).getByLabelText(/Milestone 1 name/i), { target: { value: 'Finish a draft' } })
     fireEvent.click(within(goalForm).getByRole('button', { name: /Create goal/i }))
-    await screen.findByText('Write a novella')
+    // V4: the title now reads twice — once as the atlas anchor, once in the list
+    await screen.findAllByText('Write a novella')
     // the milestone came through, and progress is measured from it
     expect(screen.getAllByText('Finish a draft').length).toBeGreaterThan(0)
     // nothing has been reached yet, so progress is honestly 0

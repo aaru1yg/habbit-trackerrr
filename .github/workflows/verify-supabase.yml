@@ -86,7 +86,7 @@ jobs:
               *"✗"*) echo "::error::${line}" ;;
               *"⊘"*) echo "::warning::${line}" ;;
               *"✓"*) echo "::notice::${line}" ;;
-              *"passed,"*|*"PARTIAL"*|*"PASSED"*|*"Confirm email"*|*"↳"*)
+              *"passed,"*|*"PARTIAL"*|*"PASSED"*|*"Confirm email"*|*"↳"*|*"cause"*|*"1."*|*"2."*|*"3."*)
                 echo "::notice::${line}" ;;
             esac
           done < /tmp/verify.txt

@@ -1,35 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import ProgressCore from '../ui/ProgressCore.jsx'
 import AnimatedNumber from '../ui/AnimatedNumber.jsx'
-import SceneLayer from '../three/SceneLayer.jsx'
-import Parallax from '../motion/Parallax.jsx'
 import Burst from '../motion/Burst.jsx'
 import AnimateOnView from '../motion/AnimateOnView.jsx'
-import { useScrollProgress } from '../../lib/motion.js'
-import { useStore } from '../../store.jsx'
 import { IconAlert, IconFlame } from '../../lib/icons.jsx'
 
 /* ============================================================
-   TODAY HERO — the emotional centre of Habit OS (spec §7).
+   TODAY HERO — the emotional centre of Habit OS.
 
-   One composition, three depths:
-     far    the WebGL energy field (SceneLayer; absent when the
-            device or the user prefers stillness)
-     mid    the Progress Core — ticks, arc, orb, halo
-     near   the words: what is done, what remains, what is at risk
-
-   The hero answers the scroll: as the page moves it settles back
-   and compresses a few percent while the list below comes
-   forward. Reduced motion pins every layer at rest.
-
-   A completion pulses the core once and sheds a small particle
-   response — never confetti per checkbox; the full celebration
-   stays reserved for milestones.
+   2D by design: a pure-CSS energy field (no WebGL anywhere), the
+   Progress Core, and the words — what is done, what remains, what
+   is at risk. A completion pulses the core once and sheds a small
+   particle response — never confetti per checkbox; the full
+   celebration stays reserved for milestones.
    ============================================================ */
-export default function TodayHero({ stats, top, atRisk, nearMilestone, copy, week }) {
-  const { state } = useStore()
-  const heroRef = useRef(null)
-  const scroll = useScrollProgress(heroRef)
+export default function TodayHero({ stats, top, atRisk, nearMilestone, copy, week, prio }) {
   const [pulse, setPulse] = useState(0)
   const prevDone = useRef(stats.done)
 
@@ -39,29 +24,17 @@ export default function TodayHero({ stats, top, atRisk, nearMilestone, copy, wee
     prevDone.current = stats.done
   }, [stats.done])
 
-  useEffect(() => {
-    const el = heroRef.current
-    if (!el) return undefined
-    return scroll.subscribe((p) => {
-      // only the first 60% of the hero's travel should compress it
-      el.style.setProperty('--px', Math.min(1, p * 1.6).toFixed(3))
-    })
-  }, [scroll])
-
   const left = Math.max(0, stats.total - stats.done)
 
   return (
     <section
-      ref={heroRef}
-      className={`card pad-lg today-hero today-hero-v3 scene-enter sp-depth${pulse ? ' core-hit' : ''}`}
+      className="card pad-lg today-hero today-hero-v3 scene-enter"
       aria-label="Today at a glance"
     >
       <div className="today-hero-inner hero-compress">
         <div className="today-ring today-core">
-          {/* far depth: the energy field hugs the core, travels slower */}
-          <Parallax travel={2} className="today-scene" aria-hidden="true">
-            <SceneLayer pct={stats.pct} theme={state.profile.theme} />
-          </Parallax>
+          {/* pure-CSS energy field — same calm depth, zero WebGL */}
+          <span className="today-scene-2d" aria-hidden="true" />
           {pulse > 0 && <span key={pulse} className="core-pulse go" aria-hidden="true" />}
           <Burst fire={pulse} count={10} spread={64} />
           <ProgressCore
@@ -82,6 +55,13 @@ export default function TodayHero({ stats, top, atRisk, nearMilestone, copy, wee
             <span>{stats.total === 1 ? 'habit' : 'habits'} scheduled</span>
           </div>
           <p>{copy}</p>
+
+          {prio && prio.left > 0 && (
+            <p className="pace-note" data-tone="warn">
+              <IconAlert size={14} />
+              {prio.left} high-priority habit{prio.left === 1 ? '' : 's'} still open today.
+            </p>
+          )}
 
           {atRisk && (
             <p className="pace-note" data-tone="warn">

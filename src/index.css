@@ -16,6 +16,7 @@
 @import './styles/motion.css';
 @import './styles/spatial.css';
 @import './styles/auth.css';
+@import './styles/hub.css';
 
 .spinner {
   width: 28px;

@@ -11,10 +11,8 @@
      (canvas redraw, ring fill) and it dies under reduced motion.
    ============================================================ */
 
-#today-screen {
-  max-width: min(1360px, calc(100% - 0px));
-}
-
+/* Today rides the shared .screen width token (--content-max); it does not
+   widen the content column beyond every other screen. */
 .hub {
   display: flex;
   flex-direction: column;

@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:schema": "node qa/schema-check.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/manrope": "^5.3.0",
+    "@supabase/supabase-js": "^2.115.0",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.3.28",
     "react": "^18.3.1",
@@ -27,6 +29,7 @@
     "jsdom": "^30.0.1",
     "puppeteer-core": "^25.10.0",
     "vite": "^5.4.2",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "@electric-sql/pglite": "^0.2.17"
   }
 }

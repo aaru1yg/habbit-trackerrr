@@ -7,6 +7,7 @@
 @import './styles/work.css';
 @import './styles/visual.css';
 @import './styles/energy.css';
+@import './styles/auth.css';
 
 .spinner {
   width: 28px;

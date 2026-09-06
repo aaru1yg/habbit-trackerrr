@@ -1,0 +1,112 @@
+name: Verify Supabase (live)
+
+# Runs the real backend proof from a GitHub runner, which has network egress
+# to Supabase. Uses ONLY the public URL + publishable key, both read from
+# repository secrets. No service_role key is ever referenced.
+#
+# Trigger manually: Actions -> "Verify Supabase (live)" -> Run workflow.
+
+on:
+  workflow_dispatch:
+  # Also runs automatically when the backend contract changes, so the proof is
+  # attached to the PR that changes it. Note: pull_request from a fork cannot
+  # read secrets — this repo's branches are same-repo, so secrets are available.
+  pull_request:
+    paths:
+      - 'supabase/schema.sql'
+      - 'qa/verify-supabase.mjs'
+      - 'src/lib/cloud/**'
+      - '.github/workflows/verify-supabase.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/schema.sql'
+      - 'qa/verify-supabase.mjs'
+      - '.github/workflows/verify-supabase.yml'
+
+jobs:
+  verify:
+    name: Live auth, persistence and RLS isolation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fail fast if secrets are missing
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ] || [ -z "${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}" ]; then
+            echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY are not set."
+            exit 1
+          fi
+          echo "Both public Supabase secrets are present."
+
+      # The script prints only pass/fail lines — never the key, never a token.
+      # Output is mirrored into the job summary and an artifact so the result
+      # is readable via the API, not only in the raw log viewer.
+      - name: Live Supabase verification
+        id: verify
+        continue-on-error: true
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # Optional: two PRE-CONFIRMED accounts let the run prove the full
+          # two-user isolation matrix while "Confirm email" stays enabled.
+          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+          TEST_B_EMAIL: ${{ secrets.TEST_B_EMAIL }}
+          TEST_B_PASSWORD: ${{ secrets.TEST_B_PASSWORD }}
+        run: |
+          set +e
+          node qa/verify-supabase.mjs 2>&1 | tee /tmp/verify.txt
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish result
+        run: |
+          {
+            echo '## Live Supabase verification'
+            echo ''
+            echo '```'
+            cat /tmp/verify.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Raw logs and artifacts are served from blob storage that some
+          # environments cannot reach. Annotations come from api.github.com,
+          # so echo every result line as one — this is the readable record.
+          while IFS= read -r line; do
+            case "$line" in
+              *"✗"*) echo "::error::${line}" ;;
+              *"⊘"*) echo "::warning::${line}" ;;
+              *"✓"*) echo "::notice::${line}" ;;
+              *"passed,"*|*"PARTIAL"*|*"PASSED"*|*"Confirm email"*|*"↳"*|*"cause"*|*"1."*|*"2."*|*"3."*)
+                echo "::notice::${line}" ;;
+            esac
+          done < /tmp/verify.txt
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-verification
+          path: /tmp/verify.txt
+
+      # 0 = fully proven, 3 = partial (needs pre-confirmed accounts), else fail.
+      - name: Enforce outcome
+        run: |
+          CODE="${{ steps.verify.outputs.code }}"
+          echo "verification exit code: $CODE"
+          if [ "$CODE" = "0" ]; then
+            echo "Fully verified."
+          elif [ "$CODE" = "3" ]; then
+            echo "::warning::PARTIAL — connectivity/schema/signup verified, but login and isolation need pre-confirmed test accounts."
+          else
+            echo "::error::Live Supabase verification failed."
+            exit 1
+          fi

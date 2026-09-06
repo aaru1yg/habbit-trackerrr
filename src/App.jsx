@@ -9,6 +9,7 @@ import { BottomNav, Sidebar, MoreSheet } from './components/layout/Navigation.js
 import SearchPalette from './components/layout/SearchPalette.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import Confetti from './components/ui/Confetti.jsx'
+import MigrationDialog from './components/auth/MigrationDialog.jsx'
 import { isSheetOpen } from './components/ui/Sheet.jsx'
 import TodayScreen from './screens/TodayScreen.jsx'
 import { checkReminders, notify, checkWorkReminders, notifyWork } from './lib/reminders.js'
@@ -136,6 +137,7 @@ export default function App() {
         {/* completion confetti (auto-disabled under reduced motion) */}
         <Confetti fire={fire} count={90} origin={{ x: 0.5, y: 0.35 }} />
 
+        <MigrationDialog />
         <ReminderScheduler />
       </ToastProvider>
 

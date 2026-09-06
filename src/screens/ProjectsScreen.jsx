@@ -12,6 +12,8 @@ import { ProjectCard } from '../components/work/WorkCards.jsx'
 import { StatStrip, FilterBar, WorkEmpty, FadeIn } from '../components/work/WorkKit.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { LineSeries, HBarList, BurndownChart, DonutStat, BucketColumns } from '../components/charts/workCharts.jsx'
+import ProjectGallery from '../components/work/ProjectGallery.jsx'
+import { SpatialStage } from '../components/spatial/Depth.jsx'
 import {
   projectsSummary, sortWorkRows, matchesWorkFilter, matchesQuery, WORK_FILTERS,
   projectCompletionTrend, weeklyCompletionSpeed, projectComparison, timeDistribution, burndown,
@@ -34,6 +36,7 @@ export default function ProjectsScreen({ route = 'projects' }) {
   const work = useWorkUI()
   const now = useNow()
   const [view, setView] = useState('overview')
+  const [layout, setLayout] = useState('gallery')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('urgency')
   const [query, setQuery] = useState('')
@@ -109,6 +112,14 @@ export default function ProjectsScreen({ route = 'projects' }) {
                 </div>
                 <FilterBar filters={WORK_FILTERS} value={filter} onChange={setFilter} counts={counts} ariaLabel="Filter projects" />
                 <div className="row-between">
+                  <div className="seg" role="group" aria-label="Projects layout">
+                    <button type="button" className={`seg-btn${layout === 'gallery' ? ' active' : ''}`} aria-pressed={layout === 'gallery'} onClick={() => setLayout('gallery')}>
+                      Gallery
+                    </button>
+                    <button type="button" className={`seg-btn${layout === 'list' ? ' active' : ''}`} aria-pressed={layout === 'list'} onClick={() => setLayout('list')}>
+                      List
+                    </button>
+                  </div>
                   <span className="tiny muted">{visible.length} shown</span>
                   <label className="sr-only" htmlFor="project-sort">Sort projects</label>
                   <select id="project-sort" className="status-select" value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -135,6 +146,10 @@ export default function ProjectsScreen({ route = 'projects' }) {
                   Try a different filter or clear the search.
                 </WorkEmpty>
               </SectionCard>
+            ) : layout === 'gallery' ? (
+              <SpatialStage className="gal-wrap" focus={1600} parallax={8}>
+                <ProjectGallery rows={visible} now={now} />
+              </SpatialStage>
             ) : (
               <div className="work-list">
                 {visible.map(({ project }, i) => (

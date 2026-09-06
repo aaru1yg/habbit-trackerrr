@@ -155,6 +155,25 @@
 .sp-card:focus-within .sp-card-sheen,
 .sp-panel:hover .sp-panel-sheen { opacity: 1; }
 
+/* data-depth → the same z vocabulary the camera rig consumes. */
+.sp-card[data-depth='1'], .sp-panel[data-depth='1'] { --z: var(--sp-z1); }
+.sp-card[data-depth='2'], .sp-panel[data-depth='2'] { --z: var(--sp-z2); }
+.sp-card[data-depth='3'], .sp-panel[data-depth='3'] { --z: var(--sp-z3); }
+.sp-card[data-depth='4'], .sp-panel[data-depth='4'] { --z: var(--sp-z4); }
+.sp-card { transform-style: preserve-3d; }
+/* Tilt and depth share one transform on the same surface — combined here
+   so motion.css's .tilt and this layer can never fight each other. */
+.tilt.sp-card {
+  transform:
+    rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))
+    translate3d(0, 0, calc(var(--z, var(--sp-z1)) * var(--sp-k) * 0.5));
+  transition:
+    transform var(--cam-focus) var(--cam-ease),
+    border-color var(--dur-2) var(--ease-out),
+    box-shadow var(--cam-focus) var(--cam-ease);
+}
+.tilt.sp-card[data-tilting='true'] { transition-duration: 60ms, var(--dur-2), 60ms; }
+
 /* Spatial stack: a corridor of planes, not a flat column. */
 .sp-stack { display: flex; flex-direction: column; gap: var(--sp-gap, 12px); list-style: none; margin: 0; padding: 0; transform-style: preserve-3d; }
 .sp-stack .sp-slot > * { --z: var(--sp-z1); }
@@ -393,10 +412,51 @@
   aspect-ratio: 21 / 10;
   overflow: hidden;
   border-bottom: 1px solid var(--border-1);
-  background: radial-gradient(120% 140% at 12% 0%, color-mix(in oklab, var(--accent-1) 30%, transparent), transparent 55%),
-              radial-gradient(110% 130% at 92% 100%, color-mix(in oklab, var(--accent-2) 24%, transparent), transparent 52%),
-              var(--surface-solid);
+  background:
+    linear-gradient(calc(118deg + var(--shift, 0deg) * 0.35),
+      color-mix(in oklab, var(--cat-c, var(--accent-1)) 26%, transparent), transparent 55%),
+    radial-gradient(120% 140% at 12% 0%, color-mix(in oklab, var(--accent-1) 30%, transparent), transparent 55%),
+    radial-gradient(110% 130% at 92% 100%, color-mix(in oklab, var(--accent-2) 24%, transparent), transparent 52%),
+    var(--surface-solid);
+  transform: translateZ(calc(8px * var(--sp-k)));
 }
+.gal-glyph {
+  position: absolute;
+  top: 12px; left: 14px;
+  color: color-mix(in oklab, var(--cat-c, var(--accent-1)) 80%, white);
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.35));
+  transform: translate3d(calc(var(--tilt-y, 0deg) * -1.2), calc(var(--tilt-x, 0deg) * 1.2), 0);
+  transition: transform 300ms var(--cam-ease);
+}
+.gal-initial {
+  position: absolute;
+  right: 14px; bottom: -18px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 5.2rem;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: color-mix(in oklab, var(--cat-c, var(--accent-1)) 46%, transparent);
+  opacity: 0.5;
+  transform: translate3d(calc(var(--tilt-y, 0deg) * 1.6), 0, 0);
+  transition: transform 340ms var(--cam-ease);
+  pointer-events: none;
+}
+.gal-card:hover .gal-initial, .gal-card:focus-within .gal-initial { opacity: 0.72; }
+.gal-phase {
+  position: absolute;
+  left: 14px; bottom: 12px;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  color: var(--text-2);
+  background: color-mix(in oklab, var(--surface-solid) 72%, transparent);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-pill);
+  padding: 3px 9px;
+}
+.gal-pct { color: var(--text); }
 .gal-art img {
   width: 100%; height: 100%;
   object-fit: cover;

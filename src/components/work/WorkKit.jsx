@@ -51,7 +51,7 @@ export function DeadlineHero({ status, compact = false }) {
   )
 }
 
-export function CountdownChip({ status, prefix = 'Due' }) {
+export function CountdownChip({ status }) {
   if (!status?.hasDeadline) return <span className="count-chip">No deadline</span>
   return (
     <span className="count-chip" data-tone={status.tone === 'neutral' ? undefined : status.tone}>
@@ -133,7 +133,7 @@ export function QuickProgress({ value, onChange, label = 'Progress' }) {
 
 /* ---------------- Milestone stepper (§59) ---------------- */
 
-export function MilestoneStepper({ track, vertical = false, onSelect, pct = 0 }) {
+export function MilestoneStepper({ track, vertical = false, onSelect }) {
   if (!track?.length) return null
   return (
     <div className={`stepper${vertical ? ' vertical' : ''}`} role="list" aria-label="Milestone progression">
@@ -228,10 +228,15 @@ export function FadeIn({ children, delay = 0, as = 'div', ...rest }) {
 
 /* ---------------- Empty ---------------- */
 
-export function WorkEmpty({ icon, title, children, action }) {
+export function WorkEmpty({ art, icon, title, children, action }) {
   return (
     <div className="empty">
-      <div style={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center', height: 72 }}>{icon}</div>
+      {art ? (
+        <img src={art} alt="" width={240} height={240} loading="lazy" decoding="async"
+          onError={(e) => { e.currentTarget.style.display = 'none' }} />
+      ) : (
+        <div style={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center', height: 72 }}>{icon}</div>
+      )}
       <div className="empty-title">{title}</div>
       {children && <p className="empty-sub">{children}</p>}
       {action && <div className="empty-actions">{action}</div>}

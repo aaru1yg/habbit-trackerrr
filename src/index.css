@@ -1,8 +1,10 @@
 /* Habit OS — design system entry.
  *
  * Layer order matters: tokens define the contract, base applies the
- * document, components + work build the primitives, and system owns the
- * final look of every surface. Nothing below tokens may redefine a token.
+ * document, components + work build the primitives, system owns the
+ * final look of every surface, and motion owns every movement (scroll
+ * choreography, depth, chart animation) — nothing else may animate.
+ * Nothing below tokens may redefine a token.
  */
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/manrope';
@@ -11,6 +13,7 @@
 @import './styles/components.css';
 @import './styles/work.css';
 @import './styles/system.css';
+@import './styles/motion.css';
 @import './styles/auth.css';
 
 .spinner {

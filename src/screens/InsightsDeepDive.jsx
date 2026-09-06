@@ -4,13 +4,16 @@
    do not have enough data say so instead of inventing a number.
    No causal claims — only "often appear together".
    ============================================================ */
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
-import { LineSeries, HBarList, DonutStat, BucketColumns, CompareBars } from '../components/charts/workCharts.jsx'
+import { HBarList, DonutStat, BucketColumns, CompareBars } from '../components/charts/workCharts.jsx'
+import DayClock from '../components/charts/DayClock.jsx'
+import PulseRibbon from '../components/charts/PulseRibbon.jsx'
+import MoodScatter from '../components/charts/MoodScatter.jsx'
 import {
   weekdayPerformance, weekdayVsWeekend, consistencyRanking, consistencyLabel, streakHistory,
   completionDistribution, timeOfDayPerformance, habitCorrelations, moodCorrelations,
-  monthlyPulse, personalBests, smartInsights,
+  monthlyPulse, personalBests, smartInsights, moodScatter,
 } from '../lib/analytics.js'
 import { activeHabits, habitBestStreak } from '../lib/stats.js'
 import { shortDate, prettyDate } from '../lib/dates.js'
@@ -33,6 +36,7 @@ export default function InsightsDeepDive({ state }) {
   const bests = useMemo(() => personalBests(state), [state])
   const corr = useMemo(() => habitCorrelations(state, 60, 4), [state])
   const moodCorr = useMemo(() => moodCorrelations(state, 60), [state])
+  const scatter = useMemo(() => moodScatter(state, 60), [state])
 
   // streak history for the habit with the longest recorded streak
   const streakHabit = useMemo(() => {
@@ -139,11 +143,7 @@ export default function InsightsDeepDive({ state }) {
         <CardHead title="When you check in" />
         {timeOfDay.enough ? (
           <>
-            <BucketColumns
-              rows={timeOfDay.parts.map((p) => ({ label: p.label, value: p.count }))}
-              unit=""
-              height={120}
-            />
+            <DayClock data={timeOfDay} />
             <p className="card-blurb">
               {(() => {
                 const peak = timeOfDay.parts.find((x) => x.id === timeOfDay.peak)
@@ -221,17 +221,7 @@ export default function InsightsDeepDive({ state }) {
         <CardHead title={`${YEAR} month by month`} />
         {pulse.enough ? (
           <>
-            <LineSeries
-              series={[{
-                id: 'pulse',
-                label: 'Completion',
-                color: 'var(--accent-2)',
-                points: pulse.months.filter((m) => !m.future).map((m) => ({ date: `${YEAR}-${String(m.month + 1).padStart(2, '0')}-01`, label: m.label, value: m.pct })),
-              }]}
-              height={180}
-              ariaLabel={`Monthly completion rate for ${YEAR}`}
-              xCount={6}
-            />
+            <PulseRibbon months={pulse.months} year={YEAR} />
             <p className="card-blurb">
               Best month so far:{' '}
               <b className="tnum">
@@ -283,6 +273,7 @@ export default function InsightsDeepDive({ state }) {
       {/* ---- Correlations (§26) ---- */}
       <SectionCard className="pad">
         <CardHead title="Patterns that travel together" />
+        {scatter.enough && <MoodScatter data={scatter} dimLabel="mood" />}
         {corr.enough || moodCorr.enough ? (
           <div className="stack" style={{ gap: 12 }}>
             {corr.pairs.map(({ a, b, withRate, withoutRate, delta }, i) => (

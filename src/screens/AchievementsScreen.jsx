@@ -4,12 +4,14 @@
    data proves it, and every locked card shows real progress or
    says plainly that it has not started.
    ============================================================ */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import ProgressRing from '../components/ui/ProgressRing.jsx'
 import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
+import Burst from '../components/motion/Burst.jsx'
+import AnimateOnView from '../components/motion/AnimateOnView.jsx'
 import { achievementSummary } from '../lib/achievements.js'
 import { prettyDate } from '../lib/dates.js'
 import { Link } from '../lib/router.jsx'
@@ -169,14 +171,38 @@ export default function AchievementsScreen() {
 
 function AchievementCard({ item, index }) {
   const pct = Math.round(item.progress * 100)
+  const [fresh, setFresh] = useState(false)
+  const [burst, setBurst] = useState(0)
+
+  /* celebrate only trophies that flip while this screen is open */
+  useEffect(() => {
+    const on = (e) => {
+      if (e.detail?.kind === 'unlock' && e.detail?.id === item.id) {
+        setFresh(true)
+        setBurst((b) => b + 1)
+      }
+    }
+    window.addEventListener('aaru:feedback', on)
+    return () => window.removeEventListener('aaru:feedback', on)
+  }, [item.id])
+
   return (
     <div
-      className={`ach-card${item.earned ? ' is-earned' : ''}`}
+      className={`ach-card${item.earned ? ' is-earned' : ''}${fresh ? ' is-fresh' : ''}`}
       data-tier={item.tier}
       style={{ animationDelay: `${Math.min(index, 11) * 40}ms` }}
     >
       <div className="ach-card-top">
-        <AchievementArt tier={item.tier} earned={item.earned} />
+        <span className="ach-medal">
+          {item.earned ? (
+            <AnimateOnView effect="medal-shine" className="ach-medal-inner">
+              <AchievementArt tier={item.tier} earned={item.earned} />
+            </AnimateOnView>
+          ) : (
+            <AchievementArt tier={item.tier} earned={item.earned} />
+          )}
+          <Burst fire={burst} count={14} spread={40} size={4} />
+        </span>
         <div style={{ minWidth: 0 }}>
           <p className="ach-title">{item.title}</p>
           <p className="ach-sub">{item.blurb}</p>

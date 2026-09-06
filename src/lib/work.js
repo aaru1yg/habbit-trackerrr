@@ -182,7 +182,133 @@ export function assignmentStatus(assignment, now = new Date()) {
   return { id, label: STATUS_LABEL[id], tone: STATUS_TONE[id], pct, complete, ...facts }
 }
 
+/* ------------------------------------------------------------
+   V3 · PHASE + PRESSURE — the two visual languages of work.
+   ------------------------------------------------------------ */
+
+/** The four life states of a project (spec §10). */
+export const PROJECT_PHASES = [
+  { id: 'planned', label: 'Planned' },
+  { id: 'active', label: 'Active' },
+  { id: 'at-risk', label: 'At risk' },
+  { id: 'completed', label: 'Completed' },
+]
+
+/**
+ * PLANNED   starts in the future
+ * ACTIVE    in flight and healthy
+ * AT RISK   behind pace, overdue, or urgent
+ * COMPLETED done
+ */
+export function projectPhase(project, now = new Date()) {
+  const st = projectStatus(project, now)
+  if (st.complete) return 'completed'
+  if (st.id === 'atRisk' || st.id === 'overdue') return 'at-risk'
+  const start = project?.startDate || project?.createdAtDay
+  if (isValidDayStr(start) && dayStr(now) < start) return 'planned'
+  return 'active'
+}
+
+export const phaseTone = (phase) => (phase === 'completed' ? 'good'
+  : phase === 'at-risk' ? 'warn'
+    : phase === 'planned' ? 'neutral'
+      : 'info')
+
+/**
+ * Expected vs actual progress for a project over a trailing window.
+ * actual  — the real progress log carried forward day by day
+ * expected — the straight line from start to deadline (null when the
+ *            project has no honest window)
+ */
+export function projectPace(project, { days = 30, now = new Date() } = {}) {
+  const today = dayStr(now)
+  const from = subDaysStr(today, days - 1)
+  const actual = progressSeries(project, from, today)
+    .map((r) => ({ day: r.date, pct: r.future ? null : r.pct }))
+
+  const start = project?.startDate || project?.createdAtDay
+  const end = project?.deadline ? dayOf(project.deadline) : null
+  let expected = null
+  if (isValidDayStr(start) && end && end > start) {
+    const t0 = new Date(`${start}T00:00:00`).getTime()
+    const t1 = new Date(`${end}T23:59:59`).getTime()
+    expected = actual.map((r) => {
+      if (r.day < start) return { day: r.day, pct: 0 }
+      const t = new Date(`${r.day}T12:00:00`).getTime()
+      return { day: r.day, pct: clampPct(((t - t0) / (t1 - t0)) * 100) }
+    })
+  }
+  return { actual, expected }
+}
+
+/**
+ * Deadline pressure for an assignment (spec §11): how much of its
+ * window is still left, as ten honest segments.
+ *   10 days of a 10-day window  → ██████████
+ *   half the window gone        → █████░░░░░
+ *   due tomorrow                → █░░░░░░░░░
+ * ratio null = no deadline to measure; 0 = the window has closed.
+ */
+export function assignmentPressure(assignment, now = new Date()) {
+  const st = assignmentStatus(assignment, now)
+  if (st.complete) {
+    return { tone: 'good', ratio: 1, segments: 10, label: 'Completed', detail: 'Done before the pressure mattered.' }
+  }
+  if (!st.hasDeadline) {
+    return { tone: 'neutral', ratio: null, segments: null, label: 'No deadline', detail: 'Set a deadline to see the pressure build.' }
+  }
+  const ratio = st.passed ? 0 : Math.max(0, Math.min(1, 1 - (st.elapsedPct ?? 100) / 100))
+  const segments = Math.round(ratio * 10)
+  return {
+    tone: st.tone,
+    ratio,
+    segments,
+    label: st.dueText,
+    detail: st.passed
+      ? `Window closed ${st.countdown || ''} — ${100 - st.pct}% still open.`
+      : `${st.countdown || st.dueText} left · ${100 - st.pct}% of the work still open.`,
+  }
+}
+
 /** Urgency 0..1 for sorting (1 = most urgent). Deadline first, then progress. */
+/**
+ * DEADLINE LANES — the next N days as one strip of lanes.
+ * Each open project/assignment with a deadline gets a lane from its
+ * start (clamped to the window) to its deadline; the inner fill is
+ * real progress. Items whose deadline already passed the window, or
+ * that have no deadline, are not drawn — the strip never guesses.
+ */
+export function deadlineLanes(state, { from = todayStr(), days = 14, now = new Date() } = {}) {
+  const to = addDaysStr(from, days - 1)
+  const lanes = []
+  const add = (kind, item, status) => {
+    const end = item.deadline ? dayOf(item.deadline) : item.due ? dayOf(item.due) : null
+    if (!end) return
+    const rawStart = item.startDate || item.createdAtDay || null
+    const start = rawStart && rawStart > from ? rawStart : from
+    if (end < from || start > to) return
+    const phase = kind === 'project' ? projectPhase(item, now) : null
+    lanes.push({
+      id: `${kind}-${item.id}`,
+      kind,
+      name: item.name,
+      href: kind === 'project' ? `#/projects/${item.id}` : `#/assignments/${item.id}`,
+      start,
+      end: end > to ? to : end,
+      clipped: end > to,
+      progress: status?.pct ?? 0,
+      tone: kind === 'project'
+        ? phaseTone(phase)
+        : status?.passed ? 'warn' : 'info',
+      passed: !!status?.passed,
+    })
+  }
+  for (const r of projectsSummary(state, now).open) add('project', r.project, r.status)
+  for (const r of assignmentsSummary(state, now).open) add('assignment', r.assignment, r.status)
+  lanes.sort((a, b) => (a.end === b.end ? a.start.localeCompare(b.start) : a.end.localeCompare(b.end)))
+  return { lanes, from, to, days, today: todayStr(now) }
+}
+
 export function urgencyOf(status) {
   if (status.id === 'completed') return -1
   if (!status.hasDeadline) return 0.05
@@ -338,7 +464,7 @@ export function timeVsWork(item, kind = 'project', now = new Date()) {
 }
 
 /** Completion history for a finished item (§69G). */
-export function itemHistory(item, kind = 'project', now = new Date()) {
+export function itemHistory(item, kind = 'project', _now = new Date()) {
   const progress = kind === 'project' ? projectProgress(item) : assignmentProgress(item)
   const start = item.startDate || item.assignedDate || item.createdAtDay || null
   const completedAt = item.completedAt || null
@@ -531,7 +657,6 @@ export function workloadSeries(state, { from = todayStr(), days = 14, now = new 
 /** Workload roll-up for the dashboard header. */
 export function workloadSummary(state, now = new Date()) {
   const today = dayStr(now)
-  const weekEnd = addDaysStr(today, 6)
   const series = workloadSeries(state, { from: today, days: 7, now })
   const p = projectsSummary(state, now)
   const a = assignmentsSummary(state, now)

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:schema": "node qa/schema-check.mjs",
     "test:e2e": "node qa/e2e.mjs",
-    "test:release": "node qa/release.mjs"
+    "test:release": "node qa/release.mjs",
+    "lint": "eslint src test qa --max-warnings 40"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -19,16 +20,20 @@
     "date-fns": "^3.6.0",
     "framer-motion": "^11.3.28",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.2.17",
+    "@eslint/js": "^10.0.1",
     "@sparticuz/chromium": "^149.0.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^30.0.1",
     "puppeteer-core": "^25.10.0",
     "sharp": "^0.35.4",

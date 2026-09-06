@@ -5,7 +5,7 @@
    mood, analytics, projects/celebration, data export/import,
    persistence, navigation, overflow, tap targets, contrast.
    ============================================================ */
-import { launch, newPage, VIEWPORTS, check, shot, clickByText, clickByLabel, sleep, setStoredState, seedAndGoto, getStoredState, seededState, seededStateV4, dayStr, subDays, report } from './helpers.mjs'
+import { launch, newPage, VIEWPORTS, check, shot, clickByText, clickByLabel, sleep,  seedAndGoto,   seededStateV4,   report } from './helpers.mjs'
 import { mkdirSync } from 'fs'
 import fs from 'fs'
 
@@ -134,7 +134,6 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
   // spy on permission requests — nothing may ask before the user opts in
   await page.evaluate(() => {
     window.__permAsked = 0
-    const orig = window.Notification && Notification.requestPermission
     window.Notification = {
       permission: 'default',
       requestPermission: async () => { window.__permAsked++; return 'granted' },
@@ -143,6 +142,9 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
 
   await shot(page, '01-onboarding-step1')
   await overflowCheck(page, 'onboarding-1')
+  check('[onboarding 2.0] welcome step opens with the art moment', await page.evaluate(() => (
+    !!document.querySelector('.onboarding .ob-art')
+  )))
 
   // step 1: name
   await page.type('input[placeholder="Your name"]', 'Aaru')
@@ -150,6 +152,9 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
   await page.waitForSelector('text/Pick a few to start', { timeout: 5000 })
   await sleep(300)
   await shot(page, '02-onboarding-step2')
+  check('[onboarding 2.0] starter habits carry their category art', await page.evaluate(() => (
+    document.querySelectorAll('.starter-art').length >= 5
+  )))
 
   // step 2: pick two habits
   await clickByText(page, 'Read 10 pages', 'button')
@@ -260,10 +265,9 @@ console.log('\n— Habit management (mobile) —')
   await sleep(300)
 
   // swipe left reveals archive/delete (framer drag: dispatch pointer events)
-  const swipe = await page.evaluate(() => {
+  await page.evaluate(() => {
     const row = document.querySelector('.habit-row')
     const rect = row.getBoundingClientRect()
-    const target = row.parentElement // motion.div wrapper? row itself is the motion element
     const startX = rect.left + rect.width - 30
     const y = rect.top + rect.height / 2
     const el = row
@@ -330,6 +334,16 @@ console.log('\n— Calendar (mobile) —')
   await sleep(200)
   await shot(page, '08-calendar')
   await overflowCheck(page, 'calendar')
+  check('[calendar 2.0] density row covers every day in view', await page.evaluate(() => {
+    const dens = document.querySelectorAll('.cal-grid .cal-dens')
+    const heads = document.querySelectorAll('.cal-grid .cal-head-cell')
+    return dens.length === heads.length && dens.length > 0
+  }))
+  check('[calendar 2.0] density separates hollow days from zero days', await page.evaluate(() => (
+    document.querySelectorAll('.cal-grid .cal-dens.is-null').length >= 0
+    && (document.querySelectorAll('.cal-grid .cal-dens-fill').length >= 1
+      || document.querySelectorAll('.cal-grid .cal-dens.is-null').length >= 1)
+  )))
 
   // find yesterday's cell for the daily habit (Morning run) — label depends on current state
   const ySel = await page.evaluate(() => {
@@ -413,7 +427,7 @@ console.log('\n— Calendar (mobile) —')
     while (d.getDay() !== 0 || d <= new Date()) d.setDate(d.getDate() + 1)
     return d.getDate()
   })
-  const sundayInert = await page.evaluate((dayNum) => {
+  const sundayInert = await page.evaluate(() => {
     const cells = [...document.querySelectorAll('.cal-cell.off')]
     return cells.length > 0
   }, sunday)
@@ -479,7 +493,6 @@ console.log('\n— Week / Insights / Mind (mobile) —')
   check('habit performance renders 5 rows', await page.evaluate(() => document.querySelectorAll('.perf-row:not(.perf-head)').length === 5))
   check('performance rows show done/eligible', await page.evaluate(() => /\/\d+/.test(document.querySelector('.perf-row:not(.perf-head)')?.textContent || '')))
   const perfFirst = () => page.evaluate(() => document.querySelector('.perf-row:not(.perf-head) .perf-name-text')?.textContent)
-  const beforeName = await perfFirst()
   await page.evaluate(() => document.querySelector('[aria-label="Sort by habit name"]').click())
   await sleep(300)
   check('performance sorts by name (desc)', (await perfFirst()) === 'Read 20 pages', `first=${await perfFirst()}`)
@@ -526,6 +539,21 @@ console.log('\n— Week / Insights / Mind (mobile) —')
   check('deep dive shows consistency + weekday sections', /Consistency/.test(deepText) && /By weekday/.test(deepText))
   check('deep dive shows streak history + personal bests', /Streak history/.test(deepText) && /Personal bests/.test(deepText))
   check('deep dive shows monthly pulse', /month by month/i.test(deepText))
+  check('[insights 2.0] day clock draws four honest quadrants from timestamps', await page.evaluate(() => (
+    document.querySelectorAll('.dayclock .dayclock-arc').length === 4
+    && document.querySelectorAll('.dayclock-legend li').length === 4
+    && (document.querySelector('.dayclock svg')?.getAttribute('aria-label') || '').includes('timestamped')
+  )))
+  check('[insights 2.0] pulse ribbon keeps future months hollow', await page.evaluate(() => {
+    const cells = document.querySelectorAll('.ribbon-cell')
+    return cells.length === 12
+      && document.querySelectorAll('.ribbon-cell.is-future').length >= 1
+      && document.querySelectorAll('.ribbon-months span').length === 12
+  }))
+  check('[insights 2.0] mood scatter plots only real paired days and never overclaims', await page.evaluate(() => (
+    document.querySelectorAll('.scatter-dot').length >= 8
+    && /association, not causation/.test(document.body.textContent)
+  )))
   const hasCorr = /Patterns that travel together/.test(deepText) && /These travel together/.test(deepText)
   check('correlations never claim causation', !hasCorr || /not proof one causes the other/.test(deepText))
   check('deep dive has no invented numbers', !/estimated|projected/i.test(deepText))
@@ -539,7 +567,6 @@ console.log('\n— Week / Insights / Mind (mobile) —')
   const integrity = await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('aaru.habits.v4'))
     let done = 0, total = 0
-    const today = new Date()
     for (let i = 0; i < 30; i++) {
       const d = new Date()
       d.setDate(d.getDate() - i)
@@ -662,6 +689,10 @@ console.log('\n— Projects & celebration (mobile) —')
   check('projects dashboard shows real task math (3 of 5 = 60%)', ptxt.includes('60%'))
   check('projects are tagged as their own kind', await page.evaluate(() => document.querySelectorAll('.kind-tag.project').length >= 2))
   check('status engine reports real states (at risk + completed)', /At risk/.test(ptxt) && /Completed/.test(ptxt))
+  check('projects carry the four V3 life states (planned/active/at risk/completed)', await page.evaluate(() => {
+    const pills = [...document.querySelectorAll('.project-card .status-pill')].map((e) => e.textContent.trim().toLowerCase())
+    return ['planned', 'active', 'at risk', 'completed'].some((ph) => pills.includes(ph)) && pills.length >= 2
+  }))
   check('projects dashboard shows deadline countdowns', /\dd left|days left|Due/i.test(ptxt))
   await shot(page, '14-projects')
   await overflowCheck(page, 'projects')
@@ -682,6 +713,26 @@ console.log('\n— Projects & celebration (mobile) —')
   const dtxt = await page.evaluate(() => document.body.textContent)
   check('project detail shows milestones and pace', /Milestones/.test(dtxt) && /(Behind|Ahead|pace)/i.test(dtxt))
   check('project detail shows linked habits', /Portfolio|linked|Habits/i.test(dtxt))
+  check('[projects 2.0] the track places milestones on real dates with today marked', await page.evaluate(() => (
+    !!document.querySelector('.ptl .ptl-track .ptl-node')
+    && !!document.querySelector('.ptl .ptl-today')
+    && !!document.querySelector('.ptl .ptl-fill')
+  )))
+  check('[projects 2.0] track nodes are interactive and explain themselves', await page.evaluate(() => {
+    const node = document.querySelector('.ptl .ptl-node')
+    if (!node) return false
+    node.click()
+    return (document.querySelector('.ptl-detail')?.textContent || '').length > 4
+  }))
+  await clickByText(page, 'Analytics')
+  await sleep(800)
+  check('[projects 2.0] analytics draw expected vs actual from the real log', await page.evaluate(() => (
+    /Expected vs actual/.test(document.body.textContent)
+    && !!document.querySelector('.chart-draw svg .chart-line')
+    && !!document.querySelector('.chart-draw svg .chart-fade')
+  )))
+  await clickByText(page, 'Tasks')
+  await sleep(500)
   await shot(page, '15-project-detail')
   await overflowCheck(page, 'project-detail')
 
@@ -728,6 +779,16 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   check('assignment due today is called out', /Due today|Today/i.test(atxt))
   check('assignment urgency states are real (urgent + overdue)', /Urgent/.test(atxt) && /Overdue/.test(atxt))
   check('assignments lead with a countdown', await page.evaluate(() => !!document.querySelector('.deadline-hero, .count-chip')))
+  check('[assignments 2.0] deadline pressure renders ten honest segments', await page.evaluate(() => {
+    const bars = document.querySelectorAll('.assignment-card .pressure-bar')
+    if (!bars.length) return false
+    const segs = bars[0].querySelectorAll('.pressure-seg')
+    return segs.length === 10 && bars[0].querySelectorAll('.pressure-seg[data-lit]').length <= 10
+  }))
+  check('[assignments 2.0] pressure tone follows urgency, never alarm colour by default', await page.evaluate(() => {
+    const p = document.querySelector('.assignment-card .pressure')
+    return !!p && ['good', 'warn', 'bad', 'neutral', 'info'].includes(p.dataset.tone)
+  }))
   await shot(page, '16-assignments')
   await overflowCheck(page, 'assignments')
   await tapTargetCheck(page, 'assignments')
@@ -741,6 +802,9 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await sleep(700)
   check('subtask-derived progress is honest (3 of 4 = 75%)', await page.evaluate(() => document.body.textContent.includes('75%')))
   check('assignment detail shows subject + countdown', await page.evaluate(() => /Data Structures/.test(document.body.textContent)))
+  check('[assignments 2.0] detail leads with the draining window', await page.evaluate(() => (
+    !!document.querySelector('#assignment-detail .pressure-lg .pressure-bar')
+  )))
   await shot(page, '16c-assignment-detail')
   await overflowCheck(page, 'assignment-detail')
 
@@ -760,6 +824,15 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await sleep(800)
   check('workload renders load-by-day bars', await page.evaluate(() => !!document.querySelector('.load-bars .lb-row')))
   check('workload counts overdue work', await page.evaluate(() => /Overdue/.test(document.body.textContent)))
+  check('[workload 2.0] deadline lanes draw dated work with real progress fills', await page.evaluate(() => (
+    document.querySelectorAll('.lanes .lane-row').length >= 2
+    && !!document.querySelector('.lanes .lane-fill')
+    && !!document.querySelector('.lanes-today')
+  )))
+  check('[workload 2.0] every lane is a reachable, sized link', await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('.lane-row')]
+    return rows.length > 0 && rows.every((r) => r.tagName === 'A' && r.getBoundingClientRect().height >= 43)
+  }))
   await shot(page, '16e-workload')
   await overflowCheck(page, 'workload')
   await tapTargetCheck(page, 'workload')
@@ -795,6 +868,35 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   check('first-class goals show their outcome and link supporting habits', await page.evaluate(() => /Run a half marathon/.test(document.body.textContent) && !!document.querySelector('.goal-card .goal-habit[href^="#/habits/"]')))
   await shot(page, '16j-goals')
   await overflowCheck(page, 'goals')
+
+  /* ---- Goals 2.0: the detail experience ---- */
+  await page.goto(`${BASE}/#/goals/g-run`, { waitUntil: 'networkidle0' })
+  await sleep(900)
+  check('[goal-detail] opens from the list route with its own visualization', await page.evaluate(() => (
+    !!document.querySelector('#goal-detail-screen .goal-hero .core-wrap')
+    && /Run a half marathon/.test(document.body.textContent)
+  )))
+  check('[goal-detail] states the stage of the goal object', await page.evaluate(() => (
+    /building|momentum|foundation|near completion|reached/i.test(document.querySelector('#goal-detail-screen .core-caption')?.textContent || '')
+  )))
+  check('[goal-detail] pace chart draws expected vs actual from real data', await page.evaluate(() => (
+    !!document.querySelector('#goal-detail-screen .chart-draw svg .chart-line')
+    && /Expected vs actual/.test(document.body.textContent)
+  )))
+  check('[goal-detail] analytics never invent: velocity/projection/consistency labelled', await page.evaluate(() => {
+    const facts = [...document.querySelectorAll('#goal-detail-screen .goal-fact')].map((f) => f.textContent).join(' ')
+    return /velocity/.test(facts) && /projected completion/.test(facts) && /consistency/.test(facts)
+  }))
+  check('[goal-detail] milestone timeline shows reached + on-time evidence', await page.evaluate(() => (
+    document.querySelectorAll('#goal-detail-screen .ms-node').length === 3
+    && /on time|late/.test(document.querySelector('#goal-detail-screen .ms-node.is-done')?.textContent || '')
+  )))
+  check('[goal-detail] linked work feeds the goal with live progress', await page.evaluate(() => (
+    !!document.querySelector('#goal-detail-screen .feed-row[href^="#/habits/"]')
+  )))
+  await shot(page, '16k-goal-detail')
+  await overflowCheck(page, 'goal-detail')
+  await tapTargetCheck(page, 'goal-detail')
   await noConsoleErrors(page, 'work-layer')
   await page.close()
 }
@@ -863,11 +965,6 @@ console.log('\n— Data: export, import, reset —')
   await page.close()
 }
 
-function dayStrLocal() {
-  const d = new Date()
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
 
 /* ============================================================
    PART 7 — Themes (mobile screenshots)
@@ -1070,6 +1167,17 @@ console.log('\n— Empty states —')
         return !!el && el.getAttribute('src').includes('empty-hero')
       }))
     }
+    const ART_BY_ROUTE = {
+      calendar: 'empty-calendar', week: 'empty-week', insights: 'empty-insights',
+      mind: 'empty-mind', goals: 'empty-goals', projects: 'empty-projects',
+      assignments: 'empty-assignments', workload: 'empty-workload',
+    }
+    if (ART_BY_ROUTE[route]) {
+      check(`[${route}] empty state carries its own art`, await page.evaluate((want) => {
+        const imgs = [...document.querySelectorAll('.empty img')].map((i) => i.getAttribute('src') || '')
+        return imgs.some((src) => src.includes(want))
+      }, ART_BY_ROUTE[route]))
+    }
     if (route === 'projects' || route === 'assignments') {
       check(`${route} empty state offers a create action`, await page.evaluate(() => {
         const btns = [...document.querySelectorAll('button')].map((b) => b.textContent || '')
@@ -1082,6 +1190,104 @@ console.log('\n— Empty states —')
     }
   }
   await noConsoleErrors(page, 'empty-states')
+  await page.close()
+}
+
+/* ============================================================
+   PART — Achievements 2.0: shelf honesty + the unlock moment
+   ============================================================ */
+console.log('\n— Achievements 2.0 —')
+{
+  const page = await newPage(browser, VIEWPORTS.mobile)
+  await seedAndGoto(page, seededStateV4(), 'achievements', BASE)
+  await sleep(700)
+  const atxt = await page.evaluate(() => document.body.textContent)
+  check('achievements hero counts unlocked from real data', /unlocked/.test(atxt) && /\d+/.test(atxt))
+  check('[achievements 2.0] earned cards carry the medal sheen mount', await page.evaluate(() => (
+    document.querySelectorAll('.ach-card.is-earned .medal-shine').length >= 1
+  )))
+  check('[achievements 2.0] locked cards show honest progress meters', await page.evaluate(() => (
+    document.querySelectorAll('.ach-card:not(.is-earned) .meter').length >= 1
+  )))
+  await shot(page, '17-achievements')
+  await overflowCheck(page, 'achievements')
+  await tapTargetCheck(page, 'achievements')
+
+  // finish every habit scheduled today → the clean-sweep unlock moment
+  await page.goto(`${BASE}/#/today`, { waitUntil: 'networkidle0' })
+  await sleep(800)
+  for (let i = 0; i < 10; i++) {
+    const clicked = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('.habit-row')].find((r) => !r.classList.contains('done'))
+      const b = row?.querySelector('[role="button"]')
+      if (!b) return false
+      b.click()
+      return true
+    })
+    if (!clicked) break
+    await sleep(420)
+  }
+  check('[achievements 2.0] finishing the day fires the unlock moment', await page.evaluate(() => (
+    /troph(y|ies) earned/i.test(document.querySelector('.toast-region')?.textContent || '')
+  )))
+  await page.goto(`${BASE}/#/achievements`, { waitUntil: 'networkidle0' })
+  await sleep(700)
+  check('[achievements 2.0] clean sweep is stamped earned afterwards', await page.evaluate(() => (
+    [...document.querySelectorAll('.ach-card.is-earned')].some((c) => /Clean sweep/.test(c.textContent))
+  )))
+  await noConsoleErrors(page, 'achievements')
+  await page.close()
+}
+
+/* ============================================================
+   PART — Keyboard & focus: the app works without a pointer
+   ============================================================ */
+console.log('\n— Keyboard & focus (a11y) —')
+{
+  const page = await newPage(browser, VIEWPORTS.mobile)
+  await seedAndGoto(page, seededStateV4(), 'today', BASE)
+  await sleep(800)
+  await page.evaluate(() => document.activeElement?.blur?.())
+  let reached = false
+  for (let i = 0; i < 40; i++) {
+    await page.keyboard.press('Tab')
+    const label = await page.evaluate(() => document.activeElement?.getAttribute?.('aria-label') || '')
+    if (/Mark .* complete/i.test(label)) { reached = true; break }
+  }
+  check('[a11y] keyboard alone reaches a habit complete control', reached)
+  await page.keyboard.press('Enter')
+  await sleep(600)
+  check('[a11y] Enter on the focused control completes the habit', await page.evaluate(() => (
+    document.querySelectorAll('.habit-row.done').length >= 1
+  )))
+  check('[a11y] focused control shows a visible focus ring', await page.evaluate(() => {
+    const el = document.activeElement
+    if (!el || el === document.body) return false
+    const cs = getComputedStyle(el)
+    return cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 1
+  }))
+
+  // Escape closes the search overlay (desktop, where the shortcut lives)
+  const desk = await newPage(browser, VIEWPORTS.desktop)
+  await seedAndGoto(desk, seededStateV4(), 'today', BASE)
+  await sleep(700)
+  await desk.bringToFront()
+  await desk.keyboard.press('/')
+  await sleep(700)
+  const opened = await desk.evaluate(() => !!document.querySelector('[role="dialog"]'))
+  await desk.keyboard.press('Escape')
+  await sleep(800)
+  const closed = await desk.evaluate(() => !document.querySelector('[role="dialog"]'))
+  check('[a11y] search opens with / and Escape closes it', opened && closed)
+  await desk.close()
+
+  await page.goto(`${BASE}/#/achievements`, { waitUntil: 'networkidle0' })
+  await sleep(600)
+  await contrastCheck(page, 'achievements')
+  await page.goto(`${BASE}/#/workload`, { waitUntil: 'networkidle0' })
+  await sleep(600)
+  await contrastCheck(page, 'workload')
+  await noConsoleErrors(page, 'a11y-keyboard')
   await page.close()
 }
 

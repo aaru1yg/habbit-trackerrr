@@ -5,8 +5,8 @@
    statistic to fill a card.
    ============================================================ */
 import {
-  todayStr, dayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr,
-  prettyTime, partOfDay, PARTS_OF_DAY, shortDate, dayOf, minutesLabel,
+  todayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr,
+  partOfDay, PARTS_OF_DAY, shortDate, dayOf,
 } from './dates.js'
 import {
   activeHabits, dayStats, eligibleOn, isDone, habitRate, habitStreak, habitBestStreak,
@@ -240,7 +240,6 @@ export function moodCorrelations(state, days = 60) {
   const today = todayStr()
   const from = subDaysStr(today, days - 1)
   const dims = ['score', 'energy', 'focus', 'motivation']
-  const habits = activeHabits(state).filter((h) => habitRate(state, h, from, today).eligible >= 8)
   const out = []
   for (const dim of dims) {
     let highDone = 0, highTotal = 0, lowDone = 0, lowTotal = 0
@@ -261,6 +260,59 @@ export function moodCorrelations(state, days = 60) {
     out.push({ dim, highPct, lowPct, delta: highPct - lowPct, highTotal, lowTotal })
   }
   return { rows: out, enough: out.length > 0 }
+}
+
+/**
+ * Daily mood-vs-completion pairs for scatter plotting.
+ * Only days that have BOTH a logged mood dimension and scheduled
+ * checks contribute — no imputed points. `r` is Pearson over the
+ * real pairs; `enough` gates the viz so we never draw a story
+ * from a handful of days.
+ */
+export function moodScatter(state, days = 60, dim = 'score') {
+  const today = todayStr()
+  const from = subDaysStr(today, days - 1)
+  const points = []
+  let cursor = from
+  while (cursor <= today) {
+    const m = state.moods?.[cursor]
+    const s = dayStats(state, cursor)
+    if (m && Number.isFinite(m[dim]) && s.total > 0) {
+      points.push({ date: cursor, mood: m[dim], pct: Math.round((s.done / s.total) * 100) })
+    }
+    cursor = addDaysStr(cursor, 1)
+  }
+  const n = points.length
+  if (n < 8) return { points, n, r: null, enough: false }
+  const mx = points.reduce((a, p) => a + p.mood, 0) / n
+  const my = points.reduce((a, p) => a + p.pct, 0) / n
+  let sxy = 0, sxx = 0, syy = 0
+  for (const p of points) {
+    const dx = p.mood - mx
+    const dy = p.pct - my
+    sxy += dx * dy
+    sxx += dx * dx
+    syy += dy * dy
+  }
+  const r = sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : null
+  return { points, n, r, enough: true }
+}
+
+/** Linear fit for scatter trend hint (null when the signal is too weak to draw). */
+export function scatterTrend(scatter, minAbsR = 0.3) {
+  if (!scatter?.enough || scatter.r == null || Math.abs(scatter.r) < minAbsR) return null
+  const n = scatter.n
+  const mx = scatter.points.reduce((a, p) => a + p.mood, 0) / n
+  const my = scatter.points.reduce((a, p) => a + p.pct, 0) / n
+  let sxy = 0, sxx = 0
+  for (const p of scatter.points) {
+    sxy += (p.mood - mx) * (p.pct - my)
+    sxx += (p.mood - mx) ** 2
+  }
+  if (sxx === 0) return null
+  const slope = sxy / sxx
+  const strength = Math.abs(scatter.r) >= 0.5 ? 'moderate' : 'weak'
+  return { slope, intercept: my - slope * mx, r: scatter.r, strength }
 }
 
 /* ------------------------------------------------------------
@@ -372,7 +424,6 @@ export function personalBests(state) {
    ------------------------------------------------------------ */
 
 export function smartInsights(state, limit = 6) {
-  const today = todayStr()
   const habits = activeHabits(state)
   const out = []
   if (!habits.length) return out
@@ -596,7 +647,6 @@ export function timelineEvents(state, limit = 60) {
   const today = todayStr()
   const events = []
   const habits = state.habits || []
-  const habitName = (id) => habits.find((h) => h.id === id)?.name || 'Habit'
 
   for (const h of habits) {
     if (h.createdAt && isValidDayStr(h.createdAt)) {
@@ -663,7 +713,7 @@ export function timelineEvents(state, limit = 60) {
    SEARCH (§30) — habits, work, notes, dates, achievements
    ------------------------------------------------------------ */
 
-export function searchAll(state, query, limit = 24) {
+export function searchAll(state, query, _limit = 24) {
   const q = String(query || '').trim().toLowerCase()
   if (q.length < 2) return { groups: [], count: 0 }
   const tokens = q.split(/\s+/)

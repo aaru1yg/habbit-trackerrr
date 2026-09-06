@@ -54,6 +54,7 @@ async function verifyArtifact() {
     if (Date.now() >= stop) throw new Error(`Public build did not reach ${proof.commit}`)
     console.log('Waiting for Pages to serve the exact release commit…')
     await sleep(15000)
+  // eslint-disable-next-line no-constant-condition -- intentional poll-until-deployed loop
   } while (true)
   check('public release.json matches the exact deployed artifact', JSON.stringify(live) === JSON.stringify(proof))
   const entries = Object.entries(proof.files)

@@ -5,6 +5,7 @@
    ============================================================ */
 import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
+import useNow from '../lib/useNow.js'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { WorkTabs } from '../components/layout/Navigation.jsx'
 import { AssignmentCard } from '../components/work/WorkCards.jsx'
@@ -13,9 +14,9 @@ import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { LineSeries, HBarList, DonutStat, BucketColumns, TimeVsWorkBars } from '../components/charts/workCharts.jsx'
 import {
   assignmentsSummary, sortWorkRows, matchesWorkFilter, matchesQuery, WORK_FILTERS,
-  assignmentCompletionTrend, weeklyCompletionSpeed, timeVsWork,
+  assignmentCompletionTrend, weeklyCompletionSpeed,
 } from '../lib/work.js'
-import { todayStr, prettyDateTime, shortDate, dayOf } from '../lib/dates.js'
+import {   shortDate, dayOf } from '../lib/dates.js'
 import { IconAssignment, IconPlus, IconSearch, IconX, IconAlert } from '../lib/icons.jsx'
 
 const SORTS = [
@@ -30,13 +31,13 @@ const SORTS = [
 export default function AssignmentsScreen({ route = 'assignments' }) {
   const { state } = useStore()
   const work = useWorkUI()
-  const now = new Date()
+  const now = useNow()
   const [view, setView] = useState('overview')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('urgency')
   const [query, setQuery] = useState('')
 
-  const summary = useMemo(() => assignmentsSummary(state, now), [state])
+  const summary = useMemo(() => assignmentsSummary(state, now), [state, now])
 
   const counts = useMemo(() => {
     const c = {}
@@ -129,6 +130,7 @@ export default function AssignmentsScreen({ route = 'assignments' }) {
             {!hasAny ? (
               <SectionCard>
                 <WorkEmpty
+                  art="art/empty-assignments.webp"
                   icon={<IconAssignment size={40} />}
                   title="Nothing due yet"
                   action={<button className="btn primary" onClick={() => work.newAssignment()}><IconPlus size={16} /> Create an assignment</button>}
@@ -182,10 +184,9 @@ export default function AssignmentsScreen({ route = 'assignments' }) {
    ------------------------------------------------------------ */
 function AssignmentAnalytics() {
   const { state } = useStore()
-  const now = new Date()
-  const today = todayStr()
+  const now = useNow()
   const [range, setRange] = useState(30)
-  const summary = useMemo(() => assignmentsSummary(state, now), [state])
+  const summary = useMemo(() => assignmentsSummary(state, now), [state, now])
   const items = summary.rows.map((r) => r.assignment)
 
   const trend = useMemo(() => assignmentCompletionTrend(state, range, now), [state, range, now])

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { isScheduled, scheduleLabel } from '../src/lib/schedule.js'
 import {
-  dayStats, habitStreak, habitBestStreak, habitRate, weekStats, weekDelta,
+  dayStats, habitStreak, habitBestStreak, weekDelta,
   rankHabits, weakestWeekday, dailyInsight, weeklyReview, achievements,
-  moodStats, moodHabitLink, projectProgress, todayStats, activeHabits,
+  moodStats, moodHabitLink, projectProgress,
 } from '../src/lib/stats.js'
 import { todayStr, addDaysStr, subDaysStr, weekDays, monthDays, monthWeekBands, isValidDayStr } from '../src/lib/dates.js'
 import { normalizeImport, exportPayload } from '../src/lib/importExport.js'

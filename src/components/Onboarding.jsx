@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useStore } from '../store.jsx'
 import { STARTER_HABITS, categoryOf } from '../lib/schedule.js'
 import { requestNotificationPermission, notificationState, notificationsSupported } from '../lib/reminders.js'
@@ -7,9 +7,24 @@ import { BrandMark } from './layout/Navigation.jsx'
 import { IconCheck, IconChevronRight, IconBell } from '../lib/icons.jsx'
 import { BUILD_ID } from '../lib/buildInfo.js'
 
+const CAT_ART = {
+  fitness: 'art/cat-fitness.webp',
+  learning: 'art/cat-learning.webp',
+  mind: 'art/cat-mind.webp',
+  health: 'art/cat-health.webp',
+  creative: 'art/cat-creative.webp',
+  social: 'art/cat-social.webp',
+  finance: 'art/cat-finance.webp',
+  productivity: 'art/cat-productivity.webp',
+}
+
 /* 3-step onboarding: name → starter habits → optional reminder. Fast, skippable. */
 export default function Onboarding() {
-  const { state, dispatch } = useStore()
+  const { dispatch } = useStore()
+  const reduce = useReducedMotion()
+  const stepMotion = reduce
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2 } }
+    : { initial: { opacity: 0, x: 24 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -24 }, transition: { duration: 0.25 } }
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [picked, setPicked] = useState([])
@@ -63,8 +78,18 @@ export default function Onboarding() {
 
         <AnimatePresence mode="wait">
           {step === 0 && (
-            <motion.div key="s0" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }}>
+            <motion.div key="s0" {...stepMotion}>
               <StepsDots step={step} />
+              <img
+                src="art/onboarding.webp"
+                alt=""
+                width={220}
+                height={220}
+                loading="eager"
+                decoding="async"
+                className="ob-art"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
               <h1 style={{ fontSize: '1.65rem', margin: '16px 0 8px' }}>What should we call you?</h1>
               <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', marginBottom: 20 }}>
                 Just for greetings. It stays on your device.
@@ -88,19 +113,23 @@ export default function Onboarding() {
           )}
 
           {step === 1 && (
-            <motion.div key="s1" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }}>
+            <motion.div key="s1" {...stepMotion}>
               <StepsDots step={step} />
               <h1 style={{ fontSize: '1.65rem', margin: '16px 0 8px' }}>Pick a few to start</h1>
               <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', marginBottom: 20 }}>
                 Up to three. You can change everything later — nothing is pre-filled.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {STARTER_HABITS.map((s) => {
+                {STARTER_HABITS.map((s, si) => {
                   const on = picked.includes(s.name)
                   const cat = categoryOf(s.category)
+                  const art = CAT_ART[s.category]
                   return (
-                    <button
+                    <motion.button
                       key={s.name}
+                      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.28, delay: reduce ? 0 : 0.05 + si * 0.045 }}
                       className="starter-habit"
                       onClick={() => togglePick(s.name)}
                       aria-pressed={on}
@@ -112,7 +141,20 @@ export default function Onboarding() {
                         textAlign: 'left',
                       }}
                     >
-                      <span className="dot" style={{ width: 9, height: 9, borderRadius: 99, background: `var(${cat.cssVar})`, flex: 'none' }} />
+                      {art ? (
+                        <img
+                          src={art}
+                          alt=""
+                          width={26}
+                          height={26}
+                          loading="lazy"
+                          decoding="async"
+                          className="starter-art"
+                          onError={(e) => { e.currentTarget.style.display = 'none' }}
+                        />
+                      ) : (
+                        <span className="dot" style={{ width: 9, height: 9, borderRadius: 99, background: `var(${cat.cssVar})`, flex: 'none' }} />
+                      )}
                       <span style={{ flex: 1, fontWeight: 600, fontSize: 'var(--fs-sm)' }}>{s.name}</span>
                       <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>{cat.label}</span>
                       <span
@@ -125,7 +167,7 @@ export default function Onboarding() {
                       >
                         {on && <IconCheck size={13} />}
                       </span>
-                    </button>
+                    </motion.button>
                   )
                 })}
               </div>
@@ -139,7 +181,7 @@ export default function Onboarding() {
           )}
 
           {step === 2 && (
-            <motion.div key="s2" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }}>
+            <motion.div key="s2" {...stepMotion}>
               <StepsDots step={step} />
               <h1 style={{ fontSize: '1.65rem', margin: '16px 0 8px' }}>A daily nudge?</h1>
               <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)', marginBottom: 20 }}>

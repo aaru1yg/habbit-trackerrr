@@ -2,9 +2,11 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { useStore } from './store.jsx'
 import { useRoute, navigate } from './lib/router.jsx'
 import { ToastProvider, useToast } from './components/ui/Toaster.jsx'
+import UnlockWatcher from './components/achievements/UnlockWatcher.jsx'
 import HabitUIProvider, { useHabitUI } from './components/habits/HabitUIProvider.jsx'
 import WorkUIProvider, { useWorkUI } from './components/work/WorkUIProvider.jsx'
 import Backdrop from './components/layout/Backdrop.jsx'
+import PointerLight from './components/motion/PointerLight.jsx'
 import { BottomNav, Sidebar, MoreSheet } from './components/layout/Navigation.jsx'
 import SearchPalette from './components/layout/SearchPalette.jsx'
 import Onboarding from './components/Onboarding.jsx'
@@ -22,6 +24,7 @@ const WeekScreen = lazy(() => import('./screens/WeekScreen.jsx'))
 const InsightsScreen = lazy(() => import('./screens/InsightsScreen.jsx'))
 const MindScreen = lazy(() => import('./screens/MindScreen.jsx'))
 const GoalsScreen = lazy(() => import('./screens/GoalsScreen.jsx'))
+const GoalDetailScreen = lazy(() => import('./screens/GoalDetailScreen.jsx'))
 const LibraryScreen = lazy(() => import('./screens/LibraryScreen.jsx'))
 const RecordScreen = lazy(() => import('./screens/RecordScreen.jsx'))
 const SettingsScreen = lazy(() => import('./screens/SettingsScreen.jsx'))
@@ -104,6 +107,7 @@ export default function App() {
   return (
     <>
       <Backdrop />
+      <PointerLight />
       <Sidebar route={active} name={state.profile.name} onSearch={() => setSearchOpen(true)} />
       {!online && (
         <div className="offline-pill" role="status">
@@ -112,6 +116,7 @@ export default function App() {
       )}
 
       <ToastProvider>
+        <UnlockWatcher />
         <WorkUIProvider>
           <HabitUIProvider onFire={onFire}>
             <main id="content" style={{ position: 'relative' }}>
@@ -121,7 +126,7 @@ export default function App() {
                 {active === 'week' && <WeekScreen />}
                 {active === 'insights' && <InsightsScreen />}
                 {active === 'mind' && <MindScreen />}
-                {active === 'goals' && <GoalsScreen />}
+                {active === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
                 {active === 'library' && <LibraryScreen />}
                 {active === 'record' && <RecordScreen />}
                 {active === 'settings' && <SettingsScreen />}

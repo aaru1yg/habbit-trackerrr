@@ -5,14 +5,18 @@
 import { useMemo, useState } from 'react'
 import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import { useStore } from '../store.jsx'
+import useNow from '../lib/useNow.js'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
-import { StatusPill, KindTag, Meter, MeterRow, MilestoneStepper, QuickProgress, WorkEmpty, CountdownChip } from '../components/work/WorkKit.jsx'
+import { StatusPill, KindTag, Meter, MeterRow, MilestoneStepper, QuickProgress, WorkEmpty } from '../components/work/WorkKit.jsx'
 import { BurndownChart, LineSeries, BucketColumns, HBarList, DonutStat } from '../components/charts/workCharts.jsx'
+import PaceChart from '../components/charts/PaceChart.jsx'
+import ProjectTrack from '../components/work/ProjectTrack.jsx'
 import {
   projectStatus, projectProgress, milestoneTrack, burndown, progressSeries, entityVelocity,
   timeVsWork, itemHistory, allTasks, TASK_STATUSES, PRIORITIES,
+  projectPace, projectPhase, phaseTone, PROJECT_PHASES,
 } from '../lib/work.js'
 import { activeHabits, habitRate, habitStreak } from '../lib/stats.js'
 import { categoryOf } from '../lib/schedule.js'
@@ -20,15 +24,13 @@ import { Link } from '../lib/router.jsx'
 import { todayStr, subDaysStr, shortDate, prettyDate, dayOf, minutesLabel, daysUntil, addDaysStr } from '../lib/dates.js'
 import {
   IconChevronLeft, IconPlus, IconTrash, IconPencil, IconProjects, IconGrip, IconCheck,
-  IconClock, IconLink, IconNote, IconX, IconFlag,
+  IconClock, IconX,
 } from '../lib/icons.jsx'
 
 export default function ProjectDetailScreen({ id }) {
   const { state, dispatch } = useStore()
   const work = useWorkUI()
-  const toast = useToast()
-  const reduced = useReducedMotion()
-  const now = new Date()
+  const now = useNow()
   const today = todayStr()
 
   const project = (state.projects || []).find((p) => p.id === id) || null
@@ -37,7 +39,7 @@ export default function ProjectDetailScreen({ id }) {
   const [addingMilestone, setAddingMilestone] = useState(false)
   const [milestoneName, setMilestoneName] = useState('')
 
-  const status = useMemo(() => (project ? projectStatus(project, now) : null), [project])
+  const status = useMemo(() => (project ? projectStatus(project, now) : null), [project, now])
   const progress = useMemo(() => (project ? projectProgress(project) : null), [project])
   const track = useMemo(() => (project ? milestoneTrack(project) : []), [project])
   const nextMilestone = useMemo(() => track.find((m) => !m.reached) || null, [track])
@@ -59,7 +61,6 @@ export default function ProjectDetailScreen({ id }) {
     )
   }
 
-  const tasks = allTasks(project)
   const linkedHabits = (project.linkedHabitIds || []).map((hid) => habits.find((h) => h.id === hid)).filter(Boolean)
 
   const addTask = (milestoneId) => {
@@ -117,6 +118,12 @@ export default function ProjectDetailScreen({ id }) {
                 : project.startDate ? `Started ${shortDate(project.startDate)}` : 'No deadline set'}
             />
             <div style={{ flex: 1, minWidth: 200 }}>
+              <div className="wrap-gap" style={{ gap: 6, marginBottom: 10 }}>
+                <span className="status-pill" data-tone={phaseTone(projectPhase(project, now))}>
+                  {PROJECT_PHASES.find((ph) => ph.id === projectPhase(project, now))?.label}
+                </span>
+                <StatusPill status={status.id} />
+              </div>
               <MeterRow pct={status.pct} tone={status.tone} pace={status.elapsedPct} />
               <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
                 {status.hasDeadline && !status.complete
@@ -146,6 +153,16 @@ export default function ProjectDetailScreen({ id }) {
               />
             </div>
           )}
+        </SectionCard>
+
+        {/* V3: the project as an object on its own track */}
+        <SectionCard className="pad project-track-card">
+          <CardHead title="The track">
+            <span className="tiny muted">
+              {project.deadline ? `deadline ${shortDate(dayOf(project.deadline))}` : 'no deadline'}
+            </span>
+          </CardHead>
+          <ProjectTrack project={project} now={now} />
         </SectionCard>
 
         {/* Milestones */}
@@ -550,11 +567,11 @@ function ProjectTimeline({ project, status, track }) {
    PROJECT ANALYTICS (single project)
    ------------------------------------------------------------ */
 function ProjectAnalyticsDetail({ project, status }) {
-  const now = new Date()
+  const now = useNow()
   const today = todayStr()
   const [range, setRange] = useState(30)
 
-  const bd = useMemo(() => burndown(project, now), [project])
+  const bd = useMemo(() => burndown(project, now), [project, now])
   const series = useMemo(() => {
     const from = subDaysStr(today, range - 1)
     return progressSeries(project, from, today)
@@ -575,9 +592,29 @@ function ProjectAnalyticsDetail({ project, status }) {
   }, [project])
 
   const hasLog = (project.progressLog || []).length > 0
+  const pace = useMemo(() => projectPace(project, { days: range, now }), [project, range, now])
 
   return (
     <>
+      <SectionCard className="pad">
+        <CardHead title="Expected vs actual">
+          <span className="pace-legend" aria-hidden="true">
+            <i className="pace-legend-actual" /> actual
+            <i className="pace-legend-expected" /> expected
+          </span>
+        </CardHead>
+        <PaceChart
+          actual={pace.actual}
+          expected={pace.expected}
+          ariaLabel={`Expected versus actual progress for ${project.name} over the last ${range} days`}
+        />
+        {!pace.expected && (
+          <p className="tiny muted" style={{ marginTop: 6 }}>
+            No expected line: this project needs a start date and a deadline to compute one.
+          </p>
+        )}
+      </SectionCard>
+
       <div className="split">
         <SectionCard className="pad">
           <CardHead title="Progress over time">

@@ -117,7 +117,7 @@ export default function InsightsScreen() {
           </div>
         </header>
         <SectionCard>
-          <EmptyState icon={<IconInsights size={40} />} title="Nothing to analyze yet">
+          <EmptyState art="art/empty-insights.webp" icon={<IconInsights size={40} />} title="Nothing to analyze yet">
             Add habits and check them off — insights appear as your history grows.
           </EmptyState>
         </SectionCard>

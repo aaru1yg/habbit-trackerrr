@@ -13,7 +13,7 @@ import {
   projectComparison, timeDistribution, matchesWorkFilter, matchesQuery, sortWorkRows,
   urgencyOf, deadlineFromPreset, PROGRESS_STEPS,
 } from '../src/lib/work.js'
-import { addDaysStr, subDaysStr, todayStr, isoLocal } from '../src/lib/dates.js'
+import {  subDaysStr,  isoLocal } from '../src/lib/dates.js'
 import { checkWorkReminders, workAlertFired } from '../src/lib/reminders.js'
 
 const NOW = new Date('2026-09-05T09:00:00') // Saturday

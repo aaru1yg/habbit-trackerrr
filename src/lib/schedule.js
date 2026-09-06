@@ -73,8 +73,7 @@ function recursOn(habit, date) {
       if (!isValidDayStr(anchor)) return true // no anchor → treat as daily rather than vanish
       if (date < anchor) return false
       // count days between anchor and date without Date math drift
-      let steps = 0
-      let cursor = anchor
+      let steps
       // fast path: use Date arithmetic for the diff
       const a = new Date(`${anchor}T12:00:00`)
       const b = new Date(`${date}T12:00:00`)

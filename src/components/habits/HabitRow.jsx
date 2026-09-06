@@ -5,6 +5,9 @@ import { todayStr } from '../../lib/dates.js'
 import { scheduleLabel, categoryOf } from '../../lib/schedule.js'
 import { habitStreak } from '../../lib/stats.js'
 import HabitCheck from './HabitCheck.jsx'
+import AnimatedNumber from '../ui/AnimatedNumber.jsx'
+import Burst from '../motion/Burst.jsx'
+import { interactionFeedback } from '../../lib/motion.js'
 import { IconArchive, IconTrash, IconGrip, IconChevronRight, IconFlame } from '../../lib/icons.jsx'
 
 const ACTIONS_W = 132
@@ -25,6 +28,7 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
   const dragControls = useDragControls()
   const x = useMotionValue(0)
   const [open, setOpen] = useState(false)
+  const [burst, setBurst] = useState(0)
 
   const today = todayStr()
   const done = state.checkins?.[habit.id]?.[today]?.done === true
@@ -32,7 +36,12 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
   const cat = categoryOf(habit.category)
 
   const toggle = () => {
-    if (!done && onFire) onFire()
+    // one channel for every interaction response (sound-ready, §25)
+    interactionFeedback(done ? 'uncomplete' : 'complete', { habitId: habit.id })
+    if (!done) {
+      if (onFire) onFire()
+      setBurst((b) => b + 1) // tight particle response at the checkbox
+    }
     dispatch({ type: 'TOGGLE_CHECKIN', habitId: habit.id, date: today })
   }
 
@@ -117,7 +126,10 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
           }}
           style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, minHeight: 56, borderRadius: 14, padding: '2px 4px 2px 0', margin: '-2px -4px -2px 0' }}
         >
-          <HabitCheck done={done} label={done ? 'Completed' : 'Not completed'} />
+          <span style={{ position: 'relative', display: 'grid', placeItems: 'center', flex: 'none' }}>
+            <HabitCheck done={done} label={done ? 'Completed' : 'Not completed'} />
+            <Burst fire={burst} count={9} spread={30} size={4} />
+          </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             {editing ? (
               <input
@@ -152,8 +164,8 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
               </span>
               <span>{scheduleLabel(habit)}</span>
               {streak > 1 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--warn)', fontWeight: 600 }}>
-                  <IconFlame size={13} /> {streak}d
+                <span className="habit-streak">
+                  <IconFlame size={13} /> <AnimatedNumber value={streak} duration={520} />d
                 </span>
               )}
             </div>

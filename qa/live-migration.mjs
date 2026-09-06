@@ -256,7 +256,6 @@ async function run() {
       if (!chose) throw new Error('migration dialog appeared but "Merge both" was not found')
       await waitFor(page, `!document.body.innerText.includes('Existing data found')`, { label: 'dialog closed' })
       await sleep(2500)
-      firstPrompt = false
     }
     check('A: signed in and app rendered past the auth gate',
       !(await page.evaluate(() => !!document.querySelector('#auth-email'))))

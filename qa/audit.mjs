@@ -22,6 +22,7 @@ const ROUTES = [
   'today', 'calendar', 'week', 'goals', 'projects', 'assignments',
   'workload', 'timeline', 'insights', 'mind', 'library', 'record', 'settings',
   'habits', 'achievements', 'habits/h-run', 'projects/p2', 'assignments/a1',
+  'goals/g-run',
 ]
 
 const findings = []

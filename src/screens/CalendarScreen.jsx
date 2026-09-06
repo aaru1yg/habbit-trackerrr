@@ -1,11 +1,12 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
+import useNow from '../lib/useNow.js'
 import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { todayStr, monthDays, monthLabel, weekdayInitial, dayNum, isFuture, prettyDate, shortDate, addDaysStr, subDaysStr } from '../lib/dates.js'
 import { isScheduled, categoryOf } from '../lib/schedule.js'
-import { activeHabits, isDone, checkinOf, habitRate } from '../lib/stats.js'
+import { activeHabits, isDone, checkinOf, habitRate, dayDensity } from '../lib/stats.js'
 import { IconChevronLeft, IconChevronRight, IconCalendar, IconCheck } from '../lib/icons.jsx'
 import { calendarMarkers } from '../lib/work.js'
 import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
@@ -30,7 +31,7 @@ const localDate = (s) => new Date(`${s}T12:00:00`)
 
 export default function CalendarScreen({ ymParam }) {
   const { state, dispatch } = useStore()
-  const now = new Date()
+  const now = useNow()
   const [mode, setMode] = useState('month')
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })
   const [anchor90, setAnchor90] = useState(todayStr()) // 90d window ends at this date
@@ -73,6 +74,7 @@ export default function CalendarScreen({ ymParam }) {
     }
     return out
   }, [mode, ym, anchor90, year])
+  const density = useMemo(() => dayDensity(state, days.map((d) => d.date)), [state, days])
 
   const bands = useMemo(() => {
     const out = []
@@ -138,12 +140,14 @@ export default function CalendarScreen({ ymParam }) {
     setYear(now.getFullYear())
   }
 
+  const navRef = useRef({ prev, next })
+  navRef.current = { prev, next }
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.closest('input, textarea, select, [role="dialog"]')) return
       if (noteFor) return
-      if (e.key === 'ArrowLeft') prev()
-      if (e.key === 'ArrowRight') next()
+      if (e.key === 'ArrowLeft') navRef.current.prev()
+      if (e.key === 'ArrowRight') navRef.current.next()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -244,13 +248,14 @@ export default function CalendarScreen({ ymParam }) {
           </div>
 
           {habits.length === 0 ? (
-            <EmptyState icon={<IconCalendar size={40} />} title="No habits in this range">
+            <EmptyState art="art/empty-calendar.webp" icon={<IconCalendar size={40} />} title="No habits in this range">
               Add a habit and its calendar will appear here.
             </EmptyState>
           ) : (
             <div className="cal-wrap" data-testid="cal-scroll">
               <div
                 className="cal-grid"
+                key={title}
                 style={{ gridTemplateColumns: `${NAME_COL}px repeat(${days.length}, var(--cal-cell, ${CELL}px))`, minWidth: 'max-content' }}
               >
                 <div className="cal-corner">Habit</div>
@@ -306,6 +311,18 @@ export default function CalendarScreen({ ymParam }) {
                         })}
                       </span>
                     )}
+                  </div>
+                ))}
+                <div className="cal-corner cal-dens-corner">Done</div>
+                {density.map((d, i) => (
+                  <div
+                    key={d.date}
+                    className={`cal-dens${d.pct == null ? ' is-null' : ''}${d.date === today ? ' is-today' : ''}`}
+                    style={{ '--i': i, ...(bandIdx.get(d.date) % 2 === 1 && d.pct == null ? { background: 'var(--surface-2)' } : {}) }}
+                    role="img"
+                    aria-label={`${prettyDate(d.date)}: ${d.pct == null ? 'nothing scheduled' : `${d.pct} percent of scheduled checks done`}`}
+                  >
+                    {d.pct != null && <i className="cal-dens-fill" style={{ '--v': d.pct / 100 }} />}
                   </div>
                 ))}
                 {habits.map((h) => (

@@ -103,6 +103,19 @@ export function topStreak(state) {
 }
 
 /** Week roll-up (week = array of date strings from weekDays()). */
+/**
+ * Completion density for a list of dates: share of scheduled checks
+ * done per day. Days with nothing scheduled are `null` — hollow, not
+ * zero, because "nothing was planned" is not "nothing was done".
+ */
+export function dayDensity(state, dates) {
+  return (dates || []).map((date) => {
+    const s = dayStats(state, date)
+    if (!s.total) return { date, pct: null, done: 0, total: 0 }
+    return { date, pct: Math.round((s.done / s.total) * 100), done: s.done, total: s.total }
+  })
+}
+
 export function weekStats(state, week) {
   const perDay = week.map((d) => dayStats(state, d))
   let done = 0

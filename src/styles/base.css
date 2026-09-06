@@ -18,6 +18,9 @@ body,
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* motion entrances travel on X for cinematic variants; clip keeps the
+     document's scroll box exactly viewport-wide at every frame */
+  overflow-x: clip;
 }
 
 body {

@@ -267,7 +267,7 @@ export default function MindScreen() {
 
         {!hasHistory && (
           <SectionCard>
-            <EmptyState icon={<IconMind size={40} />} title="No moods logged yet">
+            <EmptyState art="art/empty-mind.webp" icon={<IconMind size={40} />} title="No moods logged yet">
               Check in for a few days and your mood history will appear here.
             </EmptyState>
           </SectionCard>

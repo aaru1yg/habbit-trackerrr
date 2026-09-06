@@ -11,6 +11,9 @@ const BASE_ARGS = [
   '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
   '--force-color-profile=srgb', '--disable-lcd-text',
   '--enable-features=OverlayScrollbar',
+  // Software WebGL so browser QA can exercise the real 3D layer on
+  // GPU-less CI runners. Real devices use their own GPU.
+  '--enable-unsafe-swiftshader',
 ]
 
 /** Look for a usable system chromium first (CHROMIUM_PATH or common installs). */
@@ -130,12 +133,16 @@ export async function setStoredState(page, state) {
  *  The seed is injected before any app script runs (no stale-app writes),
  *  and the injection is removed so later reloads test real persistence. */
 export async function seedAndGoto(page, state, route, base = 'http://localhost:4173') {
-  const handle = await page.evaluateOnNewDocument((s) => {
+  // AARU_CAP lets browser QA pin the device tier (high/balanced/low) so the
+  // WebGL scene and each fallback can be exercised deterministically.
+  const cap = process.env.AARU_CAP || ''
+  const handle = await page.evaluateOnNewDocument((s, cap) => {
     try {
       localStorage.clear()
       localStorage.setItem('aaru.habits.v4', JSON.stringify(s))
+      if (cap) localStorage.setItem('aaru.cap', cap)
     } catch { /* ignore */ }
-  }, state)
+  }, state, cap)
   try {
     await page.goto(`${base}/#/${route}`, { waitUntil: 'networkidle0' })
     await sleep(500)
@@ -187,7 +194,14 @@ export function seededState() {
       // deterministic "personality": run 85%, read 70%, meditate 60%, water 90%, guitar 40%
       const rate = { 'h-run': 0.85, 'h-read': 0.7, 'h-med': 0.6, 'h-water': 0.9, 'h-guitar': 0.4 }[h.id]
       const seed = (i * 7 + h.id.charCodeAt(2) * 13) % 100
-      if (seed < rate * 100) checkins[h.id][date] = { done: true }
+      if (seed < rate * 100) {
+        // deterministic check-in times per habit personality (morning runner,
+        // evening reader…) so time-of-day analytics have real timestamps
+        const hhmm = { 'h-run': '07:10', 'h-read': '21:30', 'h-med': '08:05', 'h-water': '14:20', 'h-guitar': '20:00' }[h.id] || '12:00'
+        const [hh, mm] = hhmm.split(':')
+        const jitter = (i * 7) % 40
+        checkins[h.id][date] = { done: true, at: `${date}T${hh}:${String(Number(mm) + jitter).padStart(2, '0')}:00` }
+      }
     }
   }
   const moods = {}

@@ -8,13 +8,11 @@ import { useId, useMemo, useState } from 'react'
 import { shortDate, weekdayShort } from '../../lib/dates.js'
 
 const TNUM = { fontVariantNumeric: 'tabular-nums' }
-const uid = () => useId().replace(/:/g, '')
 
 /* ------------------------------------------------------------
    LineSeries — 1..n lines over dates. Values 0..100 (or auto).
    ------------------------------------------------------------ */
 export function LineSeries({ series, height = 200, unit = '%', domain = [0, 100], ariaLabel, showPoints = true, xCount = 4 }) {
-  const gid = uid()
   const [sel, setSel] = useState(null)
   const W = 640
   const H = height
@@ -105,7 +103,7 @@ export function LineSeries({ series, height = 200, unit = '%', domain = [0, 100]
    rows: [{ date, ideal, actual (null = future), future }]
    ------------------------------------------------------------ */
 export function BurndownChart({ rows, today }) {
-  const gid = uid()
+  const gid = useId().replace(/:/g, '')
   const W = 640
   const H = 210
   const L = 38
@@ -349,7 +347,7 @@ export function CompareBars({ a, b, unit = '%' }) {
    DonutStat — compact ring with a caption (project analytics)
    ------------------------------------------------------------ */
 export function DonutStat({ pct, label, sub, size = 108, tone }) {
-  const gid = uid()
+  const gid = useId().replace(/:/g, '')
   const stroke = 9
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r

@@ -795,6 +795,35 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   check('first-class goals show their outcome and link supporting habits', await page.evaluate(() => /Run a half marathon/.test(document.body.textContent) && !!document.querySelector('.goal-card .goal-habit[href^="#/habits/"]')))
   await shot(page, '16j-goals')
   await overflowCheck(page, 'goals')
+
+  /* ---- Goals 2.0: the detail experience ---- */
+  await page.goto(`${BASE}/#/goals/g-run`, { waitUntil: 'networkidle0' })
+  await sleep(900)
+  check('[goal-detail] opens from the list route with its own visualization', await page.evaluate(() => (
+    !!document.querySelector('#goal-detail-screen .goal-hero .core-wrap')
+    && /Run a half marathon/.test(document.body.textContent)
+  )))
+  check('[goal-detail] states the stage of the goal object', await page.evaluate(() => (
+    /building|momentum|foundation|near completion|reached/i.test(document.querySelector('#goal-detail-screen .core-caption')?.textContent || '')
+  )))
+  check('[goal-detail] pace chart draws expected vs actual from real data', await page.evaluate(() => (
+    !!document.querySelector('#goal-detail-screen .chart-draw svg .chart-line')
+    && /Expected vs actual/.test(document.body.textContent)
+  )))
+  check('[goal-detail] analytics never invent: velocity/projection/consistency labelled', await page.evaluate(() => {
+    const facts = [...document.querySelectorAll('#goal-detail-screen .goal-fact')].map((f) => f.textContent).join(' ')
+    return /velocity/.test(facts) && /projected completion/.test(facts) && /consistency/.test(facts)
+  }))
+  check('[goal-detail] milestone timeline shows reached + on-time evidence', await page.evaluate(() => (
+    document.querySelectorAll('#goal-detail-screen .ms-node').length === 3
+    && /on time|late/.test(document.querySelector('#goal-detail-screen .ms-node.is-done')?.textContent || '')
+  )))
+  check('[goal-detail] linked work feeds the goal with live progress', await page.evaluate(() => (
+    !!document.querySelector('#goal-detail-screen .feed-row[href^="#/habits/"]')
+  )))
+  await shot(page, '16k-goal-detail')
+  await overflowCheck(page, 'goal-detail')
+  await tapTargetCheck(page, 'goal-detail')
   await noConsoleErrors(page, 'work-layer')
   await page.close()
 }

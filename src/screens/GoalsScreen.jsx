@@ -271,7 +271,11 @@ function GoalCard({ goal, index, today, from, onEdit, onArchive, onDelete, onLin
                 </span>
               )}
             </div>
-            <h2 className="goal-title">{goal.title}</h2>
+            <h2 className="goal-title">
+              <Link to={`goals/${goal.id}`} className="goal-title-link" aria-label={`Open ${goal.title}`}>
+                {goal.title}
+              </Link>
+            </h2>
             {goal.why && <p className="goal-why">{goal.why}</p>}
           </div>
           <div style={{ flex: 'none', textAlign: 'right' }}>

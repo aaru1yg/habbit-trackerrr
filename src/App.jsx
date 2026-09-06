@@ -23,6 +23,7 @@ const WeekScreen = lazy(() => import('./screens/WeekScreen.jsx'))
 const InsightsScreen = lazy(() => import('./screens/InsightsScreen.jsx'))
 const MindScreen = lazy(() => import('./screens/MindScreen.jsx'))
 const GoalsScreen = lazy(() => import('./screens/GoalsScreen.jsx'))
+const GoalDetailScreen = lazy(() => import('./screens/GoalDetailScreen.jsx'))
 const LibraryScreen = lazy(() => import('./screens/LibraryScreen.jsx'))
 const RecordScreen = lazy(() => import('./screens/RecordScreen.jsx'))
 const SettingsScreen = lazy(() => import('./screens/SettingsScreen.jsx'))
@@ -123,7 +124,7 @@ export default function App() {
                 {active === 'week' && <WeekScreen />}
                 {active === 'insights' && <InsightsScreen />}
                 {active === 'mind' && <MindScreen />}
-                {active === 'goals' && <GoalsScreen />}
+                {active === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
                 {active === 'library' && <LibraryScreen />}
                 {active === 'record' && <RecordScreen />}
                 {active === 'settings' && <SettingsScreen />}

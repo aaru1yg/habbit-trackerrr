@@ -410,3 +410,14 @@
   .core-ticks line,
   .core-orb { transition: none; }
 }
+
+/* dashed reference lines fade in rather than draw (a dash pattern
+   and a draw-on animation cannot share stroke-dasharray) */
+.chart-draw .chart-fade {
+  opacity: 0;
+  transition: opacity 520ms var(--ease-out) 320ms;
+}
+.chart-draw.is-in .chart-fade { opacity: 0.75; }
+@media (prefers-reduced-motion: reduce) {
+  .chart-draw .chart-fade { opacity: 0.75; transition: none; }
+}

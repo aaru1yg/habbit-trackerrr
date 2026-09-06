@@ -60,14 +60,14 @@ export default function ProgressCoreScene({ pct = 0, theme = 'midnight', classNa
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 60)
-    camera.position.set(0, 0, 7.2)
+    camera.position.set(0, 0, 8.6)
 
     const accent1 = new THREE.Color(readColor('--accent-1', '#7048f5'))
     const accent2 = new THREE.Color(readColor('--accent-2', '#22d3ee'))
     const lift = new THREE.Color(readColor('--accent-1-lift', '#b3a0ff'))
 
     /* -- rings -- */
-    const ringGeo = new THREE.TorusGeometry(1.72, 0.028, 8, 110)
+    const ringGeo = new THREE.TorusGeometry(2.06, 0.026, 8, 110)
     const ringMat = new THREE.MeshBasicMaterial({
       color: accent1, transparent: true, opacity: 0.42,
       blending: THREE.AdditiveBlending, depthWrite: false,
@@ -76,7 +76,7 @@ export default function ProgressCoreScene({ pct = 0, theme = 'midnight', classNa
     ring.rotation.set(Math.PI / 2.35, 0.35, 0)
     scene.add(ring)
 
-    const ring2Geo = new THREE.TorusGeometry(2.12, 0.016, 8, 110)
+    const ring2Geo = new THREE.TorusGeometry(2.48, 0.015, 8, 110)
     const ring2Mat = new THREE.MeshBasicMaterial({
       color: accent2, transparent: true, opacity: 0.3,
       blending: THREE.AdditiveBlending, depthWrite: false,
@@ -86,7 +86,7 @@ export default function ProgressCoreScene({ pct = 0, theme = 'midnight', classNa
     scene.add(ring2)
 
     /* -- wireframe core: the "object" the progress fills -- */
-    const coreGeo = new THREE.IcosahedronGeometry(0.86, 1)
+    const coreGeo = new THREE.IcosahedronGeometry(1.34, 1)
     const coreMat = new THREE.MeshBasicMaterial({
       color: lift, wireframe: true, transparent: true, opacity: 0.24,
       blending: THREE.AdditiveBlending, depthWrite: false,
@@ -99,7 +99,7 @@ export default function ProgressCoreScene({ pct = 0, theme = 'midnight', classNa
     const positions = new Float32Array(COUNT * 3)
     const speeds = new Float32Array(COUNT)
     for (let i = 0; i < COUNT; i += 1) {
-      const rad = 2.35 + Math.random() * 1.15
+      const rad = 2.9 + Math.random() * 1.2
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(2 * Math.random() - 1)
       positions[i * 3] = rad * Math.sin(phi) * Math.cos(theta)
@@ -190,12 +190,12 @@ export default function ProgressCoreScene({ pct = 0, theme = 'midnight', classNa
       ring2.rotation.y = Math.sin(t * 0.18) * 0.24
       core.rotation.y = t * 0.16
       core.rotation.x = Math.sin(t * 0.3) * 0.2
-      core.scale.setScalar(0.82 + smooth * 0.42)
+      core.scale.setScalar(0.9 + smooth * 0.3)
       coreMat.opacity = 0.14 + smooth * 0.3
       points.rotation.y = t * 0.05
       partMat.opacity = 0.26 + smooth * 0.42
       glowMat.opacity = 0.22 + smooth * 0.42
-      glow.scale.setScalar(2.6 + smooth * 2.2 + Math.sin(t * 0.8) * 0.08)
+      glow.scale.setScalar(3.1 + smooth * 2.4 + Math.sin(t * 0.8) * 0.08)
       ringMat.opacity = 0.3 + smooth * 0.3
 
       camera.position.x += (targetX - camera.position.x) * 0.045

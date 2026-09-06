@@ -10,6 +10,7 @@ const theme = process.argv[3] || null
 const ROUTES = [
   'today', 'calendar', 'week', 'goals', 'projects', 'assignments',
   'workload', 'timeline', 'insights', 'mind', 'library', 'record', 'settings',
+  'habits', 'achievements', 'habits/h-run', 'projects/p2', 'assignments/a1',
 ]
 
 const browser = await launch()
@@ -46,6 +47,8 @@ try {
     if (theme) state.profile.theme = theme
     await seedAndGoto(page, state, route, base)
     await sleep(700)
+    const applied = await page.evaluate(() => document.documentElement.dataset.theme)
+    if (theme && applied !== theme) throw new Error(`Requested theme ${theme}, but ${applied} rendered`)
     const rows = await page.evaluate(() => {
       const out = []
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
@@ -117,3 +120,5 @@ console.log(`theme=${theme || 'default'} — ${failures.length} failing text nod
 for (const f of [...uniq.values()].sort((a, b) => a.cr - b.cr)) {
   console.log(`  ${f.cr} (need ${f.need})  ${f.size}px w${f.weight}  ${f.tag}.${f.cls}  "${f.text}"  ${[...f.routes].join(',')}`)
 }
+
+process.exitCode = failures.length > 0 ? 1 : 0

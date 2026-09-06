@@ -32,6 +32,48 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Browser journeys and release UI checks
+        run: |
+          set -euo pipefail
+          npm run preview -- --host 0.0.0.0 > /tmp/preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID"' EXIT
+          node --input-type=module -e '
+            for (let i = 0; i < 60; i++) {
+              try { if ((await fetch("http://localhost:4173/")).ok) process.exit(0) } catch {}
+              await new Promise(r => setTimeout(r, 500));
+            }
+            process.exit(1);
+          '
+          mkdir -p qa/shots
+          # Independent browser profiles; no cloud credentials in this build.
+          npm run test:e2e > qa/shots/e2e.log 2>&1 &
+          E2E_PID=$!
+          npm run test:release > qa/shots/release.log 2>&1 &
+          RELEASE_PID=$!
+          node qa/audit.mjs http://localhost:4173 > qa/shots/layout.log 2>&1 &
+          LAYOUT_PID=$!
+          (
+            for theme in midnight aurora ember verdant daylight; do
+              node qa/contrast.mjs http://localhost:4173 "$theme"
+            done
+          ) > qa/shots/contrast.log 2>&1 &
+          CONTRAST_PID=$!
+          STATUS=0
+          for PID in "$E2E_PID" "$RELEASE_PID" "$LAYOUT_PID" "$CONTRAST_PID"; do
+            wait "$PID" || STATUS=1
+          done
+          tail -n 35 qa/shots/{e2e,release,layout,contrast}.log
+          exit "$STATUS"
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-qa
+          path: qa/shots/
+          retention-days: 7
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

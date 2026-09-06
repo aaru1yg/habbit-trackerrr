@@ -12,7 +12,7 @@ const HABIT_CATEGORIES = ['fitness', 'mind', 'learning', 'health', 'creative', '
 const ROUTINE_KINDS = ['morning', 'workout', 'study', 'night', 'custom']
 const PRIORITIES = ['low', 'normal', 'high']
 const TASK_STATUSES = ['todo', 'doing', 'blocked', 'done']
-const THEMES = ['midnight', 'ember', 'verdant', 'daylight']
+const THEMES = ['midnight', 'aurora', 'ember', 'verdant', 'daylight']
 
 const isStr = (v) => typeof v === 'string' && v.trim().length > 0
 const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3)

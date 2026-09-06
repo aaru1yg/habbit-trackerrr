@@ -69,6 +69,15 @@ describe('mergeDocs', () => {
     expect(out.projects.map((p) => p.id)).toEqual(['p1'])
   })
 
+  it('merges goals by id without losing either device and respects newer edits', () => {
+    const local = { goals: [{ id: 'local', title: 'Local' }, { id: 'shared', title: 'Newer', updatedAt: T1 }] }
+    const cloud = { goals: [{ id: 'cloud', title: 'Cloud' }, { id: 'shared', title: 'Older', updatedAt: T0 }] }
+    const merged = mergeDocs(local, cloud)
+    expect(merged.goals.map((g) => g.id).sort()).toEqual(['cloud', 'local', 'shared'])
+    expect(merged.goals.find((g) => g.id === 'shared').title).toBe('Newer')
+    expect(mergeDocs(merged, cloud).goals).toEqual(merged.goals)
+  })
+
   it('returns the other side when one is missing', () => {
     const doc = { habits: [{ id: 'x' }] }
     expect(mergeDocs(doc, null)).toBe(doc)
@@ -89,6 +98,13 @@ describe('summarise / hasData', () => {
     const s = summarise({ habits: [{ id: 'a' }, { id: 'b', deletedAt: T1 }], checkins: { a: { d1: {}, d2: {} } } })
     expect(s.habits).toBe(1)
     expect(s.checkins).toBe(2)
+  })
+
+  it('a goal-only document is real migration data, not an empty account', () => {
+    const doc = { goals: [{ id: 'g', title: 'Keep this' }] }
+    expect(summarise(doc).goals).toBe(1)
+    expect(hasData(doc)).toBe(true)
+    expect(hasData({ goals: [{ id: 'g', deletedAt: T1 }] })).toBe(false)
   })
 
   it('reports an empty document as having no data', () => {

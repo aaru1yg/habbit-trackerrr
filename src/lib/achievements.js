@@ -8,7 +8,7 @@
    Pure functions only: (state) => data. Nothing reads the DOM,
    the clock is always passed in, so results are testable.
    ============================================================ */
-import { todayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr } from './dates.js'
+import { todayStr, addDaysStr, subDaysStr, weekDays, isValidDayStr, toLocalDate } from './dates.js'
 import {
   habitBestStreak, habitRate, dayStats, weekStats,
   eligibleOn, isDone, activeHabits,
@@ -73,10 +73,8 @@ export function perfectWeeks(state, { weeks = 52, minSlots = 5 } = {}) {
   for (let i = 0; i < weeks; i++) {
     const anchor = subDaysStr(today, i * 7)
     const week = weekDays(anchor)
-    if (week[6] > today) {
-      // partially in the future — only count if fully past
-      if (week[0] > today) continue
-    }
+    // A partial week is progress, never an earned full-week badge.
+    if (week[6] > today) continue
     const stats = weekStats(state, week)
     if (stats.total < minSlots) continue
     if (stats.done === stats.total) out.push({ start: week[0], end: week[6], done: stats.done, total: stats.total })
@@ -94,9 +92,9 @@ export const completedAssignments = (state) =>
 export function onTimeAssignments(state) {
   return completedAssignments(state).filter((a) => {
     if (!a.deadline) return false
-    const doneDay = String(a.completedAt).slice(0, 10)
-    const dueDay = String(a.deadline).slice(0, 10)
-    return doneDay <= dueDay
+    const completed = toLocalDate(a.completedAt)
+    const deadline = toLocalDate(a.deadline, { endOfDay: true })
+    return completed != null && deadline != null && completed <= deadline
   })
 }
 
@@ -178,7 +176,7 @@ export function achievementList(state, { now = todayStr() } = {}) {
   const rate30 = eligible30 ? done30 / eligible30 : null
 
   const bestConsistency = habits.length
-    ? Math.max(...habits.map((h) => consistencyScore(state, h, 90) ?? 0))
+    ? Math.max(...habits.map((h) => consistencyScore(state, h, 90).score ?? 0))
     : 0
 
   const moodDays = Object.keys(state.moods || {}).length

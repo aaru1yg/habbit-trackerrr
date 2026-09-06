@@ -5,11 +5,11 @@
    nothing to say, the functions return empty arrays rather than
    inventing a suggestion.
    ============================================================ */
-import { todayStr, nowHHMM, prettyTime, minutesLabel, hoursUntil, daysUntil } from './dates.js'
+import { dayStr, prettyTime, minutesLabel, daysUntil, dueLabel } from './dates.js'
 import { activeHabits, isDone, eligibleOn, habitStreak } from './stats.js'
 import { assignmentStatus, projectStatus, projectProgress, assignmentProgress } from './work.js'
 import { isScheduled } from './schedule.js'
-import { openGoals, goalHealth, goalProgress, nextMilestone, goalTodayActions } from './goals.js'
+import { openGoals, goalHealth, nextMilestone, goalTodayActions } from './goals.js'
 
 const PRIORITY_RANK = { high: 0, normal: 1, low: 2 }
 
@@ -24,12 +24,13 @@ const PRIORITY_RANK = { high: 0, normal: 1, low: 2 }
  * Each row carries an honest reason string.
  */
 export function todayPriorities(state, { now = new Date(), limit = 4 } = {}) {
-  const today = todayStr()
+  const today = dayStr(now)
   const rows = []
 
   for (const a of state.assignments || []) {
     if (a.archived || a.completedAt) continue
     const st = assignmentStatus(a, now)
+    if (st.complete) continue
     const overdue = st.passed === true
     const dueToday = st.daysLeft === 0 && !overdue
     if (overdue || dueToday) {
@@ -40,7 +41,7 @@ export function todayPriorities(state, { now = new Date(), limit = 4 } = {}) {
         href: `assignments/${a.id}`,
         tone: overdue ? 'bad' : 'warn',
         pct: assignmentProgress(a).pct,
-        reason: overdue ? `Overdue · ${st.dueText}` : (st.dueText || 'Due today'),
+        reason: st.dueText || (overdue ? 'Overdue' : 'Due today'),
         urgency: overdue ? 0 : 2,
         weight: PRIORITY_RANK[a.priority] ?? 1,
       })
@@ -50,6 +51,7 @@ export function todayPriorities(state, { now = new Date(), limit = 4 } = {}) {
   for (const p of state.projects || []) {
     if (p.archived || p.completedAt) continue
     const st = projectStatus(p, now)
+    if (st.complete) continue
     const overdue = st.passed === true
     const dueToday = st.daysLeft === 0 && !overdue
     if (overdue || dueToday) {
@@ -60,7 +62,7 @@ export function todayPriorities(state, { now = new Date(), limit = 4 } = {}) {
         href: `projects/${p.id}`,
         tone: overdue ? 'bad' : 'warn',
         pct: projectProgress(p).pct,
-        reason: overdue ? `Overdue · ${st.dueText}` : (st.dueText || 'Due today'),
+        reason: st.dueText || (overdue ? 'Overdue' : 'Due today'),
         urgency: overdue ? 0 : 2,
         weight: PRIORITY_RANK[p.priority] ?? 1,
       })
@@ -113,7 +115,7 @@ export function todayPriorities(state, { now = new Date(), limit = 4 } = {}) {
  * Habits without a reminder are listed last as "any time" — the app never
  * guesses a time for them.
  */
-export function dayTimeline(state, { now = new Date(), date = todayStr() } = {}) {
+export function dayTimeline(state, { now = new Date(), date = dayStr(now) } = {}) {
   const entries = []
 
   for (const h of activeHabits(state)) {
@@ -143,13 +145,13 @@ export function dayTimeline(state, { now = new Date(), date = todayStr() } = {})
   }
 
   const dueThisDay = (value) => value && String(value).slice(0, 10) === date
-  const timeOf = (value) => String(value).slice(11, 16)
+  const timeOf = (value) => String(value).slice(11, 16) || null
 
   for (const a of state.assignments || []) {
     if (a.archived || !dueThisDay(a.deadline)) continue
     entries.push({
       time: timeOf(a.deadline),
-      sort: timeOf(a.deadline),
+      sort: timeOf(a.deadline) || '99:99',
       label: a.name,
       kind: 'assignment',
       done: Boolean(a.completedAt),
@@ -163,7 +165,7 @@ export function dayTimeline(state, { now = new Date(), date = todayStr() } = {})
     if (p.archived || !dueThisDay(p.deadline)) continue
     entries.push({
       time: timeOf(p.deadline),
-      sort: timeOf(p.deadline),
+      sort: timeOf(p.deadline) || '99:99',
       label: p.name,
       kind: 'project',
       done: Boolean(p.completedAt),
@@ -177,21 +179,13 @@ export function dayTimeline(state, { now = new Date(), date = todayStr() } = {})
   return entries
 }
 
-/* ------------------------------------------------------------
-   GOALS — first-class outcomes.
-   When the user has real goals, they lead. Goals link down to the
-   habits, projects and assignments that produce them, and progress
-   is derived from those links in the same order of authority the
-   Goals screen uses (see lib/goals.js).
-   ------------------------------------------------------------ */
-
 /** Real goals, ordered by how close the target date is. */
 export function todayGoals(state, { now = new Date(), limit = 3 } = {}) {
   const goals = openGoals(state, { now })
   const rows = goals.map((g) => {
     const health = goalHealth(state, g, { now })
     const next = nextMilestone(g)
-    const actions = goalTodayActions(state, g, { date: todayStr() })
+    const actions = goalTodayActions(state, g, { date: dayStr(now) })
     const dueIn = g.targetDate ? daysUntil(g.targetDate, now) : null
     return {
       kind: 'goal',
@@ -203,6 +197,7 @@ export function todayGoals(state, { now = new Date(), limit = 3 } = {}) {
       behind: health.pace ? health.pace.expected - health.prog.pct : null,
       tone: health.tone,
       dueIn,
+      dueText: dueLabel(g.targetDate, {}, now),
       note: health.note,
       nextMilestone: next ? next.name : null,
       pendingToday: actions.filter((a) => !a.done).length,
@@ -212,26 +207,18 @@ export function todayGoals(state, { now = new Date(), limit = 3 } = {}) {
   return rows.slice(0, limit)
 }
 
-/**
- * Projects as goals — the fallback for accounts that have not created
- * goals yet. Same shape, same honesty about pace.
- */
+/** Project fallback for accounts without open goals. */
 export function todayProjectGoals(state, { now = new Date(), limit = 3 } = {}) {
   const rows = []
   for (const p of state.projects || []) {
     if (p.archived || p.completedAt) continue
     const st = projectStatus(p, now)
     const { pct } = projectProgress(p)
-    const dueIn = p.deadline ? daysUntil(p.deadline, now) : null
-    const hoursLeft = p.deadline ? hoursUntil(p.deadline, now) : null
-    // expected pace: how much of the calendar window has elapsed
-    let expected = null
-    if (p.startDate && p.deadline) {
-      const start = new Date(`${p.startDate}T00:00:00`).getTime()
-      const end = new Date(String(p.deadline).slice(0, 16)).getTime()
-      const at = now.getTime()
-      if (end > start) expected = Math.max(0, Math.min(100, Math.round(((at - start) / (end - start)) * 100)))
-    }
+    if (st.complete) continue
+    // Share the deadline engine's local/end-of-day semantics with Work.
+    const dueIn = st.daysLeft
+    const hoursLeft = st.hoursLeft
+    const expected = st.elapsedPct
     rows.push({
       id: p.id,
       name: p.name,
@@ -240,6 +227,7 @@ export function todayProjectGoals(state, { now = new Date(), limit = 3 } = {}) {
       expected,
       tone: st.tone,
       dueIn,
+      dueText: st.dueText,
       hoursLeft,
       behind: expected != null ? Math.round(expected - pct) : null,
       estimatedMin: Number.isFinite(p.estimateMin) ? p.estimateMin : null,
@@ -255,7 +243,6 @@ export function todayHeadline(state, { now = new Date() } = {}) {
   const priorities = todayPriorities(state, { now, limit: 99 })
   const overdue = priorities.filter((p) => p.tone === 'bad').length
   const dueToday = priorities.filter((p) => p.tone === 'warn' && p.kind !== 'habit').length
-  const current = nowHHMM()
 
   if (overdue > 0) {
     return { tone: 'bad', text: `${overdue} item${overdue === 1 ? '' : 's'} already overdue. Start there.` }
@@ -268,7 +255,7 @@ export function todayHeadline(state, { now = new Date() } = {}) {
   }
   return {
     tone: 'neutral',
-    text: `It is ${prettyTime(`${todayStr()}T${current}`)}. ${priorities.length} thing${priorities.length === 1 ? '' : 's'} on the list.`,
+    text: `It is ${prettyTime(now)}. ${priorities.length} thing${priorities.length === 1 ? '' : 's'} on the list.`,
   }
 }
 

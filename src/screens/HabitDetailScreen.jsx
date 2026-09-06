@@ -32,7 +32,10 @@ export default function HabitDetailScreen({ id }) {
 
   const habit = useMemo(() => (state.habits || []).find((h) => h.id === id) || null, [state.habits, id])
   const detail = useMemo(() => habitDetail(state, habit, days), [state, habit, days])
-  const heat = useMemo(() => heatmapSeries(state, Math.ceil(days / 7) + 1), [state, days])
+  const heat = useMemo(
+    () => habit ? heatmapSeries({ ...state, habits: [habit] }, Math.ceil(days / 7) + 1) : [],
+    [state, habit, days],
+  )
 
   if (!habit) {
     return (

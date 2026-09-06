@@ -11,6 +11,7 @@ function Column({ heading, s }) {
     ['Check-ins', s.checkins],
     ['Projects', s.projects],
     ['Assignments', s.assignments],
+    ['Goals', s.goals],
     ['Routines', s.routines],
     ['Mood entries', s.moods],
   ].filter(([, n]) => n > 0)

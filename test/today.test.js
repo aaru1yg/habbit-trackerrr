@@ -4,7 +4,9 @@ import {
 } from '../src/lib/today.js'
 import { todayStr, subDaysStr, addDaysStr } from '../src/lib/dates.js'
 
+// Pin the hour so the due-today assertion is independent of CI start time.
 const NOW = new Date()
+NOW.setHours(12, 0, 0, 0)
 
 const base = (over = {}) => ({
   version: 4,

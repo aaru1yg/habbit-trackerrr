@@ -160,7 +160,11 @@ combine them (`src/components/auth/MigrationDialog.jsx`). The contract, enforced
 node qa/live-migration.mjs            # real browser vs the PUBLIC site (see .github/workflows/verify-live-site.yml)
 ```
 
-`verify-live-site.yml` runs a control pass on every PR that touches sync code (the current
-production build must still exhibit the historical re-prompt bug) and a full verification pass
-after each deploy of `main` (prompt at most once, silent across 10 reloads and a re-login,
-user B independently scoped), reporting the exact live build ID it verified against.
+`verify-live-site.yml` runs a real-browser production health check on every PR
+that touches sync code, and a full pinned verification after each deploy of
+`main` (waits until Pages serves that exact commit, then checks: prompt at most
+once, silent across 10 reloads and a re-login, user B independently scoped),
+reporting the exact live build ID it verified against. Before the fix shipped,
+the same journey in `reproduce` mode failed loudly on build `b9640e6`
+(dialog on 10/10 reloads and on re-login) — the control that proved the test
+can detect the bug.

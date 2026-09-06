@@ -3,25 +3,32 @@ name: Verify live site (migration)
 # Production proof for the migration-prompt behaviour, driven by a real
 # headless Chromium against the PUBLIC GitHub Pages URL.
 #
-#   pull_request (sync code changes) → EXPECT=reproduce — the control run:
-#       the CURRENT production build must still show the bug (dialog
-#       reappears after resolution). Proves the test can detect the bug.
-#   push to main → EXPECT=fixed, waiting until Pages serves this exact
-#       commit, then verifying the full healthy journey (prompt once at
-#       most, silent across 10 reloads and a re-login, user B scoped).
+#   pull_request (sync code changes) → EXPECT=fixed — production health /
+#       regression monitoring: the public site always serves main (never PR
+#       code), and whatever main serves must show the healthy journey (prompt
+#       at most once, silent across 10 reloads and a re-login, user B scoped).
+#       Before the fix shipped this same mode was the reproduce control — it
+#       failed loudly on build b9640e6 (10/10 reloads + re-login), proving it
+#       could detect the bug.
+#   push to main → EXPECT=fixed + build id, waiting until Pages serves this
+#       exact commit, then verifying it.
+#   workflow_dispatch → 'reproduce' asserts a KNOWN-BAD build still shows the
+#       bug (harness sanity check); default 'fixed'.
 #
 # Accounts: TEST_A_EMAIL/TEST_A_PASSWORD (+ TEST_B_*) repository secrets if
 # present; otherwise throwaway accounts are created through the real signup
 # UI. If the project requires email confirmation and no secrets exist, the
 # run exits 3 — an explicit, honest "cannot verify" rather than a silent pass.
+# Shares those accounts with verify-supabase.yml — the shared concurrency
+# group serializes the two so they never mutate the accounts concurrently.
 
 on:
   workflow_dispatch:
     inputs:
       expect:
-        description: 'reproduce (expect the bug) or fixed (expect the fix)'
+        description: 'fixed (expect healthy behaviour) or reproduce (expect the historical bug — harness sanity)'
         required: true
-        default: 'reproduce'
+        default: 'fixed'
   pull_request:
     paths:
       - 'src/lib/cloud/**'
@@ -36,6 +43,12 @@ on:
 
 permissions:
   contents: read
+
+# Shares the TEST_A/TEST_B accounts with verify-supabase.yml — the two runs
+# must never mutate those accounts concurrently (see the note there).
+concurrency:
+  group: live-qa-shared-accounts
+  cancel-in-progress: false
 
 jobs:
   verify:
@@ -57,7 +70,9 @@ jobs:
         id: mode
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "expect=reproduce" >> "$GITHUB_OUTPUT"
+            # The public site always serves main (never PR code): a PR run is
+            # a production health check, so it expects the healthy journey.
+            echo "expect=fixed" >> "$GITHUB_OUTPUT"
             echo "build=" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "expect=${{ inputs.expect }}" >> "$GITHUB_OUTPUT"
@@ -102,7 +117,8 @@ jobs:
               *"✗"*) echo "::error::${line}" ;;
               *"⊘"*) echo "::warning::${line}" ;;
               *"✓"*) echo "::notice::${line}" ;;
-              *"✅"*|*"live build"*|*"waiting for deploy"*) echo "::notice::${line}" ;;
+              *"✅"*|*"live build"*|*"waiting for deploy"*|*"A:"*|*"B:"*|*"verified against"*)
+                echo "::notice::${line}" ;;
             esac
           done < /tmp/live.txt
 

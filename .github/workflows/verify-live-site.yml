@@ -1,0 +1,128 @@
+name: Verify live site (migration)
+
+# Production proof for the migration-prompt behaviour, driven by a real
+# headless Chromium against the PUBLIC GitHub Pages URL.
+#
+#   pull_request (sync code changes) → EXPECT=reproduce — the control run:
+#       the CURRENT production build must still show the bug (dialog
+#       reappears after resolution). Proves the test can detect the bug.
+#   push to main → EXPECT=fixed, waiting until Pages serves this exact
+#       commit, then verifying the full healthy journey (prompt once at
+#       most, silent across 10 reloads and a re-login, user B scoped).
+#
+# Accounts: TEST_A_EMAIL/TEST_A_PASSWORD (+ TEST_B_*) repository secrets if
+# present; otherwise throwaway accounts are created through the real signup
+# UI. If the project requires email confirmation and no secrets exist, the
+# run exits 3 — an explicit, honest "cannot verify" rather than a silent pass.
+
+on:
+  workflow_dispatch:
+    inputs:
+      expect:
+        description: 'reproduce (expect the bug) or fixed (expect the fix)'
+        required: true
+        default: 'reproduce'
+  pull_request:
+    paths:
+      - 'src/lib/cloud/**'
+      - 'qa/live-migration.mjs'
+      - '.github/workflows/verify-live-site.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/cloud/**'
+      - 'qa/live-migration.mjs'
+      - '.github/workflows/verify-live-site.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Real browser vs public site
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine expectation
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "expect=reproduce" >> "$GITHUB_OUTPUT"
+            echo "build=" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "expect=${{ inputs.expect }}" >> "$GITHUB_OUTPUT"
+            echo "build=" >> "$GITHUB_OUTPUT"
+          else
+            # push to main — verify THIS commit once Pages serves it
+            echo "expect=fixed" >> "$GITHUB_OUTPUT"
+            echo "build=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Live-site migration verification
+        id: verify
+        continue-on-error: true
+        env:
+          LIVE_URL: https://aaru1yg.github.io/habbit-trackerrr/
+          EXPECT: ${{ steps.mode.outputs.expect }}
+          EXPECT_BUILD_ID: ${{ steps.mode.outputs.build }}
+          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+          TEST_B_EMAIL: ${{ secrets.TEST_B_EMAIL }}
+          TEST_B_PASSWORD: ${{ secrets.TEST_B_PASSWORD }}
+        run: |
+          set +e
+          node qa/live-migration.mjs 2>&1 | tee /tmp/live.txt
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish result
+        if: always()
+        run: |
+          {
+            echo '## Live-site migration verification'
+            echo ''
+            echo '```'
+            cat /tmp/live.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Mirror every verdict line as an annotation — readable from the API
+          # even where raw logs/artifacts are unreachable.
+          while IFS= read -r line; do
+            case "$line" in
+              *"✗"*) echo "::error::${line}" ;;
+              *"⊘"*) echo "::warning::${line}" ;;
+              *"✓"*) echo "::notice::${line}" ;;
+              *"✅"*|*"live build"*|*"waiting for deploy"*) echo "::notice::${line}" ;;
+            esac
+          done < /tmp/live.txt
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-migration-verification
+          path: /tmp/live.txt
+
+      - name: Enforce outcome
+        run: |
+          CODE="${{ steps.verify.outputs.code }}"
+          echo "live verification exit code: $CODE"
+          if [ "$CODE" = "0" ]; then
+            echo "Expectation met."
+          elif [ "$CODE" = "3" ]; then
+            echo "::error::PARTIAL — Supabase requires pre-confirmed accounts. Add TEST_A_EMAIL/TEST_A_PASSWORD (+ TEST_B_*) repository secrets."
+            exit 1
+          else
+            echo "::error::Live-site verification failed."
+            exit 1
+          fi

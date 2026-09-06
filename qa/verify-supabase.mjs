@@ -146,11 +146,21 @@ async function main() {
   const suClient = mkClient()
   const su = await suClient.auth.signUp({ email: throwaway.email, password: throwaway.password })
   const rateLimited = /rate limit|too many requests/i.test(su.error?.message || '')
+  // Supabase signup validates email-domain deliverability and rejects reserved
+  // or non-deliverable domains (error code email_address_invalid, e.g.
+  // @example.com since 2026-09). That is a platform email policy, not an application defect,
+  // so it gets the same honest treatment as the SMTP rate limit: a loud skip,
+  // never a fake pass. Real signup/login remains covered by the pre-confirmed
+  // TEST_A/TEST_B flows below.
+  const addressRejected = su.error?.code === 'email_address_invalid'
+    || /email address.*is invalid/i.test(su.error?.message || '')
   let signupOk = false
   if (rateLimited) {
     // Supabase's built-in SMTP allows only a few messages per hour. That is a
     // project quota, not an application defect, so it must not read as a fail.
     skip('signup creates a real user', 'Supabase email rate limit — retry later or configure custom SMTP')
+  } else if (addressRejected) {
+    skip('signup creates a real user', 'backend rejects throwaway email domains (email_address_invalid) — platform email policy, not an app defect')
   } else {
     signupOk = check('signup creates a real user', !su.error && !!su.data?.user, su.error?.message)
   }
@@ -494,7 +504,7 @@ async function main() {
   }
   console.log('\n✅ LIVE verification PASSED — real auth, cloud persistence and')
   console.log('   database-enforced two-user isolation confirmed against the real project.')
-  console.log(`   (throwaway signup used: ${throwaway.email} — delete it from the dashboard)`)
+  if (signupOk) console.log(`   (throwaway signup used: ${throwaway.email} — delete it from the dashboard)`)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

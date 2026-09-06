@@ -34,6 +34,7 @@ export const emptyState = () => ({
   routines: [],
   projects: [],
   assignments: [],
+  goals: [],
   moods: {},
 })
 
@@ -214,6 +215,62 @@ export function baseAssignment(a = {}) {
     order: 0,
     ...a,
   }
+}
+
+export function baseGoal(g = {}) {
+  return {
+    id: uid(),
+    title: '',
+    why: '',
+    area: 'mind',
+    startDate: todayStr(),
+    targetDate: null,
+    status: 'active',        // active | paused | completed | archived
+    milestones: [],
+    linkedHabitIds: [],
+    linkedProjectIds: [],
+    linkedAssignmentIds: [],
+    manualPercent: null,
+    notes: '',
+    createdAt: isoLocal(),
+    updatedAt: isoLocal(),
+    completedAt: null,
+    archived: false,
+    order: 0,
+    ...g,
+  }
+}
+
+export function baseGoalMilestone(m = {}) {
+  return {
+    id: uid(),
+    name: '',
+    targetDate: null,
+    done: false,
+    doneAt: null,
+    order: 0,
+    ...m,
+  }
+}
+
+/** Milestones coming from a form may be blank or half-filled; keep the real ones. */
+function normalizeGoalMilestones(list) {
+  if (!Array.isArray(list)) return []
+  const kept = []
+  list.forEach((m, i) => {
+    if (!m || typeof m !== 'object') return
+    const name = String(m.name || '').trim()
+    if (!name) return
+    kept.push({
+      ...baseGoalMilestone(m),
+      name: name.slice(0, 120),
+      targetDate: isValidDayStr(m.targetDate) ? m.targetDate : null,
+      done: m.done === true,
+      doneAt: m.done === true ? (typeof m.doneAt === 'string' ? m.doneAt : isoLocal()) : null,
+      order: Number.isFinite(m.order) ? m.order : i,
+    })
+  })
+  return kept.map((m, i) => ({ ...m, order: i }))
 }
 
 export function baseRoutine(r = {}) {
@@ -534,6 +591,89 @@ function reducer(state, action) {
       })
 
     /* ---- mind ---- */
+    /* ---- goals ---- */
+    case 'ADD_GOAL': {
+      const goal = baseGoal({ order: state.goals.length, ...action.goal })
+      return { ...state, goals: [...state.goals, { ...goal, milestones: normalizeGoalMilestones(goal.milestones) }] }
+    }
+    case 'UPDATE_GOAL':
+      return {
+        ...state,
+        goals: state.goals.map((g) => {
+          if (g.id !== action.id) return g
+          const next = { ...g, ...action.patch, updatedAt: isoLocal() }
+          if (Array.isArray(action.patch?.milestones)) {
+            next.milestones = normalizeGoalMilestones(action.patch.milestones)
+          }
+          return next
+        }),
+      }
+    case 'DELETE_GOAL':
+      return { ...state, goals: state.goals.filter((g) => g.id !== action.id) }
+    case 'RESTORE_GOAL': {
+      const goal = baseGoal({ ...(action.goal || {}) })
+      const exists = state.goals.some((g) => g.id === goal.id)
+      return { ...state, goals: exists ? state.goals : [...state.goals, goal] }
+    }
+    case 'REORDER_GOALS': {
+      const order = Array.isArray(action.ids) ? action.ids : []
+      const byId = new Map(state.goals.map((g) => [g.id, g]))
+      const ordered = order.map((id) => byId.get(id)).filter(Boolean)
+      for (const g of state.goals) if (!order.includes(g.id)) ordered.push(g)
+      return { ...state, goals: ordered.map((g, i) => ({ ...g, order: i })) }
+    }
+    case 'ADD_GOAL_MILESTONE':
+      return {
+        ...state,
+        goals: state.goals.map((g) => (g.id === action.id
+          ? {
+              ...g,
+              updatedAt: isoLocal(),
+              milestones: [...g.milestones, baseGoalMilestone({
+                order: g.milestones.length, ...action.milestone,
+              })],
+            }
+          : g)),
+      }
+    case 'UPDATE_GOAL_MILESTONE':
+      return {
+        ...state,
+        goals: state.goals.map((g) => (g.id === action.id
+          ? {
+              ...g,
+              updatedAt: isoLocal(),
+              milestones: g.milestones.map((m) => (m.id === action.milestoneId
+                ? { ...m, ...action.patch }
+                : m)),
+            }
+          : g)),
+      }
+    case 'TOGGLE_GOAL_MILESTONE':
+      return {
+        ...state,
+        goals: state.goals.map((g) => {
+          if (g.id !== action.id) return g
+          const milestones = g.milestones.map((m) => (m.id === action.milestoneId
+            ? { ...m, done: !m.done, doneAt: !m.done ? isoLocal() : null }
+            : m))
+          const complete = milestones.length > 0 && milestones.every((m) => m.done)
+          return {
+            ...g,
+            milestones,
+            updatedAt: isoLocal(),
+            status: complete ? 'completed' : (g.status === 'completed' ? 'active' : g.status),
+            completedAt: complete ? (g.completedAt || isoLocal()) : null,
+          }
+        }),
+      }
+    case 'DELETE_GOAL_MILESTONE':
+      return {
+        ...state,
+        goals: state.goals.map((g) => (g.id === action.id
+          ? { ...g, updatedAt: isoLocal(), milestones: g.milestones.filter((m) => m.id !== action.milestoneId) }
+          : g)),
+      }
+
     case 'SET_MOOD': {
       const moods = { ...state.moods }
       if (action.patch == null) delete moods[action.date]

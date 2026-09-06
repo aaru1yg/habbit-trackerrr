@@ -21,7 +21,7 @@ const VIEWPORTS = [
 const ROUTES = [
   'today', 'calendar', 'week', 'goals', 'projects', 'assignments',
   'workload', 'timeline', 'insights', 'mind', 'library', 'record', 'settings',
-  'habits', 'achievements', 'habits/h-run',
+  'habits', 'achievements', 'habits/h-run', 'projects/p2', 'assignments/a1',
 ]
 
 const findings = []
@@ -69,6 +69,13 @@ try {
           if (cs.display === 'none' || cs.visibility === 'hidden') continue
           const r = el.getBoundingClientRect()
           if (r.width === 0 || r.height === 0) continue
+          // Native checkbox labels are actual clickable targets, not just
+          // decoration. Credit a 44px associated label (as the E2E suite does).
+          if (el instanceof HTMLInputElement && el.type === 'checkbox' &&
+              [...(el.labels || [])].some((label) => {
+                const box = label.getBoundingClientRect()
+                return box.width >= 43.99 && box.height >= 43.99
+              })) continue
           // A control may expand its real tap area with a transparent ::after
           // (see .switch). Credit that expansion — it is what the finger hits.
           let hit = { w: r.width, h: r.height }
@@ -81,7 +88,7 @@ try {
             if (Number.isFinite(left) && left < 0) hit.w += -left * 2
             else if (Number.isFinite(right) && right < 0) hit.w += -right * 2
           }
-          if (hit.h < 44 || hit.w < 24) {
+          if (hit.h < 43.99 || hit.w < 43.99) {
             out.tiny.push(`${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 28)}" ${Math.round(hit.w)}x${Math.round(hit.h)}`)
           }
         }
@@ -116,3 +123,5 @@ for (const [kind, list] of Object.entries(byKind)) {
   }
 }
 console.log(`\nTOTAL findings: ${total}`)
+
+process.exitCode = total > 0 ? 1 : 0

@@ -32,6 +32,34 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Browser journeys and release UI checks
+        run: |
+          set -euo pipefail
+          npm run preview -- --host 0.0.0.0 > /tmp/preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID"' EXIT
+          node --input-type=module -e '
+            for (let i = 0; i < 60; i++) {
+              try { if ((await fetch("http://localhost:4173/")).ok) process.exit(0) } catch {}
+              await new Promise(r => setTimeout(r, 500));
+            }
+            process.exit(1);
+          '
+          npm run test:e2e
+          npm run test:release
+          node qa/audit.mjs http://localhost:4173
+          for theme in midnight aurora ember verdant daylight; do
+            node qa/contrast.mjs http://localhost:4173 "$theme"
+          done
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-qa
+          path: qa/shots/
+          retention-days: 7
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

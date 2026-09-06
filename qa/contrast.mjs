@@ -10,6 +10,7 @@ const theme = process.argv[3] || null
 const ROUTES = [
   'today', 'calendar', 'week', 'goals', 'projects', 'assignments',
   'workload', 'timeline', 'insights', 'mind', 'library', 'record', 'settings',
+  'habits', 'achievements', 'habits/h-run', 'projects/p2', 'assignments/a1',
 ]
 
 const browser = await launch()
@@ -117,3 +118,5 @@ console.log(`theme=${theme || 'default'} — ${failures.length} failing text nod
 for (const f of [...uniq.values()].sort((a, b) => a.cr - b.cr)) {
   console.log(`  ${f.cr} (need ${f.need})  ${f.size}px w${f.weight}  ${f.tag}.${f.cls}  "${f.text}"  ${[...f.routes].join(',')}`)
 }
+
+process.exitCode = failures.length > 0 ? 1 : 0

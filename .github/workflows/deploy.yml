@@ -28,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Unit and database security gates
+        run: |
+          npm test
+          npm run test:schema
+
       # Public Supabase client config must be injected at BUILD time — Vite
       # inlines VITE_* into the bundle, and CI has no .env file. Both values
       # are public-safe (the publishable key is constrained by RLS); the service_role

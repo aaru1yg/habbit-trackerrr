@@ -1,6 +1,8 @@
+import { useMemo } from 'react'
 import { Link } from '../../lib/router.jsx'
 import Sheet from '../ui/Sheet.jsx'
 import { useStore } from '../../store.jsx'
+import { achievementSummary } from '../../lib/achievements.js'
 import {
   IconToday, IconCalendar, IconWeek, IconInsights, IconMind, IconGoals, IconSettings,
   IconProjects, IconAssignment, IconWorkload, IconTimeline, IconSearch, IconStack, IconX,
@@ -121,7 +123,7 @@ export function BottomNav({ route, onMore, onSearch }) {
 
 export function Sidebar({ route, name, onSearch }) {
   const { state } = useStore()
-  const unlocked = unlockedCount(state)
+  const unlocked = useMemo(() => achievementSummary(state).unlocked, [state])
   return (
     <aside className="sidebar">
       <Link to="today" className="sidebar-brand" aria-label="Habit OS home">
@@ -161,39 +163,6 @@ export function Sidebar({ route, name, onSearch }) {
       </div>
     </aside>
   )
-}
-
-/** Cheap unlocked count for the sidebar badge — avoids importing the
- *  whole achievement engine into the nav. */
-let cache = { state: null, n: 0 }
-function unlockedCount(state) {
-  if (cache.state === state) return cache.n
-  let checkins = 0
-  for (const days of Object.values(state.checkins || {})) {
-    for (const c of Object.values(days || {})) if (c && c.done === true) checkins++
-  }
-  cache = { state, n: checkins > 0 ? countFast(state) : 0 }
-  return cache.n
-}
-
-function countFast(state) {
-  // Mirrors the rules in lib/achievements.js without the heavier walks.
-  let n = 0
-  let checkins = 0
-  for (const days of Object.values(state.checkins || {})) {
-    for (const c of Object.values(days || {})) if (c && c.done === true) checkins++
-  }
-  if (checkins >= 1) n++
-  if (checkins >= 100) n++
-  if (checkins >= 500) n++
-  const done = (state.projects || []).filter((p) => p.completedAt).length
-  if (done >= 1) n++
-  if (done >= 5) n++
-  if ((state.routines || []).length >= 1) n++
-  if (Object.keys(state.moods || {}).length >= 10) n++
-  const cats = new Set((state.habits || []).filter((h) => !h.archived).map((h) => h.category).filter(Boolean))
-  if (cats.size >= 5) n++
-  return n
 }
 
 /** Mobile "More" sheet — the rest of the operating system. */

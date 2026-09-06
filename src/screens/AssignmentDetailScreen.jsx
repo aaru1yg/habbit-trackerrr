@@ -336,7 +336,7 @@ function SubtaskRow({ sub: s, assignment, dispatch, remove }) {
         <p className="task-name">{s.name}</p>
         {s.completedAt && <p className="tiny muted" style={{ marginTop: 3 }}>Completed {shortDate(dayOf(s.completedAt))}</p>}
       </div>
-      <button className="btn ghost icon" style={{ width: 36, height: 36, minHeight: 36 }} aria-label={`Delete ${s.name}`} onClick={() => remove(s)}>
+      <button className="btn ghost icon" aria-label={`Delete ${s.name}`} onClick={() => remove(s)}>
         <IconX size={15} />
       </button>
       {!reduced && (

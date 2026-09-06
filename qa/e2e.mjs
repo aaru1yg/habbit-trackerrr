@@ -876,11 +876,11 @@ console.log('\n— Themes —')
 {
   const page = await newPage(browser, VIEWPORTS.mobile)
   await seedAndGoto(page, seededStateV4(), 'today', BASE)
-  for (const theme of ['midnight', 'ember', 'verdant', 'daylight']) {
+  for (const theme of ['midnight', 'aurora', 'ember', 'verdant', 'daylight']) {
     await page.goto(`${BASE}/#/settings`, { waitUntil: 'networkidle0' })
     await sleep(300)
     await page.evaluate((t) => {
-      const label = t.charAt(0).toUpperCase() + t.slice(1)
+      const label = { midnight: 'Midnight', aurora: 'Aurora', ember: 'Warm', verdant: 'Verdant', daylight: 'Light' }[t]
       const btn = [...document.querySelectorAll('.theme-card')].find((b) => b.textContent.trim().startsWith(label))
       if (btn) btn.click()
       else throw new Error('theme button not found: ' + label)
@@ -915,9 +915,9 @@ console.log('\n— Desktop 1440×900 —')
   check('FAB hidden on desktop', await page.evaluate(() => !document.querySelector('.btn.floating') || getComputedStyle(document.querySelector('.btn.floating')).display === 'none'))
   const contentMax = await page.evaluate(() => {
     const screen = document.querySelector('.screen')
-    return { w: screen.getBoundingClientRect().width, left: screen.getBoundingClientRect().left }
+    return { w: screen.getBoundingClientRect().width, left: screen.getBoundingClientRect().left, max: parseFloat(getComputedStyle(screen).maxWidth), viewport: innerWidth }
   })
-  check('content column does not stretch full width', contentMax.w <= 1160, `w=${contentMax.w}`)
+  check('content column respects the V2 width token and does not stretch full width', contentMax.w <= contentMax.max && contentMax.w < contentMax.viewport, `w=${contentMax.w} max=${contentMax.max}`)
   check('content offset by sidebar', contentMax.left >= 240, `left=${contentMax.left}`)
   await shot(page, '17-desktop-today')
   await overflowCheck(page, 'desktop-today')

@@ -1,5 +1,7 @@
 # 🔥 Aaru · Next-Level Habit Tracker
 
+> **V2 foundation release:** the unified Midnight/Aurora/Warm/Verdant/Light system, Today command center, Habits detail and Achievements work is preserved. See [the shipping audit](docs/V2-RELEASE.md) for recovered commits, validation, known scope limits and the public-build proof contract. The live build identifies itself at [`release.json`](https://aaru1yg.github.io/habbit-trackerrr/release.json).
+
 Aaru's personal, next-level habit tracker. Dark, glassy, heavily animated, and packed with more graphs and features than any ordinary habit app. Your data lives entirely in your browser (localStorage) — no account, no server, just *you* and your streak.
 
 ## ✨ The vibe

@@ -9,7 +9,6 @@ import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import SearchPalette from '../components/layout/SearchPalette.jsx'
-import { WorkRow } from '../components/work/WorkCards.jsx'
 import { StatusPill } from '../components/work/WorkKit.jsx'
 import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween } from '../lib/dates.js'
 import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak, habitStreak, routineStats, activeRoutines } from '../lib/stats.js'
@@ -228,11 +227,7 @@ export default function TodayScreen({ onFire }) {
                     <i style={{ width: `${g.pct}%` }} />
                   </span>
                   <span className="goal-chip-meta">
-                    {g.dueIn == null
-                      ? 'No deadline'
-                      : g.dueIn <= 0
-                        ? 'Due today'
-                        : `${g.dueIn} day${g.dueIn === 1 ? '' : 's'} left`}
+                    {g.dueText}
                     {g.behind != null && g.behind > 10 ? ` · ${g.behind} points behind pace` : ''}
                     {g.behind != null && g.behind < -10 ? ` · ${Math.abs(g.behind)} points ahead of pace` : ''}
                   </span>

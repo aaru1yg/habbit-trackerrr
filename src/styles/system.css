@@ -168,6 +168,7 @@
    BUTTONS
    ------------------------------------------------------------ */
 .btn {
+  min-width: var(--touch);
   min-height: var(--touch);
   padding: 0 14px;
   border-radius: var(--r-sm);
@@ -1414,6 +1415,7 @@
    MOOD / LEVEL CONTROLS
    ------------------------------------------------------------ */
 .mood-btn {
+  min-width: var(--touch);
   min-height: var(--touch);
   border: var(--bd-1) solid var(--border-2);
   border-radius: var(--r-sm);
@@ -1633,6 +1635,23 @@
    control must stay visually small (the switch) — by a transparent
    hit area that expands the real tap region past its edges.
    ------------------------------------------------------------ */
+/* Work detail controls must adapt to their card width, not the viewport. */
+.quick-pct {
+  grid-template-columns: repeat(auto-fit, minmax(var(--touch), 1fr));
+}
+.quick-pct button,
+.check-box,
+.seg button,
+a.chip,
+button.chip {
+  min-width: var(--touch);
+  min-height: var(--touch);
+}
+a.chip, button.chip {
+  display: inline-flex;
+  align-items: center;
+}
+
 .filter-bar button {
   min-height: var(--touch);
   padding: 0 var(--space-2);
@@ -2018,6 +2037,7 @@ button.lb-row:hover {
    HABIT DETAIL
    ------------------------------------------------------------ */
 .back-link {
+  min-height: var(--touch);
   margin-bottom: 6px;
   padding-left: 4px;
 }

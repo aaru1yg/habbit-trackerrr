@@ -123,7 +123,6 @@ export default function AchievementsScreen() {
         {summary.items.length === 0 || shown.length === 0 ? (
           <SectionCard>
             <EmptyState
-              art="art/empty-achievements.webp"
               icon={<IconTrophy size={40} />}
               title="No achievements in this tier"
             >

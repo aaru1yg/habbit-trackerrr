@@ -10,7 +10,7 @@ name: Verify live site (migration)
 #       Before the fix shipped this same mode was the reproduce control — it
 #       failed loudly on build b9640e6 (10/10 reloads + re-login), proving it
 #       could detect the bug.
-#   push to main → EXPECT=fixed + build id, waiting until Pages serves this
+#   successful Pages deployment → EXPECT=fixed + build id, asserting this
 #       exact commit, then verifying it.
 #   workflow_dispatch → 'reproduce' asserts a KNOWN-BAD build still shows the
 #       bug (harness sanity check); default 'fixed'.
@@ -34,15 +34,14 @@ on:
       - 'src/lib/cloud/**'
       - 'qa/live-migration.mjs'
       - '.github/workflows/verify-live-site.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'src/lib/cloud/**'
-      - 'qa/live-migration.mjs'
-      - '.github/workflows/verify-live-site.yml'
+  # Verify every deployed release, not only changes to the sync directory.
+  workflow_run:
+    workflows: ['Deploy to GitHub Pages']
+    types: [completed]
 
 permissions:
   contents: read
+  actions: read
 
 # Shares the TEST_A/TEST_B accounts with verify-supabase.yml — the two runs
 # must never mutate those accounts concurrently (see the note there).
@@ -52,11 +51,14 @@ concurrency:
 
 jobs:
   verify:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     name: Real browser vs public site
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -78,10 +80,38 @@ jobs:
             echo "expect=${{ inputs.expect }}" >> "$GITHUB_OUTPUT"
             echo "build=" >> "$GITHUB_OUTPUT"
           else
-            # push to main — verify THIS commit once Pages serves it
+            # Completed Pages deployment — verify the exact deployed commit.
             echo "expect=fixed" >> "$GITHUB_OUTPUT"
-            echo "build=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "build=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Download the exact deployed Pages artifact
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: /tmp/pages-artifact
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Unpack deployed artifact
+        if: github.event_name == 'workflow_run'
+        run: |
+          mkdir -p dist
+          tar -xf /tmp/pages-artifact/artifact.tar -C dist
+
+      # Sequential with browser tests: these scripts share TEST_A/TEST_B.
+      # A partial (exit 3) result is a failure for a production release.
+      - name: Real Supabase auth, persistence and cross-user RLS
+        if: github.event_name == 'workflow_run'
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+          TEST_B_EMAIL: ${{ secrets.TEST_B_EMAIL }}
+          TEST_B_PASSWORD: ${{ secrets.TEST_B_PASSWORD }}
+        run: node qa/verify-supabase.mjs
 
       - name: Live-site migration verification
         id: verify
@@ -142,3 +172,25 @@ jobs:
             echo "::error::Live-site verification failed."
             exit 1
           fi
+
+      - name: Verify all V2 screens on the public URL and match every deployed byte
+        if: github.event_name == 'workflow_run'
+        env:
+          LIVE_URL: https://aaru1yg.github.io/habbit-trackerrr/
+          EXPECT_BUILD_ID: ${{ github.event.workflow_run.head_sha }}
+          REQUIRE_AUTH: '1'
+          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+        run: node qa/release.mjs
+
+      - name: Publish public browser proof
+        if: always() && github.event_name == 'workflow_run'
+        run: node qa/publish-release-evidence.mjs
+
+      - name: Upload public browser screenshots and checksums
+        if: always() && github.event_name == 'workflow_run'
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-release-proof
+          path: qa/shots/release/
+          retention-days: 14

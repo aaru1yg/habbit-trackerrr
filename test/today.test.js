@@ -4,7 +4,9 @@ import {
 } from '../src/lib/today.js'
 import { todayStr, subDaysStr, addDaysStr } from '../src/lib/dates.js'
 
+// Fixed midday avoids making the due-today assertion depend on the CI start hour.
 const NOW = new Date()
+NOW.setHours(12, 0, 0, 0)
 
 const base = (over = {}) => ({
   version: 4,

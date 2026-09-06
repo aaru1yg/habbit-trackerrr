@@ -97,7 +97,8 @@ describe('core flows', () => {
     ob.unmount()
     renderApp()
     fireEvent.click(await screen.findByRole('button', { name: /Mark Water not done/i }))
-    await waitFor(() => expect(screen.getByText(textContentMatcher('0 of 1 complete'))).toBeTruthy())
+    // AnimatedNumber counts down over a few frames; slow CI workers need room
+    await waitFor(() => expect(screen.getByText(textContentMatcher('0 of 1 complete'))).toBeTruthy(), { timeout: 5000 })
   })
 
   it('renames a habit inline (tap name → edit → Enter)', async () => {
@@ -180,7 +181,7 @@ describe('core flows', () => {
 
     // 1 of 2 tasks done is exactly 50%
     fireEvent.click(screen.getByRole('button', { name: 'Mark Write spec done' }))
-    await waitFor(() => expect(screen.getAllByText(textContentMatcher('50%')).length).toBeGreaterThan(0))
+    await waitFor(() => expect(screen.getAllByText(textContentMatcher('50%')).length).toBeGreaterThan(0), { timeout: 5000 })
 
     // 2 of 2 is 100% and earns the big celebration (§84)
     fireEvent.click(screen.getByRole('button', { name: 'Mark Frontend done' }))

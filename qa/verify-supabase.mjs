@@ -275,7 +275,25 @@ async function main() {
         (/^["']|["']$/.test(v) ? ' ⚠ WRAPPED IN QUOTES' : '') +
         (/\s/.test(v) ? ' ⚠ CONTAINS WHITESPACE' : '')
       : 'EMPTY'
-    note(`TEST_B_EMAIL: ${preB.email}`)
+    // Describe the email's STRUCTURE without printing it — GitHub masks the
+    // secret value anyway, so the shape is the only usable signal.
+    const emailShape = (v) => {
+      if (!v) return 'EMPTY'
+      const parts = v.split('@')
+      return [
+        `len=${v.length}`,
+        `at_count=${parts.length - 1}`,
+        parts.length === 2 ? `local_len=${parts[0].length}` : 'NO_SINGLE_@',
+        parts.length === 2 ? `domain="${parts[1]}"` : '',
+        parts.length === 2 && parts[1].includes('.') ? 'has_dot_in_domain' : '⚠ NO_DOT_IN_DOMAIN',
+        /\s/.test(v) ? '⚠ WHITESPACE' : '',
+        /^["']|["']$/.test(v) ? '⚠ QUOTED' : '',
+        /[<>,;]/.test(v) ? '⚠ HAS_<>,;' : '',
+        v !== v.trim() ? '⚠ UNTRIMMED' : '',
+      ].filter(Boolean).join(' ')
+    }
+    note(`TEST_B_EMAIL shape: ${emailShape(process.env.TEST_B_EMAIL)}`)
+    note(`TEST_A_EMAIL shape: ${emailShape(process.env.TEST_A_EMAIL)} (works)`)
     note(`TEST_B_PASSWORD: ${shape(process.env.TEST_B_PASSWORD)}`)
     note(`TEST_A_EMAIL: ${preA.email} (this one worked)`)
     note(`TEST_A_PASSWORD: ${shape(process.env.TEST_A_PASSWORD)}`)

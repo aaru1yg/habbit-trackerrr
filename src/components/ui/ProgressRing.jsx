@@ -26,7 +26,7 @@ export default function ProgressRing({ pct, size = 120, stroke = 10, trackClass 
           <linearGradient id={`progress-${gid}`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="var(--accent-1)" />
             <stop offset="58%" stopColor="var(--accent-2)" />
-            <stop offset="100%" stopColor="var(--v3-pink, var(--accent-1))" />
+            <stop offset="100%" stopColor="var(--c5, var(--accent-1))" />
           </linearGradient>
         </defs>
         <circle className={trackClass} cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} />
@@ -44,7 +44,6 @@ export default function ProgressRing({ pct, size = 120, stroke = 10, trackClass 
             initial={false}
             animate={{ strokeDashoffset: c * (1 - clamped / 100) }}
             transition={reduced ? { duration: 0 } : { duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            style={{ filter: 'drop-shadow(0 0 6px rgba(139, 92, 246, .46))' }}
           />
         )}
       </svg>

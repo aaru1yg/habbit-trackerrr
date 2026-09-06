@@ -1,12 +1,16 @@
-/* Aaru Habits — design system entry */
+/* Habit OS — design system entry.
+ *
+ * Layer order matters: tokens define the contract, base applies the
+ * document, components + work build the primitives, and system owns the
+ * final look of every surface. Nothing below tokens may redefine a token.
+ */
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/manrope';
 @import './styles/tokens.css';
 @import './styles/base.css';
 @import './styles/components.css';
 @import './styles/work.css';
-@import './styles/visual.css';
-@import './styles/energy.css';
+@import './styles/system.css';
 @import './styles/auth.css';
 
 .spinner {

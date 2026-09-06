@@ -363,7 +363,7 @@
   border-color: transparent;
   color: var(--accent-ink);
 }
-.step[data-state='partial'] .step-dot { border-color: var(--accent-1); color: var(--accent-1); }
+.step[data-state='partial'] .step-dot { border-color: var(--accent-1); color: var(--accent-1-lift); }
 .step-name {
   font-size: var(--fs-xs);
   font-weight: 600;

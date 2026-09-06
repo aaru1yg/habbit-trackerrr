@@ -1,21 +1,67 @@
 /* ============================================================
-   AARU HABITS — DESIGN TOKENS
-   One source of truth: color, type, space, radius, motion, depth.
+   HABIT OS — DESIGN TOKENS
+   The single source of truth. Every colour, size, radius,
+   shadow and duration in the product resolves to a token here.
+
+   Layer order (see index.css):
+     tokens → base → components → work → motion → auth
+   Nothing outside this file may redefine a token.
    ============================================================ */
 
 :root {
-  /* ---- Type ---- */
+  /* --------------------------------------------------------
+     TYPE
+     -------------------------------------------------------- */
   --font-body: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Manrope Variable', 'Inter Variable', system-ui, sans-serif;
+  --font-num: 'Manrope Variable', 'Inter Variable', system-ui, sans-serif;
 
-  --fs-display: 1.75rem;   /* 28 */
-  --fs-h1: 1.375rem;       /* 22 */
-  --fs-h2: 1.0625rem;      /* 17 */
-  --fs-body: 0.9375rem;    /* 15 */
-  --fs-sm: 0.8125rem;      /* 13 */
-  --fs-xs: 0.6875rem;      /* 11  */
+  /* Fluid scale — large headings earn their size, small text stays legible */
+  --fs-hero: clamp(2.25rem, 5.4vw, 3.25rem);   /* Today greeting */
+  --fs-display: clamp(1.75rem, 3.4vw, 2.25rem); /* screen titles */
+  --fs-h1: clamp(1.375rem, 2.4vw, 1.75rem);
+  --fs-h2: 1.1875rem;
+  --fs-h3: 1.0625rem;
+  --fs-body: 0.9375rem;
+  --fs-sm: 0.8125rem;
+  --fs-xs: 0.75rem;
+  --fs-micro: 0.6875rem;
 
-  /* ---- Space (8pt system) ---- */
+  --lh-tight: 1.12;
+  --lh-snug: 1.25;
+  --lh-body: 1.55;
+
+  --tr-display: -0.032em;   /* display tracking — tight, editorial */
+  --tr-title: -0.022em;
+  --tr-body: -0.005em;
+  --tr-caps: 0.1em;         /* eyebrow / label tracking */
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+
+  /* --------------------------------------------------------
+     SPACE — an 8px system.
+     --space-* is the canonical 8px scale (--space-2 = 16px, --space-3 =
+     24px, half/quarter steps where a control needs them).
+     --sp-* are the legacy 4px-based aliases still used across
+     components.css / work.css; their values are frozen so no existing
+     layout can shift. New code must use --space-*.
+     -------------------------------------------------------- */
+  --space-05: 4px;
+  --space-1: 8px;
+  --space-15: 12px;
+  --space-2: 16px;
+  --space-25: 20px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --space-8: 64px;
+  --space-10: 80px;
+
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -25,189 +71,455 @@
   --sp-8: 32px;
   --sp-10: 40px;
   --sp-12: 48px;
+  --sp-16: 64px;
 
-  /* ---- Radius ---- */
-  --r-sm: 10px;
+  /* --------------------------------------------------------
+     RADIUS
+     -------------------------------------------------------- */
+  --r-xs: 8px;
+  --r-sm: 12px;
   --r-md: 16px;
-  --r-lg: 24px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-hero: 32px;
   --r-pill: 999px;
 
-  /* ---- Motion ---- */
+  /* --------------------------------------------------------
+     BORDERS
+     -------------------------------------------------------- */
+  --bd-1: 1px;
+  --bd-2: 1.5px;
+
+  /* --------------------------------------------------------
+     MOTION
+     -------------------------------------------------------- */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --dur-fast: 140ms;
-  --dur-med: 240ms;
-  --dur-slow: 420ms;
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.42, 0.64, 1);
+  --dur-1: 120ms;   /* press, checkbox */
+  --dur-2: 200ms;   /* hover, chip */
+  --dur-3: 320ms;   /* sheet, page */
+  --dur-4: 520ms;   /* hero entrance */
 
-  /* ---- Layout ---- */
+  /* --------------------------------------------------------
+     LAYOUT
+     -------------------------------------------------------- */
   --nav-h: 64px;
-  --sidebar-w: 248px;
-  --content-max: 1120px;
+  --sidebar-w: 258px;
+  --content-max: 1240px;
+  --gutter: var(--sp-2);
 
-  /* ---- Touch ---- */
+  /* --------------------------------------------------------
+     TOUCH
+     -------------------------------------------------------- */
   --touch: 44px;
 }
 
-/* ------------------------------------------------------------
-   THEMES — same system, four curated palettes.
-   ------------------------------------------------------------ */
+/* ============================================================
+   THEMES
+   Five curated palettes. Each defines the same contract, so a
+   theme swap never changes layout — only colour.
+   ============================================================ */
 
-/* 1 · Midnight — default premium dark (violet → cyan) */
+/* ------------------------------------------------------------
+   1 · MIDNIGHT — the flagship. Deep ink navy, warm white type,
+   restrained violet → cyan energy.
+   ------------------------------------------------------------ */
 :root,
 html[data-theme='midnight'] {
   color-scheme: dark;
+
   --bg: #0b0f1a;
   --bg-deep: #070a12;
-  --surface: rgba(23, 29, 48, 0.66);
-  --surface-solid: #151b2c;
-  --surface-2: rgba(31, 38, 62, 0.6);
-  --surface-3: rgba(44, 52, 82, 0.55);
-  --text: #f3f1ec;
-  --text-2: #a3adc2;
-  --text-3: #8f9ab5;
+  --bg-raise: #101623;
+
+  --surface: #121826;
+  --surface-solid: #121826;
+  --surface-2: #19202f;
+  --surface-3: #232c3e;
+  --surface-inset: #0d1220;
+
+  --text: #f5f3ef;          /* warm white */
+  --text-2: #adb6c8;
+  --text-3: #939db1;
+
   --border: rgba(255, 255, 255, 0.07);
   --border-2: rgba(255, 255, 255, 0.13);
-  --accent-1: #6d4aff;
+
+  --accent-1: #7048f5;
   --accent-2: #22d3ee;
-  --accent-soft: rgba(109, 74, 255, 0.16);
+  --accent-soft: rgba(112, 72, 245, 0.16);
+  /* a lighter tint of accent-1 for accent-coloured TEXT on dark surfaces —
+     accent-1 itself only reaches 3.3:1 against --surface. */
+  --accent-1-lift: #b3a0ff;
   --accent-ink: #ffffff;
-  --focus: #a78bfa;
+  --focus: #a99bff;
+
+  --good: #34d399;
+  --good-soft: rgba(52, 211, 153, 0.14);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.13);
+  --bad: #fb7185;
+  --bad-soft: rgba(251, 113, 133, 0.13);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.14);
+
+  --track: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(4, 7, 14, 0.72);
+
+  /* atmosphere — a whisper, not a show */
+  --aurora-a: #2b2170;
+  --aurora-b: #0d5a6b;
+  --aurora-c: #1d2a55;
+  --aurora-opacity: 0.34;
+  --noise-opacity: 0.022;
+
+  /* elevation — controlled depth, no glow */
+  --e-1: 0 1px 2px rgba(2, 5, 14, 0.42), 0 2px 8px rgba(2, 5, 14, 0.24);
+  --e-2: 0 2px 4px rgba(2, 5, 14, 0.36), 0 10px 28px rgba(2, 5, 14, 0.42);
+  --e-3: 0 4px 8px rgba(2, 5, 14, 0.4), 0 20px 48px rgba(2, 5, 14, 0.5);
+  --e-4: 0 8px 16px rgba(2, 5, 14, 0.44), 0 32px 72px rgba(2, 5, 14, 0.56);
+  --e-card: 0 1px 2px rgba(2, 5, 14, 0.4), 0 8px 24px rgba(2, 5, 14, 0.3);
+  --e-card-hover: 0 2px 4px rgba(2, 5, 14, 0.4), 0 18px 44px rgba(2, 5, 14, 0.44);
+  --e-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+
+  /* data visualization */
+  --c1: #8b6bff;
+  --c2: #22d3ee;
+  --c3: #34d399;
+  --c4: #fbbf24;
+  --c5: #f472b6;
+  --c6: #60a5fa;
+  --c7: #fb7185;
+  --c8: #a78bfa;
+  --seq-0: rgba(255, 255, 255, 0.07);
+  --seq-1: rgba(124, 92, 255, 0.26);
+  --seq-2: rgba(124, 92, 255, 0.48);
+  --seq-3: rgba(34, 211, 238, 0.62);
+  --seq-4: #22d3ee;
+  --pos: #34d399;
+  --neg: #fb7185;
+  --grid: rgba(255, 255, 255, 0.06);
+}
+
+/* ------------------------------------------------------------
+   2 · AURORA — cool teal-navy, northern-light accents.
+   ------------------------------------------------------------ */
+html[data-theme='aurora'] {
+  color-scheme: dark;
+
+  --bg: #08161d;
+  --bg-deep: #051014;
+  --bg-raise: #0d1e26;
+
+  --surface: #10222b;
+  --surface-solid: #10222b;
+  --surface-2: #16303b;
+  --surface-3: #1f414e;
+  --surface-inset: #0a1a21;
+
+  --text: #f2f7f6;
+  --text-2: #a6bcc0;
+  --text-3: #8ea7ab;
+
+  --border: rgba(214, 245, 240, 0.08);
+  --border-2: rgba(214, 245, 240, 0.15);
+
+  --accent-1: #14b8a6;
+  --accent-2: #6ee7b7;
+  --accent-soft: rgba(20, 184, 166, 0.16);
+  --accent-1-lift: #5eead4;
+  --accent-ink: #05201d;
+  --focus: #7ee7d4;
+
   --good: #4ade80;
   --good-soft: rgba(74, 222, 128, 0.14);
   --warn: #fbbf24;
   --warn-soft: rgba(251, 191, 36, 0.13);
   --bad: #fb7185;
   --bad-soft: rgba(251, 113, 133, 0.13);
-  --aurora-a: #3b2b9e;
-  --aurora-b: #0e7490;
-  --aurora-c: #271f5e;
-  --noise-opacity: 0.028;
-  --shadow-1: 0 1px 2px rgba(2, 5, 14, 0.5), 0 6px 18px rgba(2, 5, 14, 0.35);
-  --shadow-2: 0 2px 6px rgba(2, 5, 14, 0.5), 0 18px 48px rgba(2, 5, 14, 0.45);
-  --scrim: rgba(4, 7, 14, 0.66);
-  --track: rgba(255, 255, 255, 0.08);
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.14);
+
+  --track: rgba(214, 245, 240, 0.09);
+  --scrim: rgba(3, 10, 12, 0.72);
+
+  --aurora-a: #0d5f66;
+  --aurora-b: #1c4f7a;
+  --aurora-c: #123f52;
+  --aurora-opacity: 0.4;
+  --noise-opacity: 0.022;
+
+  --e-1: 0 1px 2px rgba(2, 10, 12, 0.42), 0 2px 8px rgba(2, 10, 12, 0.24);
+  --e-2: 0 2px 4px rgba(2, 10, 12, 0.36), 0 10px 28px rgba(2, 10, 12, 0.42);
+  --e-3: 0 4px 8px rgba(2, 10, 12, 0.4), 0 20px 48px rgba(2, 10, 12, 0.5);
+  --e-4: 0 8px 16px rgba(2, 10, 12, 0.44), 0 32px 72px rgba(2, 10, 12, 0.56);
+  --e-card: 0 1px 2px rgba(2, 10, 12, 0.4), 0 8px 24px rgba(2, 10, 12, 0.3);
+  --e-card-hover: 0 2px 4px rgba(2, 10, 12, 0.4), 0 18px 44px rgba(2, 10, 12, 0.44);
+  --e-hairline: inset 0 1px 0 rgba(214, 245, 240, 0.05);
+
+  --c1: #14b8a6;
+  --c2: #6ee7b7;
+  --c3: #4ade80;
+  --c4: #fbbf24;
+  --c5: #38bdf8;
+  --c6: #818cf8;
+  --c7: #fb7185;
+  --c8: #f0abfc;
+  --seq-0: rgba(214, 245, 240, 0.07);
+  --seq-1: rgba(20, 184, 166, 0.26);
+  --seq-2: rgba(20, 184, 166, 0.48);
+  --seq-3: rgba(110, 231, 183, 0.62);
+  --seq-4: #6ee7b7;
+  --pos: #4ade80;
+  --neg: #fb7185;
+  --grid: rgba(214, 245, 240, 0.06);
 }
 
-/* 2 · Ember — dark, warm rose → amber accent */
+/* ------------------------------------------------------------
+   3 · WARM — ember-dark. Charcoal ground, amber → rose energy.
+   ------------------------------------------------------------ */
 html[data-theme='ember'] {
   color-scheme: dark;
-  --bg: #120e14;
-  --bg-deep: #0c090e;
-  --surface: rgba(43, 29, 38, 0.6);
-  --surface-solid: #241a22;
-  --surface-2: rgba(56, 38, 48, 0.55);
-  --surface-3: rgba(74, 51, 63, 0.5);
-  --text: #f5f0ec;
-  --text-2: #b8a5ac;
-  --text-3: #b3a2ac;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-2: rgba(255, 255, 255, 0.13);
-  --accent-1: #e0476c;
-  --accent-2: #fb923c;
-  --accent-soft: rgba(224, 71, 108, 0.15);
-  --accent-ink: #ffffff;
-  --focus: #fda4af;
+
+  --bg: #14100e;
+  --bg-deep: #0d0a09;
+  --bg-raise: #1b1613;
+
+  --surface: #1d1715;
+  --surface-solid: #1d1715;
+  --surface-2: #27201d;
+  --surface-3: #342b26;
+  --surface-inset: #150f0d;
+
+  --text: #f7f2ec;
+  --text-2: #bdaaa1;
+  --text-3: #a3908a;
+
+  --border: rgba(255, 240, 230, 0.08);
+  --border-2: rgba(255, 240, 230, 0.15);
+
+  --accent-1: #f59e0b;
+  --accent-2: #fb7185;
+  --accent-soft: rgba(245, 158, 11, 0.16);
+  --accent-1-lift: #fcd34d;
+  --accent-ink: #24160a;
+  --focus: #fcd3a0;
+
   --good: #86efac;
-  --good-soft: rgba(134, 239, 172, 0.12);
+  --good-soft: rgba(134, 239, 172, 0.13);
   --warn: #fcd34d;
-  --warn-soft: rgba(252, 211, 77, 0.12);
+  --warn-soft: rgba(252, 211, 77, 0.13);
   --bad: #fda4af;
-  --bad-soft: rgba(253, 164, 175, 0.12);
-  --aurora-a: #7c2742;
-  --aurora-b: #8a4b1c;
-  --aurora-c: #4a1d30;
-  --noise-opacity: 0.028;
-  --shadow-1: 0 1px 2px rgba(8, 4, 8, 0.5), 0 6px 18px rgba(8, 4, 8, 0.35);
-  --shadow-2: 0 2px 6px rgba(8, 4, 8, 0.5), 0 18px 48px rgba(8, 4, 8, 0.45);
-  --scrim: rgba(7, 4, 8, 0.66);
-  --track: rgba(255, 255, 255, 0.08);
+  --bad-soft: rgba(253, 164, 175, 0.13);
+  --info: #93c5fd;
+  --info-soft: rgba(147, 197, 253, 0.13);
+
+  --track: rgba(255, 240, 230, 0.09);
+  --scrim: rgba(8, 5, 4, 0.72);
+
+  --aurora-a: #7a3b16;
+  --aurora-b: #7c2340;
+  --aurora-c: #4a2418;
+  --aurora-opacity: 0.32;
+  --noise-opacity: 0.024;
+
+  --e-1: 0 1px 2px rgba(8, 4, 3, 0.44), 0 2px 8px rgba(8, 4, 3, 0.26);
+  --e-2: 0 2px 4px rgba(8, 4, 3, 0.38), 0 10px 28px rgba(8, 4, 3, 0.44);
+  --e-3: 0 4px 8px rgba(8, 4, 3, 0.42), 0 20px 48px rgba(8, 4, 3, 0.52);
+  --e-4: 0 8px 16px rgba(8, 4, 3, 0.46), 0 32px 72px rgba(8, 4, 3, 0.58);
+  --e-card: 0 1px 2px rgba(8, 4, 3, 0.42), 0 8px 24px rgba(8, 4, 3, 0.32);
+  --e-card-hover: 0 2px 4px rgba(8, 4, 3, 0.42), 0 18px 44px rgba(8, 4, 3, 0.46);
+  --e-hairline: inset 0 1px 0 rgba(255, 240, 230, 0.05);
+
+  --c1: #f59e0b;
+  --c2: #fb7185;
+  --c3: #86efac;
+  --c4: #fcd34d;
+  --c5: #fdba74;
+  --c6: #93c5fd;
+  --c7: #f0abfc;
+  --c8: #fca5a5;
+  --seq-0: rgba(255, 240, 230, 0.07);
+  --seq-1: rgba(245, 158, 11, 0.26);
+  --seq-2: rgba(245, 158, 11, 0.5);
+  --seq-3: rgba(251, 113, 133, 0.62);
+  --seq-4: #fb7185;
+  --pos: #86efac;
+  --neg: #fda4af;
+  --grid: rgba(255, 240, 230, 0.07);
 }
 
-/* 3 · Verdant — dark, calm emerald → teal accent */
+/* ------------------------------------------------------------
+   4 · VERDANT — cool forest. Emerald → teal.
+   ------------------------------------------------------------ */
 html[data-theme='verdant'] {
   color-scheme: dark;
-  --bg: #0c1310;
-  --bg-deep: #080d0b;
-  --surface: rgba(23, 38, 31, 0.62);
-  --surface-solid: #152219;
-  --surface-2: rgba(30, 48, 39, 0.55);
-  --surface-3: rgba(42, 64, 52, 0.5);
-  --text: #eef4ef;
-  --text-2: #a3baab;
-  --text-3: #93ab9e;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-2: rgba(255, 255, 255, 0.13);
-  --accent-1: #0fa971;
-  --accent-2: #2dd4bf;
-  --accent-soft: rgba(15, 169, 113, 0.15);
-  --accent-ink: #052017;
-  --focus: #6ee7b7;
+
+  --bg: #0a1410;
+  --bg-deep: #060d0a;
+  --bg-raise: #0f1c16;
+
+  --surface: #12211b;
+  --surface-solid: #12211b;
+  --surface-2: #192d24;
+  --surface-3: #233c30;
+  --surface-inset: #0c1813;
+
+  --text: #f1f7f2;
+  --text-2: #a9c2b3;
+  --text-3: #93ac9e;
+
+  --border: rgba(226, 246, 234, 0.08);
+  --border-2: rgba(226, 246, 234, 0.15);
+
+  --accent-1: #10b981;
+  --accent-2: #5eead4;
+  --accent-soft: rgba(16, 185, 129, 0.16);
+  --accent-1-lift: #6ee7b7;
+  --accent-ink: #04231a;
+  --focus: #7fe7c4;
+
   --good: #4ade80;
-  --good-soft: rgba(74, 222, 128, 0.12);
+  --good-soft: rgba(74, 222, 128, 0.14);
   --warn: #fbbf24;
-  --warn-soft: rgba(251, 191, 36, 0.12);
+  --warn-soft: rgba(251, 191, 36, 0.13);
   --bad: #fb7185;
-  --bad-soft: rgba(251, 113, 133, 0.12);
-  --aurora-a: #12593c;
+  --bad-soft: rgba(251, 113, 133, 0.13);
+  --info: #7dd3fc;
+  --info-soft: rgba(125, 211, 252, 0.14);
+
+  --track: rgba(226, 246, 234, 0.09);
+  --scrim: rgba(4, 10, 7, 0.72);
+
+  --aurora-a: #10603f;
   --aurora-b: #0c5a5b;
-  --aurora-c: #10354a;
-  --noise-opacity: 0.028;
-  --shadow-1: 0 1px 2px rgba(3, 8, 6, 0.5), 0 6px 18px rgba(3, 8, 6, 0.35);
-  --shadow-2: 0 2px 6px rgba(3, 8, 6, 0.5), 0 18px 48px rgba(3, 8, 6, 0.45);
-  --scrim: rgba(4, 9, 7, 0.66);
-  --track: rgba(255, 255, 255, 0.08);
+  --aurora-c: #123f52;
+  --aurora-opacity: 0.34;
+  --noise-opacity: 0.022;
+
+  --e-1: 0 1px 2px rgba(3, 9, 6, 0.44), 0 2px 8px rgba(3, 9, 6, 0.26);
+  --e-2: 0 2px 4px rgba(3, 9, 6, 0.38), 0 10px 28px rgba(3, 9, 6, 0.44);
+  --e-3: 0 4px 8px rgba(3, 9, 6, 0.42), 0 20px 48px rgba(3, 9, 6, 0.52);
+  --e-4: 0 8px 16px rgba(3, 9, 6, 0.46), 0 32px 72px rgba(3, 9, 6, 0.58);
+  --e-card: 0 1px 2px rgba(3, 9, 6, 0.42), 0 8px 24px rgba(3, 9, 6, 0.32);
+  --e-card-hover: 0 2px 4px rgba(3, 9, 6, 0.42), 0 18px 44px rgba(3, 9, 6, 0.46);
+  --e-hairline: inset 0 1px 0 rgba(226, 246, 234, 0.05);
+
+  --c1: #10b981;
+  --c2: #5eead4;
+  --c3: #4ade80;
+  --c4: #fbbf24;
+  --c5: #7dd3fc;
+  --c6: #a78bfa;
+  --c7: #fb7185;
+  --c8: #bef264;
+  --seq-0: rgba(226, 246, 234, 0.07);
+  --seq-1: rgba(16, 185, 129, 0.26);
+  --seq-2: rgba(16, 185, 129, 0.48);
+  --seq-3: rgba(94, 234, 212, 0.62);
+  --seq-4: #5eead4;
+  --pos: #4ade80;
+  --neg: #fb7185;
+  --grid: rgba(226, 246, 234, 0.06);
 }
 
-/* 4 · Daylight — light mode, same violet → cyan identity */
+/* ------------------------------------------------------------
+   5 · LIGHT — warm daylight. Same accent identity, honest ink.
+   Contrast is tuned for WCAG AA on light surfaces.
+   ------------------------------------------------------------ */
 html[data-theme='daylight'] {
   color-scheme: light;
-  --bg: #f4f5f8;
-  --bg-deep: #ebedf2;
-  --surface: rgba(255, 255, 255, 0.82);
+
+  --bg: #f4f3ef;
+  --bg-deep: #e9e8e3;
+  --bg-raise: #ffffff;
+
+  --surface: #ffffff;
   --surface-solid: #ffffff;
-  --surface-2: rgba(241, 243, 248, 0.9);
-  --surface-3: rgba(230, 233, 241, 0.9);
-  --text: #191d27;
-  --text-2: #5a6172;
-  --text-3: #5c6372;
-  --border: rgba(23, 29, 39, 0.09);
-  --border-2: rgba(23, 29, 39, 0.16);
-  --accent-1: #5a3df0;
-  --accent-2: #0891b2;
-  --accent-soft: rgba(90, 61, 240, 0.1);
+  --surface-2: #f6f5f1;
+  --surface-3: #eceae4;
+  --surface-inset: #f7f6f2;
+
+  --text: #14171f;
+  --text-2: #4e5563;
+  --text-3: #5f6673;
+
+  --border: rgba(20, 23, 31, 0.09);
+  --border-2: rgba(20, 23, 31, 0.17);
+
+  --accent-1: #5b3df0;
+  --accent-2: #0e7490;
+  --accent-soft: rgba(91, 61, 240, 0.1);
+  --accent-1-lift: #4c2fd6;
   --accent-ink: #ffffff;
-  --focus: #5a3df0;
-  /* darkened for WCAG AA on light surfaces (pills, pace notes, chips) */
+  --focus: #5b3df0;
+
   --good: #14713a;
-  --good-soft: rgba(20, 113, 58, 0.12);
+  --good-soft: rgba(20, 113, 58, 0.1);
   --warn: #8a4b08;
-  --warn-soft: rgba(138, 75, 8, 0.12);
+  --warn-soft: rgba(138, 75, 8, 0.1);
   --bad: #b3121b;
-  --bad-soft: rgba(179, 18, 27, 0.1);
-  --aurora-a: #c9c2f5;
+  --bad-soft: rgba(179, 18, 27, 0.09);
+  --info: #1d4ed8;
+  --info-soft: rgba(29, 78, 216, 0.1);
+
+  --track: rgba(20, 23, 31, 0.09);
+  --scrim: rgba(24, 28, 38, 0.44);
+
+  --aurora-a: #cfc7fb;
   --aurora-b: #b6ecf3;
-  --aurora-c: #ded9fb;
-  --noise-opacity: 0.02;
-  --shadow-1: 0 1px 2px rgba(23, 29, 39, 0.06), 0 6px 18px rgba(23, 29, 39, 0.07);
-  --shadow-2: 0 2px 6px rgba(23, 29, 39, 0.07), 0 18px 44px rgba(23, 29, 39, 0.12);
-  --scrim: rgba(24, 28, 38, 0.42);
-  --track: rgba(23, 29, 39, 0.09);
+  --aurora-c: #e3dcfb;
+  --aurora-opacity: 0.5;
+  --noise-opacity: 0.014;
+
+  --e-1: 0 1px 2px rgba(20, 23, 31, 0.06), 0 2px 8px rgba(20, 23, 31, 0.06);
+  --e-2: 0 2px 4px rgba(20, 23, 31, 0.07), 0 10px 28px rgba(20, 23, 31, 0.09);
+  --e-3: 0 4px 8px rgba(20, 23, 31, 0.08), 0 20px 48px rgba(20, 23, 31, 0.12);
+  --e-4: 0 8px 16px rgba(20, 23, 31, 0.1), 0 32px 72px rgba(20, 23, 31, 0.16);
+  --e-card: 0 1px 2px rgba(20, 23, 31, 0.05), 0 6px 18px rgba(20, 23, 31, 0.07);
+  --e-card-hover: 0 2px 4px rgba(20, 23, 31, 0.07), 0 16px 40px rgba(20, 23, 31, 0.11);
+  --e-hairline: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  --c1: #5b3df0;
+  --c2: #0e7490;
+  --c3: #14713a;
+  --c4: #8a4b08;
+  --c5: #b3126b;
+  --c6: #1d4ed8;
+  --c7: #b3121b;
+  --c8: #6b21a8;
+  --seq-0: rgba(20, 23, 31, 0.06);
+  --seq-1: rgba(91, 61, 240, 0.2);
+  --seq-2: rgba(91, 61, 240, 0.42);
+  --seq-3: rgba(14, 139, 168, 0.6);
+  --seq-4: #0e7490;
+  --pos: #14713a;
+  --neg: #b3121b;
+  --grid: rgba(20, 23, 31, 0.07);
 }
 
-/* Category colors — shared across themes (adjusted per theme for contrast) */
+/* ------------------------------------------------------------
+   CATEGORY COLOURS — shared identity, contrast-tuned per theme.
+   ------------------------------------------------------------ */
 :root {
-  --cat-fitness: #f97316;
+  --cat-fitness: #fb923c;
+  --cat-health: #34d399;
   --cat-mind: #a78bfa;
   --cat-learning: #38bdf8;
-  --cat-health: #34d399;
   --cat-creative: #f472b6;
   --cat-social: #fbbf24;
+  --cat-finance: #4ade80;
+  --cat-productivity: #22d3ee;
 }
+
 html[data-theme='daylight'] {
-  --cat-fitness: #ea580c;
-  --cat-mind: #7c3aed;
-  --cat-learning: #0284c7;
-  --cat-health: #059669;
-  --cat-creative: #db2777;
-  --cat-social: #b45309;
+  --cat-fitness: #c2410c;
+  --cat-health: #047857;
+  --cat-mind: #6d28d9;
+  --cat-learning: #0369a1;
+  --cat-creative: #be185d;
+  --cat-social: #a16207;
+  --cat-finance: #15803d;
+  --cat-productivity: #0e7490;
 }

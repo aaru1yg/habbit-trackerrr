@@ -674,8 +674,8 @@
   color: var(--text-2);
 }
 .rarity-common { --rar: var(--text-3); }
-.rarity-rare { --rar: #7dd3fc; color: #7dd3fc; border-color: color-mix(in oklab, #7dd3fc 40%, var(--border-1)); }
-.rarity-epic { --rar: var(--accent-1); color: color-mix(in oklab, var(--accent-1) 82%, white); border-color: color-mix(in oklab, var(--accent-1) 52%, var(--border-1)); }
+.rarity-rare { --rar: #0ea5e9; border-color: color-mix(in oklab, var(--rar) 40%, var(--border-1)); }
+.rarity-epic { --rar: var(--accent-1); border-color: color-mix(in oklab, var(--rar) 52%, var(--border-1)); }
 .rarity-legendary {
   --rar: #f5b53c; color: #f5b53c;
   border-color: color-mix(in oklab, #f5b53c 56%, var(--border-1));
@@ -821,10 +821,12 @@
 .gal-title { padding: 9px 0; margin: -9px 0; }
 .press-name { padding: 10px 0; margin: -10px 0; }
 .press-open { padding: 13px 0; margin: -13px 0; }
-.rarity-common { color: var(--text-2); border-color: var(--border-2); }
-.rarity-rare { color: #a5d8f3; border-color: color-mix(in oklab, #7dd3fc 45%, var(--border-1)); }
-.rarity-epic { color: #cfc2ff; border-color: color-mix(in oklab, var(--accent-1) 60%, var(--border-1)); }
-.rarity-legendary { color: #ffd98a; border-color: color-mix(in oklab, #f5b53c 62%, var(--border-1)); }
+.rarity-label { color: var(--text-2); }
+.rarity-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--rar, var(--text-3)); }
+.rarity-common { border-color: var(--border-2); }
+.rarity-rare { border-color: color-mix(in oklab, #0ea5e9 45%, var(--border-1)); }
+.rarity-epic { border-color: color-mix(in oklab, var(--accent-1) 60%, var(--border-1)); }
+.rarity-legendary { border-color: color-mix(in oklab, #d97706 62%, var(--border-1)); }
 @media (max-width: 560px) {
   .gal-meta { gap: 4px 10px; }
 }

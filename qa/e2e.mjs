@@ -1374,16 +1374,26 @@ console.log('\n— V4 spatial —')
 
   await page.evaluate(() => localStorage.setItem('aaru.boot', 'on'))
   await page.reload({ waitUntil: 'domcontentloaded' })
-  await sleep(250)
-  const bootSeen = await page.evaluate(() => ({
-    overlay: !!document.querySelector('.boot'),
-    headline: /SMALL THINGS/.test(document.querySelector('.boot')?.textContent || ''),
-    skip: !!document.querySelector('.boot-skip'),
-  }))
+  // poll for appearance and dissolution — CI cold starts beat fixed sleeps
+  let bootSeen = { overlay: false, headline: false, skip: false }
+  for (let i = 0; i < 40; i += 1) {
+    bootSeen = await page.evaluate(() => ({
+      overlay: !!document.querySelector('.boot'),
+      headline: /SMALL THINGS/.test(document.querySelector('.boot')?.textContent || ''),
+      skip: !!document.querySelector('.boot-skip'),
+    }))
+    if (bootSeen.overlay && bootSeen.headline && bootSeen.skip) break
+    await sleep(200)
+  }
   check('V4 boot: forced playback shows headline + skip control', bootSeen.overlay && bootSeen.headline && bootSeen.skip, JSON.stringify(bootSeen))
   await shot(page, '23-v4-boot')
-  await sleep(2100)
-  check('V4 boot: dissolves by itself (~1.4s + fade)', await page.evaluate(() => !document.querySelector('.boot')))
+  let bootGone = false
+  for (let i = 0; i < 40; i += 1) {
+    bootGone = await page.evaluate(() => !document.querySelector('.boot'))
+    if (bootGone) break
+    await sleep(200)
+  }
+  check('V4 boot: dissolves by itself (~1.4s + fade)', bootGone)
   // strip the force flag BEFORE the document boots (addInitScript runs pre-JS),
   // then a reload must respect the once-per-session gate
   const unforce = await page.evaluateOnNewDocument(() => { try { localStorage.removeItem('aaru.boot') } catch { /* */ } })

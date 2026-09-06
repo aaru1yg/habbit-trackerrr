@@ -214,6 +214,7 @@ function AchievementCard({ item, index }) {
           <p className="ach-sub">{item.blurb}</p>
           {RARITY[item.tier] && (
             <span className={`rarity-label rarity-${RARITY[item.tier]}`} aria-label={`Rarity: ${RARITY[item.tier].toUpperCase()}`}>
+              <i className="rarity-dot" aria-hidden="true" />
               {RARITY[item.tier].toUpperCase()}
             </span>
           )}

@@ -140,3 +140,27 @@ The QA pass covers the full spec matrix: onboarding, habit recording, schedule-a
 reminders, mood, insights, the projects/assignments/workload/deadlines/record screens,
 celebrations, export/import round-trips, persistence across reloads, navigation, horizontal
 overflow at 320–414px, tap-target sizes and text contrast.
+
+### ☁️ Cloud sync — the migration prompt contract
+
+On first sign-in, if **both** this device and the account hold data, the app asks once how to
+combine them (`src/components/auth/MigrationDialog.jsx`). The contract, enforced by
+`test/migration.test.jsx` and `qa/live-migration.mjs`:
+
+- the prompt only appears when a **genuine choice** is needed — both documents hold data *and
+  actually differ* — and this device has never resolved that choice for this account;
+- a resolved choice is **remembered per account, per device** (`aaru.habits.migration.v1`), so
+  refreshes, reloads and sign-out/sign-in cycles never re-ask;
+- identical documents (already reconciled) never prompt and never trigger a redundant write;
+- if the two sides diverge again later (offline edits vs another device), the remembered choice
+  is honoured silently — merge keeps both, "keep local"/"use cloud" keep winning as chosen;
+- two accounts on one browser stay independent: each remembers its own decision.
+
+```bash
+node qa/live-migration.mjs            # real browser vs the PUBLIC site (see .github/workflows/verify-live-site.yml)
+```
+
+`verify-live-site.yml` runs a control pass on every PR that touches sync code (the current
+production build must still exhibit the historical re-prompt bug) and a full verification pass
+after each deploy of `main` (prompt at most once, silent across 10 reloads and a re-login,
+user B independently scoped), reporting the exact live build ID it verified against.

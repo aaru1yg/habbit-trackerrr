@@ -19,10 +19,14 @@ export default function HabitCheck({ done, label }) {
       style={
         done
           ? {
-              background: 'linear-gradient(135deg, var(--accent-1), var(--accent-2))',
+              /* Completion speaks one language across the product:
+                 the green "done" used by calendar cells, rows and
+                 progress, with a dark check for contrast. The accent
+                 gradient stays reserved for primary progress moments. */
+              background: 'var(--good)',
               borderColor: 'transparent',
-              color: 'var(--accent-ink)',
-              boxShadow: '0 4px 16px var(--accent-soft)',
+              color: 'var(--bg-deep)',
+              boxShadow: '0 4px 18px var(--good-soft)',
             }
           : undefined
       }

@@ -3794,3 +3794,165 @@ html {
 .today-missed {
   border-left: 3px solid var(--warn);
 }
+
+/* ============================================================
+   DETAIL PASS — typographic rhythm, chart legibility and
+   interaction refinements. Loaded last, wins by order, and
+   only refines what the layers above already established.
+   ============================================================ */
+
+/* ---- Charts: data text inherits the numeral face & tabular
+        figures so every axis value lines up like a ledger ---- */
+main svg text {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'ss01' 1;
+}
+
+/* .chart-label was referenced by PaceChart but never defined */
+.chart-label {
+  font-weight: 500;
+  fill: var(--text-3);
+}
+
+/* ---- Type rhythm: let headlines wrap as balanced blocks ---- */
+.card-title,
+.sheet-title {
+  text-wrap: balance;
+}
+
+/* ---- Priority rows: tone rail must survive hover, and the row
+        should answer a press without feeling like a button ---- */
+.priority-row[data-tone='good']:hover {
+  border-left-color: var(--good);
+}
+.priority-row-inner:active {
+  background: var(--surface-2);
+}
+
+/* ---- Habit rows: done rows read calm; undone rows carry a
+        quiet hairline so the list never floats ---- */
+.habit-row.done .habit-meta {
+  opacity: 0.72;
+}
+
+/* ---- Small buttons inside card heads keep the 44px target but
+        visually sit as quiet controls until hovered ---- */
+.card-head .btn:not(.primary) {
+  box-shadow: none;
+}
+
+/* ---- Empty states: let the copy breathe on any surface ---- */
+.empty {
+  padding: clamp(24px, 6vw, 56px) var(--space-4);
+}
+.empty-title {
+  font-size: var(--fs-h2);
+  letter-spacing: var(--tr-title);
+  text-wrap: balance;
+}
+.empty-sub {
+  max-width: 34ch;
+  line-height: var(--lh-body);
+}
+
+/* ---- Calendar: today must read instantly without shouting ---- */
+.cal-cell.today:not(.done) {
+  background: color-mix(in srgb, var(--accent-2) 7%, transparent);
+}
+.cal-cell.today::after {
+  inset: 1px;
+  border-radius: 13px;
+}
+
+/* ---- Segmented control: active option gets a soft raise ---- */
+.seg-btn.active {
+  box-shadow: var(--e-1);
+}
+
+/* ---- Field helper microcopy: one quiet voice ---- */
+.field-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+/* ---- Sidebar: the brand mark is a destination too ---- */
+.sidebar-brand:hover .brand-name {
+  color: var(--accent-1-lift);
+}
+
+/* ---- Toasts: keep the message row calm, make the action the
+        only saturated thing in the toast ---- */
+.toast .toast-action:hover {
+  background: var(--surface-2);
+}
+
+/* ---- Stat blocks: value + label keep a steady baseline ---- */
+.today-stat strong,
+.insights-stat-value,
+.work-fact-value {
+  font-feature-settings: 'tnum' 1, 'ss01' 1;
+}
+
+/* ---- Focus never disappears on interactive rows ---- */
+.habit-row [role='button']:focus-visible,
+.priority-row-inner:focus-visible,
+.goal-chip:focus-visible,
+.tl-row:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: var(--r-md);
+}
+
+/* ---- Reduced motion: the press & focus refinements above are
+        colour/outline only, so they survive unchanged; the one
+        transform tweak (.seg-btn shadow) is static. ---- */
+@media (prefers-reduced-motion: reduce) {
+  .priority-row-inner:active {
+    background: transparent;
+  }
+}
+
+/* ---- Home hero: surface the honest 7-day shape on every
+        screen, not only wide desktops. Below 1100px the side
+        rail becomes a full-width strip under the hero copy. ---- */
+@media (max-width: 1099.98px) {
+  .today-hero-v3 .today-week {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-15);
+    grid-column: 1 / -1;
+    margin-top: var(--space-15);
+    padding-left: 0;
+    border-left: 0;
+    justify-self: stretch;
+  }
+  .today-hero-v3 .today-week-bars {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 34px;
+    gap: 5px;
+  }
+  .today-hero-v3 .today-week-bar {
+    flex: 1 1 0;
+    width: auto;
+    max-width: 18px;
+  }
+  .today-hero-v3 .today-week-avg,
+  .today-hero-v3 .today-week-empty {
+    margin-left: auto;
+  }
+  .today-hero-v3 .today-week-label {
+    white-space: nowrap;
+  }
+}
+
+/* ---- Chart colour identity: the completion gradient is the
+        signature of real progress; keep empty/zero bars neutral
+        so colour always means data. ---- */
+.today-week-bar i {
+  border-radius: inherit;
+}

@@ -144,7 +144,16 @@ export default function TodayScreen({ onFire }) {
       <header className="screen-head today-head">
         <div>
           <h1 className="screen-title">{greeting(name)}</h1>
-          <p className="screen-sub">{prettyDate(today)}</p>
+          <p className="screen-sub">
+            {prettyDate(today)}
+            {stats.total > 0 && (
+              <>
+                {' '}
+                · <strong className="tnum">{stats.done}</strong> of{' '}
+                <strong className="tnum">{stats.total}</strong> habits done
+              </>
+            )}
+          </p>
         </div>
         <div className="head-actions">
           <button className="btn ghost icon" aria-label="Search" onClick={() => setSearchOpen(true)}><IconSearch size={18} /></button>

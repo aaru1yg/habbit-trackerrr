@@ -5,7 +5,7 @@ import { Link } from '../../lib/router.jsx'
 import { CardHead } from '../ui/SectionCard.jsx'
 import { IconAlert } from '../../lib/icons.jsx'
 import { executionContext, weeklyAdaptation, proactiveNudge, dismissNudge } from '../../lib/execution.js'
-import { kindSuggestion } from '../../lib/learning.js'
+import { kindSuggestion } from '../../lib/learningKinds.js'
 
 /**
  * ExecutionPanels — Phase F #26/#27/#28.

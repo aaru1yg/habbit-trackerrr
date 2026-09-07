@@ -6,8 +6,8 @@ import {
   applyEstimateAction,
   undoEstimateAction,
   estimateSuggestion,
-  kindSuggestion,
 } from '../src/lib/learning.js'
+import { kindSuggestion } from '../src/lib/learningKinds.js'
 import { dayStr } from '../src/lib/dates.js'
 
 const NOW = new Date('2026-09-08T10:00:00.000Z')

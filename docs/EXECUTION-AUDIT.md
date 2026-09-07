@@ -159,3 +159,96 @@ confirmation actions. `isSheetOpen()` (`:19`) is exported.
 | Inventing a date from an ambiguous phrase ("Friday" with no week) | Parse only the listed safe phrases; anything else → `null` + "Not specified" |
 | Silently creating duplicates | Recent-capture detection surfaces a warning, never blocks |
 | Claiming a link that was not stated | `suggestLinks` requires a literal name match and always asks |
+
+---
+
+## 5. Phase E — delivered
+
+Five commits: `040b479` (this audit) → `25f0548` (registry + filters) → `ac36123` (parser
+fixes) → `103f809` (UI) → `e3eb00c` (UI tests).
+
+### What shipped
+
+| Module | Role |
+|---|---|
+| `src/lib/quickCapture.js` | `resolveRelativeDate`, `parseDuration`, `classifyCapture`, `parseCapture`, `extractTitle`, `suggestLinks`, `validateCapture`, `detectDuplicate`, `captureToAction` |
+| `src/lib/commandActions.js` | `COMMANDS`, `availableCommands`, `matchCommands`, `executeCommand`, `nextActionResult`, `itemActions`, `resolveItem` |
+| `src/lib/queryParser.js` | `matchQuery`, `runQuery`, `answerQuery` over six filters |
+| `src/lib/intents.js` | one-slot handoff so a command opened from any route can reach the panels on Today |
+| `src/components/layout/QuickCapture.jsx` | `CaptureBody` (reusable) + a standalone `Sheet` wrapper |
+| `src/components/layout/CommandCenter.jsx` | the ⌘K palette |
+
+All four lib modules are pure — no React, no dispatch. `executeCommand` returns a descriptor;
+the component performs it.
+
+### The one design correction worth recording
+
+The first build put a command/search box at the top of the palette and made Quick Capture a
+*second* sheet. The tests failed immediately: nothing rendered the live read-out, because the
+field the user types into was not the capture field. The brief asks for **one** input under ⌘K,
+so `CaptureBody` was extracted and rendered inline behind the palette's own field. The standalone
+sheet now wraps the same body, so the FAB and the Today quick action share one implementation.
+
+### Three parser defects only the mounted UI could find
+
+1. **Entity names were read as type words.** "Finish API work for Habit OS" classified as a
+   *habit* because the project is called "Habit OS"; a goal called "Daily Reading" made anything
+   mentioning it look like a recurrence. `classifyCapture` now strips existing project and goal
+   names before looking for type words.
+2. **A dateless one-off was reported as unclassifiable.** "Prepare presentation" now asks
+   Assignment vs Project task — the brief's own E5 example. With a resolvable date the deadline
+   fallback still applies, so "Finish DSA Chapter 4 by Friday" stays a *suggested* assignment.
+3. **`extractTitle` left a trailing "due"** once the date phrase was removed, so "Physics set due
+   Friday" became "Physics set due" and duplicate detection silently missed the existing
+   "Physics set".
+
+A fourth defect was caught by the command tests: `itemActions` and `resolveItem` used
+`toISOString()` for "today" while the app keys check-ins by local day — an off-by-one either side
+of midnight. Both now use `dayStr()`, and `resolveItem` takes an injectable clock.
+
+### Bundle
+
+| | Initial JS gz | Headroom of 236 kB | New chunk |
+|---|---|---|---|
+| Phase D | 232.5 | 3.5 kB | — |
+| Phase E | **232.9** | **3.1 kB** | `CommandCenter` 40.65 kB / **13.00 kB gz** |
+
+CSS 37.4 → **37.9 kB gz** (cap 42). The 0.4 kB of initial growth is the ⌘K handler, the intents
+module and the mobile nav entry. The parser, registry and palette — 13.00 kB gzipped — are paid
+for only on first ⌘K.
+
+Lazy proof, same method as Phase D (grepping *function names* finds nothing in a minified bundle):
+`Couldn't confidently classify`, `How should I save this?`, `What do you need to do?` and
+`You can also ask` each appear **zero times in `index-*.js`** and only in `CommandCenter-*.js`.
+The Phase D guard still holds — `advancedAnalytics.js` has exactly one importer, and
+`queryParser.js` deliberately reimplements two lines of workload arithmetic rather than import it.
+
+### Verification
+
+| Command | Phase D | Phase E |
+|---|---|---|
+| `npm test` | 513 / 32 | **662 / 36** |
+| `npm run lint` | clean | clean |
+| `npm run test:schema` | 28 / 28 | 28 / 28 |
+| `npm run build` | 232.5 kB gz | **232.9 kB gz JS / 37.9 kB gz CSS** |
+| `git diff --check` | clean | clean |
+
+149 new tests: 69 parser, 47 registry/filters, 33 UI through the real app.
+
+`npm run preview` checked by hand: `/` 200, `index-*.js` 200, `CommandCenter-*.js` 200
+(40 794 b), `AnalyticsLab-*.js` 200, CSS 200, `release.json` 200. Puppeteer E2E remains
+unavailable in this sandbox.
+
+### Not done
+
+- **E15/E16 universal actions are modelled but only partly surfaced.** `itemActions()` is
+  complete and tested, and Today already had one-tap completion; the remaining surfaces
+  (search rows, command results) still navigate rather than act. That belongs to Phase F,
+  which owns the execution flow.
+- **E19/E31 visual QA at 390×844, 430×932 and 1440×900 is unchecked** — it needs a real
+  browser. The CSS is written mobile-first with 44px minimums and no fixed widths, but that
+  is an intention, not a measurement.
+- **E23 device-to-device sync is untested here.** Capture is correct by construction because
+  it goes through the same reducers and `syncEngine` as everything else, and there is no
+  separate storage layer, but two real devices were not available.
+- **Not deployed.** The public site is untouched.

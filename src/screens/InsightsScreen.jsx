@@ -15,6 +15,7 @@ import {
 import { navigate } from '../lib/router.jsx'
 import InsightsDeepDive from './InsightsDeepDive.jsx'
 import { IconInsights, IconTrendUp, IconTrendDown, IconFlame } from '../lib/icons.jsx'
+import { habitPatterns } from '../lib/habitPatterns.js'
 
 const YEAR = new Date().getFullYear()
 const RANGES = [
@@ -36,6 +37,7 @@ export default function InsightsScreen() {
   const [view, setView] = useState('overview')
 
   const hasData = habits.length > 0 && Object.values(state.checkins || {}).some((days) => Object.keys(days || {}).length > 0)
+  const patterns = useMemo(() => habits.map((h) => habitPatterns(state, h)).filter((p) => p.enough), [state, habits])
 
   // ---- hero: 30-day ring + streaks ----
   const last30 = useMemo(() => {
@@ -155,6 +157,10 @@ export default function InsightsScreen() {
 
         {view === 'overview' && (
         <>
+        <SectionCard className="pad habit-patterns" aria-label="Habit patterns">
+          <CardHead title="Habit patterns"><span className="tiny muted">real history only</span></CardHead>
+          {patterns.length === 0 ? <p className="empty-note">Not enough data yet. Keep checking in to reveal patterns.</p> : <div className="habit-pattern-list">{patterns.map((p) => <div className="habit-pattern-row" key={p.habit.id}><strong>{p.habit.name}</strong><span>{p.trend.id === 'INSUFFICIENT DATA' ? 'Not enough data yet.' : `${p.trend.id.toLowerCase()} · ${p.trend.current}% vs ${p.trend.previous}% previously`}</span>{p.weekday.best && <span>Strongest weekday: {p.weekday.best.weekday} ({p.weekday.best.rate}%)</span>}{p.workload.enough && <span>{p.workload.observation} {p.workload.high}% vs {p.workload.low}%.</span>}</div>)}</div>}
+        </SectionCard>
         {/* Hero: ring + streaks */}
           <div className="sp-depth" data-z="2">
         <SectionCard className="pad insights-hero">

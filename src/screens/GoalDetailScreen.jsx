@@ -30,6 +30,7 @@ import { Link } from '../lib/router.jsx'
 import {
   IconChevronRight, IconCheck, IconFlame, IconGoals,
 } from '../lib/icons.jsx'
+import { GoalForecastCard } from '../components/work/ForecastCard.jsx'
 
 const stageOf = (pct) => (pct >= 100 ? 'reached'
   : pct >= 75 ? 'near completion'
@@ -149,6 +150,8 @@ export default function GoalDetailScreen({ id }) {
             </div>
           </div>
         </Reveal>
+
+        <GoalForecastCard state={state} goal={goal} />
 
         {/* ---------- expected vs actual ---------- */}
         <Reveal as="section" variant="up" delay={60} className="card pad">

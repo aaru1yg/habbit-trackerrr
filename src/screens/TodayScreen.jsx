@@ -18,7 +18,6 @@ import AiCoach from '../components/today/AiCoach.jsx'
 
 import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween, weekdayShort } from '../lib/dates.js'
 import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak,  routineStats, activeRoutines, trendSeries } from '../lib/stats.js'
-import { assignmentProgress, projectProgress } from '../lib/work.js'
 import { todayPriorities, dayTimeline, todayGoals, todayProjectGoals, todayHeadline } from '../lib/today.js'
 import { getTodayPriorities, getNextBestAction, workloadCapacity } from '../lib/adaptive.js'
 import { streakMilestone } from '../lib/analytics.js'

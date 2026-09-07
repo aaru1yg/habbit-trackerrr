@@ -3612,6 +3612,17 @@ button.lb-row:hover {
   pointer-events: none;
 }
 
+/* Week screen "By habit" rows are plain <button>s sized only by inline
+   padding + 22px dots, which land exactly on the 44px tap-target line. Pin a
+   guaranteed min-height (border-box, so it is the full touch box) so the
+   target never shrinks below 44px if the variable font hasn't finished
+   loading yet or under CPU contention. */
+.week-habit {
+  min-height: 44px;
+  min-width: 44px;
+}
+.week-habit:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
 /* ============================================================
    ONBOARDING / EMPTY STATES 2.0 — art moments
    ============================================================ */

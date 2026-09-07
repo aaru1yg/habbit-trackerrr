@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../../store.jsx'
+import { useToast } from '../ui/Toaster.jsx'
 import { Link } from '../../lib/router.jsx'
 import { CardHead } from '../ui/SectionCard.jsx'
 import { IconAlert } from '../../lib/icons.jsx'
 import { executionContext, weeklyAdaptation, proactiveNudge, dismissNudge } from '../../lib/execution.js'
+import { kindSuggestion } from '../../lib/learning.js'
 
 /**
  * ExecutionPanels — Phase F #26/#27/#28.
@@ -18,13 +20,27 @@ import { executionContext, weeklyAdaptation, proactiveNudge, dismissNudge } from
  * a 236 kB cap). Lazy-loading keeps the initial chunk where it was.
  */
 export default function ExecutionPanels() {
-  const { state } = useStore()
+  const { state, dispatch } = useStore()
+  const toast = useToast()
   const [nudgeGone, setNudgeGone] = useState(false)
 
   const now = useMemo(() => new Date(), [])
   const exec = useMemo(() => executionContext(state, { now }), [state, now])
   const adaptation = useMemo(() => weeklyAdaptation(state, { now }), [state, now])
   const nudge = useMemo(() => (nudgeGone ? null : proactiveNudge(state, { now })), [state, now, nudgeGone])
+
+  /* #25 — the accept path. One record, one number, named on the button,
+     undoable, and recorded so the product can tell acted-on from ignored. */
+  const accept = (resolved) => {
+    if (!resolved?.action) return
+    dispatch(resolved.action)
+    dispatch({ type: 'RECORD_SIGNAL', signal: 'estimate-accept', target: String(resolved.target?.id ?? resolved.kind) })
+    toast.show(`${resolved.targetName} is now planned at ${resolved.suggestedMin} min.`, {
+      duration: 6000,
+      actionLabel: resolved.undo ? 'Undo' : null,
+      onAction: resolved.undo ? () => dispatch(resolved.undo) : null,
+    })
+  }
 
   if (!nudge && !exec.enough && !(adaptation.enough && adaptation.suggestions.length)) return null
 
@@ -69,15 +85,31 @@ export default function ExecutionPanels() {
           </CardHead>
           <p className="card-blurb">{adaptation.summary}</p>
           <ul className="adapt-list">
-            {adaptation.suggestions.map((sug) => (
-              <li key={sug.id} data-tone={sug.tone}>
-                <strong>{sug.title}</strong>
-                <span>{sug.text}</span>
-                <span className="tiny muted">
-                  From {sug.samples} real sessions. Nothing changes unless you accept it.
-                </span>
-              </li>
-            ))}
+            {adaptation.suggestions.map((sug) => {
+              /* Resolve the kind-level drift to the one record it would
+                 change, so accepting is never a bulk rewrite. */
+              const resolved = kindSuggestion(sug, state, { now })
+              return (
+                <li key={sug.id} data-tone={sug.tone}>
+                  <strong>{sug.title}</strong>
+                  <span>{sug.text}</span>
+                  {resolved.enough && resolved.applyable && (
+                    <span className="adapt-apply">
+                      <span className="tiny muted">{resolved.reason}</span>
+                      <button type="button" className="btn sm" onClick={() => accept(resolved)}>
+                        {resolved.label}
+                      </button>
+                    </span>
+                  )}
+                  {resolved.enough && !resolved.applyable && (
+                    <span className="tiny muted">{resolved.blockedReason}</span>
+                  )}
+                  <span className="tiny muted">
+                    From {sug.samples} real sessions. Nothing changes unless you accept it.
+                  </span>
+                </li>
+              )
+            })}
           </ul>
           <p className="tiny muted">{adaptation.reason}</p>
         </section>

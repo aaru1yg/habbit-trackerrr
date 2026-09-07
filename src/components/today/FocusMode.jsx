@@ -8,7 +8,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { focusRecommendation } from '../../lib/planning.js'
 import { completionAction, hrefFor, isCompletable } from '../../lib/completion.js'
-import { estimateAdvice } from '../../lib/personalization.js'
+import { estimateSuggestion } from '../../lib/learning.js'
+import { useToast } from '../ui/Toaster.jsx'
 import { Link } from '../../lib/router.jsx'
 
 const fmt = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${Math.floor(s % 60).toString().padStart(2, '0')}`
@@ -22,11 +23,28 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
   const [paused, setPaused] = useState(false)
   const [done, setDone] = useState(false)
 
+  const toast = useToast()
   const rec = useMemo(() => focusRecommendation(state, { now }), [state, now])
+  /* #25 — the same evidence as before, but now actionable. */
   const advice = useMemo(
-    () => (rec ? estimateAdvice(rec.item, state, { now }) : null),
+    () => (rec ? estimateSuggestion(rec.item, state, { now }) : null),
     [rec, state, now],
   )
+  const [estimateApplied, setEstimateApplied] = useState(false)
+
+  /* One record, one number, named on the button, undoable. Nothing here
+     runs unless the user presses it. */
+  const acceptEstimate = () => {
+    if (!advice?.action) return
+    dispatch(advice.action)
+    dispatch({ type: 'RECORD_SIGNAL', signal: 'estimate-accept', target: String(rec.item.id) })
+    setEstimateApplied(true)
+    toast.show(`${advice.name} is now planned at ${advice.suggestedMin} min.`, {
+      duration: 6000,
+      actionLabel: advice.undo ? 'Undo' : null,
+      onAction: advice.undo ? () => dispatch(advice.undo) : null,
+    })
+  }
 
   useEffect(() => { if (openTick > 0) setOpen(true) }, [openTick])
 
@@ -120,10 +138,22 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
           {/* §5 — the historical average is shown next to the estimate, never
               substituted for it. */}
           {advice?.enough && (
-            <p className="focus-advice" role="note">
-              Your recent similar sessions average ~{advice.actualMeanMin} min
-              <span className="tiny muted"> · {advice.samples} session{advice.samples === 1 ? '' : 's'}</span>
-            </p>
+            <div className="focus-advice" role="note">
+              <p style={{ margin: 0 }}>
+                {advice.text}
+                <span className="tiny muted"> · {advice.samples} session{advice.samples === 1 ? '' : 's'}</span>
+              </p>
+              {advice.applyable && !estimateApplied && (
+                <button type="button" className="btn sm" onClick={acceptEstimate}>{advice.label}</button>
+              )}
+              {advice.applyable && estimateApplied && (
+                <p className="tiny good" style={{ margin: '6px 0 0' }}>
+                  Applied. Undo is in the toast if you changed your mind.
+                </p>
+              )}
+              {/* Explained, not applied — a habit has no stored estimate. */}
+              {!advice.applyable && <p className="tiny muted" style={{ margin: '6px 0 0' }}>{advice.blockedReason}</p>}
+            </div>
           )}
 
           <div className="focus-timer" role="timer" aria-live="polite">

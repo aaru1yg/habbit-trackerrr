@@ -202,3 +202,13 @@
   .exec-detail{max-width:none}
 }
 @media(prefers-reduced-motion:reduce){.item-action,.nudge{transition:none}}
+
+/* Phase G — the accept path. A suggestion the user can act on is a row,
+   not a modal, and the button names the number it will write. */
+.adapt-apply{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.adapt-apply .btn{min-height:var(--touch,44px)}
+.adapt-list li .tiny.good{color:var(--good)}
+.focus-advice{display:grid;gap:6px;margin:0 0 12px;padding:11px 12px;background:var(--surface-2);border-radius:10px;border-left:3px solid var(--accent-2)}
+.focus-advice p{font-size:var(--fs-xs);line-height:1.55;color:var(--text-2)}
+.focus-advice .btn{justify-self:start}
+@media(prefers-reduced-motion:reduce){.focus-advice,.adapt-apply{transition:none}}

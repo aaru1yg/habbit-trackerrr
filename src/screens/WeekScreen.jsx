@@ -6,9 +6,9 @@ import ProgressRing from '../components/ui/ProgressRing.jsx'
 import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
 import MiniBars from '../components/ui/Bars.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
-import { todayStr, subDaysStr, weekDays, weekdayShort, shortDate, prettyDate } from '../lib/dates.js'
+import { todayStr, subDaysStr, weekDays, weekdayShort, shortDate } from '../lib/dates.js'
 import { activeHabits, isDone, weekStats, weekDelta, strongestHabit, weakestHabit, habitStreak } from '../lib/stats.js'
-import { IconWeek, IconChevronLeft, IconChevronRight, IconTrendUp, IconTrendDown, IconFlame } from '../lib/icons.jsx'
+import { IconWeek, IconChevronLeft, IconChevronRight, IconTrendUp, IconTrendDown, IconFlame, IconCheck } from '../lib/icons.jsx'
 import { isScheduled, categoryOf } from '../lib/schedule.js'
 import { calendarMarkers } from '../lib/work.js'
 import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
@@ -184,16 +184,15 @@ export default function WeekScreen() {
                     className="week-habit"
                     onClick={() => habitUI.openDetail(h)}
                     aria-label={`Details for ${h.name}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 14, background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                   >
-                    <span className="dot" style={{ width: 8, height: 8, borderRadius: 99, background: `var(${categoryOf(h.category).cssVar})`, flex: 'none' }} />
-                    <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 'var(--fs-sm)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.name}</span>
+                    <span className="week-habit-dot" style={{ background: `var(${categoryOf(h.category).cssVar})` }} aria-hidden="true" />
+                    <span className="week-habit-name">{h.name}</span>
                     {streak > 1 && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--warn)', fontSize: 'var(--fs-xs)', fontWeight: 700 }}>
+                      <span className="week-habit-streak">
                         <IconFlame size={12} /> {streak}d
                       </span>
                     )}
-                    <span style={{ display: 'flex', gap: 5 }} aria-hidden="true">
+                    <span className="week-habit-cells" aria-hidden="true">
                       {week.map((d) => {
                         const sched = isScheduled(h, d)
                         const done = isDone(state, h.id, d)
@@ -201,15 +200,12 @@ export default function WeekScreen() {
                         return (
                           <span
                             key={d}
-                            title={`${prettyDate(d)}: ${done ? 'done' : sched ? (future ? 'upcoming' : 'missed') : 'not scheduled'}`}
-                            style={{
-                              width: 22, height: 22, borderRadius: 7,
-                              background: done ? 'var(--good)' : sched ? (future ? 'transparent' : 'var(--track)') : 'transparent',
-                              border: done ? 'none' : sched ? '1px solid var(--border-2)' : '1px dashed var(--border)',
-                              opacity: future ? 0.45 : 1,
-                              display: 'inline-block',
-                            }}
-                          />
+                            className={`wh-cell${done ? ' is-done' : ''}${sched && !done ? ' is-sched' : ''}${!sched ? ' is-off' : ''}${future ? ' is-future' : ''}`}
+                            data-label={weekdayShort(d).slice(0, 1)}
+                          >
+                            <span className="wh-cell-box">{done && <IconCheck size={11} />}</span>
+                            <span className="wh-cell-day">{weekdayShort(d).slice(0, 1)}</span>
+                          </span>
                         )
                       })}
                     </span>

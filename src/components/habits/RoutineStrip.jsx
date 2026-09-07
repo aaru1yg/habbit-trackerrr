@@ -25,7 +25,7 @@ export default function RoutineStrip({ date = todayStr(), limit = 3 }) {
             <span style={{ color: 'var(--accent-2)', flex: 'none', display: 'grid', placeItems: 'center' }}>
               <IconStack size={17} />
             </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="grow">
               <p style={{ fontWeight: 700, fontSize: 'var(--fs-sm)' }} className="ellipsis">{routine.name}</p>
               <p className="tiny muted tnum">{stats.done} of {stats.total} complete</p>
             </div>

@@ -73,12 +73,12 @@ export function TrendChart({ data, className = '' }) {
         {gridYs.map((g) => (
           <g key={g.v}>
             <line x1={L} y1={g.y} x2={W - R} y2={g.y} stroke="var(--grid)" strokeWidth="1" strokeDasharray="2 6" />
-            <text x={L - 8} y={g.y + 3} textAnchor="end" fontSize="10" fontWeight="500" fill="var(--text-3)" style={TNUM}>{g.v}</text>
+            <text x={L - 8} y={g.y + 3} textAnchor="end" fontSize="12.5" fontWeight="500" fill="var(--text-3)" style={TNUM}>{g.v}</text>
           </g>
         ))}
         {/* x labels */}
         {labels.map((lab) => (
-          <text key={lab.i} x={lab.x} y={H - 7} textAnchor="middle" fontSize="10" fontWeight="500" fill="var(--text-3)">{shortDate(lab.label)}</text>
+          <text key={lab.i} x={lab.x} y={H - 7} textAnchor="middle" fontSize="12.5" fontWeight="500" fill="var(--text-3)">{shortDate(lab.label)}</text>
         ))}
         {/* area + line (a soft glow underlay gives the trend presence) */}
         {area && <path d={area} fill={`url(#t${gid})`} />}
@@ -104,8 +104,8 @@ export function TrendChart({ data, className = '' }) {
             <g transform={`translate(${Math.min(Math.max(selP.x - 58, L), W - R - 116)}, ${Math.max(T, selP.y - 40)})`}>
               <rect width="116" height="28" rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
               <circle cx="13" cy="14" r="4" fill="var(--accent-2)" />
-              <text x="25" y="18" fontSize="11" fontWeight="700" fill="var(--text)">{shortDate(selP.date)}</text>
-              <text x="108" y="18" fontSize="11" fontWeight="700" fill="var(--accent-2)" textAnchor="end">{selP.pct}%</text>
+              <text x="25" y="18" fontSize="12.5" fontWeight="700" fill="var(--text)">{shortDate(selP.date)}</text>
+              <text x="108" y="18" fontSize="12.5" fontWeight="700" fill="var(--accent-2)" textAnchor="end">{selP.pct}%</text>
             </g>
           </g>
         )}
@@ -147,7 +147,7 @@ export function WeekBars({ data, highlightLast = true }) {
                 fill={last ? `url(#w${gid})` : 'var(--accent-1)'} opacity={last ? 1 : 0.75} />
             )}
             {d.pct == null && <rect x={x} y={H - B - 3} width={bw} height={3} rx={1.5} fill="var(--track)" />}
-            <text x={x + bw / 2} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--text-3)">{d.label}</text>
+            <text x={x + bw / 2} y={H - 6} textAnchor="middle" fontSize="12.5" fill="var(--text-3)">{d.label}</text>
             <title>{`${d.label}: ${d.pct == null ? 'no data' : d.pct + '%'}`}</title>
           </g>
         )

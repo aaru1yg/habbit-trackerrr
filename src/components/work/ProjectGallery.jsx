@@ -110,7 +110,7 @@ export function ProjectGalleryCard({ row, now, index = 0 }) {
             <button className="btn ghost icon" aria-label={`Edit ${project.name}`} onClick={() => work.editProject(project)}>
               <IconPencil size={16} />
             </button>
-            <button className="btn ghost icon" style={{ color: 'var(--bad)' }} aria-label={`Delete ${project.name}`} onClick={() => work.deleteProject(project)}>
+            <button className="btn ghost icon text-bad" aria-label={`Delete ${project.name}`} onClick={() => work.deleteProject(project)}>
               <IconTrash size={16} />
             </button>
             <span style={{ flex: 1 }} />

@@ -266,7 +266,7 @@ function GoalCard({ goal, index, today, from, onEdit, onArchive, onDelete, onLin
     <FadeIn delay={Math.min(index * 0.04, 0.24)}>
       <article className="goal-card" data-tone={health.tone} aria-label={`Goal ${goal.title}`}>
         <div className="goal-head">
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="grow">
             <div className="wrap-gap" style={{ gap: 6, marginBottom: 6 }}>
               <span className="chip">
                 <span className="dot" style={{ background: `var(${area.cssVar})` }} />
@@ -433,7 +433,7 @@ function GoalCard({ goal, index, today, from, onEdit, onArchive, onDelete, onLin
           )}
           <span style={{ flex: 1 }} />
           <button className="btn ghost sm" onClick={() => onArchive(goal)} aria-label={`Archive ${goal.title}`}><IconArchive size={15} /></button>
-          <button className="btn ghost sm" style={{ color: 'var(--bad)' }} onClick={() => onDelete(goal)} aria-label={`Delete ${goal.title}`}><IconTrash size={15} /></button>
+          <button className="btn ghost sm text-bad" onClick={() => onDelete(goal)} aria-label={`Delete ${goal.title}`}><IconTrash size={15} /></button>
         </div>
       </article>
     </FadeIn>

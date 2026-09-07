@@ -40,15 +40,15 @@ export default function MoodScatter({ data, dimLabel = 'mood' }) {
             {[0, 50, 100].map((v) => (
               <g key={v}>
                 <line x1={L} y1={y(v)} x2={W - R} y2={y(v)} stroke="var(--grid)" strokeWidth="1" />
-                <text x={L - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--text-3)" className="tnum">{v}</text>
+                <text x={L - 6} y={y(v) + 3} textAnchor="end" fontSize="12.5" fill="var(--text-3)" className="tnum">{v}</text>
               </g>
             ))}
             {[1, 2, 3, 4, 5].map((m) => (
-              <text key={m} x={x(m)} y={H - 8} textAnchor="middle" fontSize="10" fill="var(--text-3)" className="tnum">
+              <text key={m} x={x(m)} y={H - 8} textAnchor="middle" fontSize="12.5" fill="var(--text-3)" className="tnum">
                 {m}
               </text>
             ))}
-            <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="9" fill="var(--text-3)" dy="10">{dimLabel} →</text>
+            <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="12.5" fill="var(--text-3)" dy="10">{dimLabel} →</text>
           </g>
           {trend && (
             <line

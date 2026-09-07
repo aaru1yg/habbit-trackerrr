@@ -3618,8 +3618,108 @@ button.lb-row:hover {
    target never shrinks below 44px if the variable font hasn't finished
    loading yet or under CPU contention. */
 .week-habit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
   min-height: 44px;
-  min-width: 44px;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out);
+}
+.week-habit:hover {
+  background: var(--surface-3);
+  border-color: var(--border-2);
+}
+.week-habit:active {
+  transform: scale(0.99);
+}
+.week-habit:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+.week-habit-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  flex: none;
+}
+.week-habit-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.week-habit-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--warn);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.week-habit-cells {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+/* One mini-cell per day: weekday letter above, state box below. Reads as a
+   compact week strip on every screen width. */
+.wh-cell {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 22px;
+  opacity: 1;
+}
+.wh-cell-day {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.wh-cell-box {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: transparent;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out);
+}
+.wh-cell.is-off .wh-cell-box {
+  border-color: var(--border);
+  border-style: dashed;
+}
+.wh-cell.is-sched:not(.is-done) .wh-cell-box {
+  background: var(--track);
+  border-color: var(--border-2);
+}
+.wh-cell.is-done .wh-cell-box {
+  background: var(--good);
+  border-color: transparent;
+  color: var(--bg-deep);
+}
+.wh-cell.is-done .wh-cell-day {
+  color: var(--good);
+}
+.wh-cell.is-future {
+  opacity: 0.45;
+}
+@media (max-width: 430px) {
+  .wh-cell { min-width: 0; }
+  .wh-cell-box { width: 18px; height: 18px; border-radius: 6px; }
+}
+.week-habit:hover .wh-cell.is-sched:not(.is-done) .wh-cell-box {
+  border-color: var(--accent-1);
 }
 .week-habit:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 
@@ -3794,3 +3894,357 @@ html {
 .today-missed {
   border-left: 3px solid var(--warn);
 }
+
+/* ============================================================
+   DETAIL PASS — typographic rhythm, chart legibility and
+   interaction refinements. Loaded last, wins by order, and
+   only refines what the layers above already established.
+   ============================================================ */
+
+/* ---- Charts: data text inherits the numeral face & tabular
+        figures so every axis value lines up like a ledger ---- */
+main svg text {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'ss01' 1;
+}
+
+/* .chart-label was referenced by PaceChart but never defined */
+.chart-label {
+  font-weight: 500;
+  fill: var(--text-3);
+}
+
+/* ---- Type rhythm: let headlines wrap as balanced blocks ---- */
+.card-title,
+.sheet-title {
+  text-wrap: balance;
+}
+
+/* ---- Priority rows: tone rail must survive hover, and the row
+        should answer a press without feeling like a button ---- */
+.priority-row[data-tone='good']:hover {
+  border-left-color: var(--good);
+}
+.priority-row-inner:active {
+  background: var(--surface-2);
+}
+
+/* ---- Habit rows: done rows read calm; undone rows carry a
+        quiet hairline so the list never floats ---- */
+.habit-row.done .habit-meta {
+  opacity: 0.72;
+}
+
+/* ---- Small buttons inside card heads keep the 44px target but
+        visually sit as quiet controls until hovered ---- */
+.card-head .btn:not(.primary) {
+  box-shadow: none;
+}
+
+/* ---- Empty states: let the copy breathe on any surface ---- */
+.empty {
+  padding: clamp(24px, 6vw, 56px) var(--space-4);
+}
+.empty-title {
+  font-size: var(--fs-h2);
+  letter-spacing: var(--tr-title);
+  text-wrap: balance;
+}
+.empty-sub {
+  max-width: 34ch;
+  line-height: var(--lh-body);
+}
+
+/* ---- Calendar: today must read instantly without shouting ---- */
+.cal-cell.today:not(.done) {
+  background: color-mix(in srgb, var(--accent-2) 7%, transparent);
+}
+.cal-cell.today::after {
+  inset: 1px;
+  border-radius: 13px;
+}
+
+/* ---- Segmented control: active option gets a soft raise ---- */
+.seg-btn.active {
+  box-shadow: var(--e-1);
+}
+
+/* ---- Field helper microcopy: one quiet voice ---- */
+.field-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+/* ---- Sidebar: the brand mark is a destination too ---- */
+.sidebar-brand:hover .brand-name {
+  color: var(--accent-1-lift);
+}
+
+/* ---- Toasts: keep the message row calm, make the action the
+        only saturated thing in the toast ---- */
+.toast .toast-action:hover {
+  background: var(--surface-2);
+}
+
+/* ---- Stat blocks: value + label keep a steady baseline ---- */
+.today-stat strong,
+.insights-stat-value,
+.work-fact-value {
+  font-feature-settings: 'tnum' 1, 'ss01' 1;
+}
+
+/* ---- Focus never disappears on interactive rows ---- */
+.habit-row [role='button']:focus-visible,
+.priority-row-inner:focus-visible,
+.goal-chip:focus-visible,
+.tl-row:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: var(--r-md);
+}
+
+/* ---- Reduced motion: the press & focus refinements above are
+        colour/outline only, so they survive unchanged; the one
+        transform tweak (.seg-btn shadow) is static. ---- */
+@media (prefers-reduced-motion: reduce) {
+  .priority-row-inner:active {
+    background: transparent;
+  }
+}
+
+/* ---- Home hero: surface the honest 7-day shape on every
+        screen, not only wide desktops. Below 1100px the side
+        rail becomes a full-width strip under the hero copy. ---- */
+@media (max-width: 1099.98px) {
+  .today-hero-v3 .today-week {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-15);
+    grid-column: 1 / -1;
+    margin-top: var(--space-15);
+    padding-left: 0;
+    border-left: 0;
+    justify-self: stretch;
+  }
+  .today-hero-v3 .today-week-bars {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 34px;
+    gap: 5px;
+  }
+  .today-hero-v3 .today-week-bar {
+    flex: 1 1 0;
+    width: auto;
+    max-width: 18px;
+  }
+  .today-hero-v3 .today-week-avg,
+  .today-hero-v3 .today-week-empty {
+    margin-left: auto;
+  }
+  .today-hero-v3 .today-week-label {
+    white-space: nowrap;
+  }
+}
+
+/* ---- Chart colour identity: the completion gradient is the
+        signature of real progress; keep empty/zero bars neutral
+        so colour always means data. ---- */
+.today-week-bar i {
+  border-radius: inherit;
+}
+
+/* ---- Ultra-wide composition: at very wide viewports the content
+        column stays centred inside the area right of the sidebar,
+        so 1920px screens read balanced instead of left-hugged. ---- */
+@media (min-width: 1280px) {
+  .screen {
+    margin-left: calc(var(--sidebar-w) + max(0px, (100vw - var(--sidebar-w) - var(--content-max)) * 0.5));
+    margin-right: auto;
+  }
+}
+
+/* ---- Insights editorial grid: on wide desktops the analytics
+        centre reads as paired panes (trend + week compare,
+        heatmap + matrix) instead of one stretched column. This
+        also keeps charts near their 640-unit design width so
+        axis text renders at a human size instead of scaling to
+        20px+. Below the threshold the single column is kept. ---- */
+@media (min-width: 1440px) {
+  .insights-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .insights-layout > .sp-depth {
+    grid-column: 1 / -1;
+  }
+  .insights-layout > .sp-pair-a {
+    grid-column: 1;
+  }
+  .insights-layout > .sp-pair-b {
+    grid-column: 2;
+  }
+}
+
+/* Charts that span a full-width column stop scaling past a
+   comfortable type size; anything narrower stays fluid. */
+.trend-chart svg {
+  max-width: min(100%, 760px);
+  margin-inline: auto;
+}
+/* On phones a fluid 640-unit canvas would shrink chart type to
+   ~6px. Give charts a readable floor width and let the card pan
+   horizontally instead — the same pattern the calendar matrix
+   already uses. */
+@media (max-width: 620px) {
+  .trend-chart {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .trend-chart svg {
+    min-width: 480px;
+    max-width: 480px;
+    margin-inline: 0;
+  }
+}
+
+/* ---- Alert card heads: one shared treatment for urgent
+        section titles (assignments, workload) ---- */
+.card-head-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bad);
+}
+
+/* ------------------------------------------------------------
+   MASTER TREND — Today's signature chart (7D → ALL).
+   ------------------------------------------------------------ */
+.today-master .seg {
+  margin-bottom: var(--sp-4);
+}
+.today-master .mt-chart {
+  margin-top: 2px;
+}
+.mt-blurb {
+  margin: var(--sp-3) 0 0 !important;
+}
+.mt-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 2px var(--sp-3);
+  margin-top: var(--sp-3);
+}
+.mt-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  color: var(--text-2);
+  transition: opacity var(--dur-fast) ease;
+}
+.mt-row[data-off] {
+  opacity: 0.55;
+}
+.mt-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 2px 4px 2px 8px;
+  border-radius: var(--r-sm);
+  text-align: left;
+  color: inherit;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.mt-main:hover {
+  background: var(--surface-inset);
+  color: var(--text);
+}
+.mt-main:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+.mt-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: inset 0 0 0 1px var(--border-2);
+}
+.mt-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.mt-val {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mt-go {
+  flex: none;
+  color: var(--text-3);
+  transition: color var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+.mt-main:hover .mt-go {
+  color: var(--text-2);
+  transform: translateX(1px);
+}
+.mt-toggle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.mt-toggle:hover {
+  background: var(--surface-inset);
+  color: var(--text);
+}
+.mt-toggle:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+.mt-toggle[aria-pressed='false'] {
+  color: var(--text-2);
+}
+.mt-note {
+  margin-top: var(--sp-3);
+  line-height: 1.5;
+}
+@media (max-width: 480px) {
+  .mt-legend {
+    /* minmax(0, 1fr): tracks may shrink below content, so long habit
+       names ellipsize instead of pushing the legend off small screens */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ------------------------------------------------------------
+   LAYOUT UTILITIES — shared by many screens (tail block so they
+   outrank component rules loaded earlier).
+   ------------------------------------------------------------ */
+.grow { flex: 1; min-width: 0; }
+.text-bad { color: var(--bad); }
+/* ghost buttons sit on a higher-specificity rule; keep their destructive
+   colour through rest + hover exactly as the old inline style did */
+.btn.ghost.text-bad,
+.btn.ghost.text-bad:hover { color: var(--bad); }
+.form-error { color: var(--bad); font-size: var(--fs-sm); margin-top: 6px; }
+.fieldset-plain { border: 0; padding: 0; margin: 0; }
+.fs-sm { font-size: var(--fs-sm); }

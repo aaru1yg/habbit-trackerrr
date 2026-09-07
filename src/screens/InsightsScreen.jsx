@@ -194,7 +194,7 @@ export default function InsightsScreen() {
           </div>
 
         {/* Trend */}
-          <div className="sp-depth" data-z="3">
+          <div className="sp-depth sp-pair-a" data-z="3">
         <SectionCard className="pad insights-trend">
           <CardHead title="Completion trend" />
           <div className="seg seg-wide" role="group" aria-label="Trend range">
@@ -219,7 +219,7 @@ export default function InsightsScreen() {
           </div>
 
         {/* This week vs last week */}
-          <div className="sp-depth" data-z="1">
+          <div className="sp-depth sp-pair-b" data-z="1">
         <SectionCard className="pad insights-compare">
           <CardHead title="This week vs last week" />
           <div className="vs">
@@ -300,7 +300,7 @@ export default function InsightsScreen() {
           </div>
 
         {/* Heatmap */}
-          <div className="sp-depth" data-z="3">
+          <div className="sp-depth sp-pair-a" data-z="3">
         <SectionCard className="pad insights-heatmap">
           <CardHead title="Activity heatmap" />
           <p className="card-blurb">Tap any day for details.</p>
@@ -309,7 +309,7 @@ export default function InsightsScreen() {
           </div>
 
         {/* Habit × day matrix */}
-          <div className="sp-depth" data-z="1">
+          <div className="sp-depth sp-pair-b" data-z="1">
         <SectionCard className="pad insights-matrix">
           <CardHead title="Habit × day" />
           <p className="card-blurb">Last 28 days · tap is read-only on this screen.</p>

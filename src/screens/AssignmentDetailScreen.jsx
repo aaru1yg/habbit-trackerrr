@@ -106,7 +106,7 @@ export default function AssignmentDetailScreen({ id }) {
         </div>
         <div className="head-actions">
           <button className="btn ghost icon" aria-label="Edit assignment" onClick={() => work.editAssignment(assignment)}><IconPencil size={17} /></button>
-          <button className="btn ghost icon" style={{ color: 'var(--bad)' }} aria-label="Delete assignment" onClick={remove}><IconTrash size={17} /></button>
+          <button className="btn ghost icon text-bad" aria-label="Delete assignment" onClick={remove}><IconTrash size={17} /></button>
         </div>
       </header>
 
@@ -133,7 +133,7 @@ export default function AssignmentDetailScreen({ id }) {
                 <DonutStat pct={status.pct} size={104} tone={status.tone}
                   label={progress.mode === 'subtasks' ? `${subsDone}/${subs.length} subtasks` : 'Progress'}
                   sub={status.complete ? 'Completed' : `${100 - status.pct}% left`} />
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="grow">
                   <MeterRow pct={status.pct} tone={status.tone} pace={status.elapsedPct} />
                   <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
                     {status.elapsedPct != null

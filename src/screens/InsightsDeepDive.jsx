@@ -6,7 +6,7 @@
    ============================================================ */
 import { useMemo } from 'react'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
-import { HBarList, DonutStat, BucketColumns, CompareBars } from '../components/charts/workCharts.jsx'
+import { HBarList, DonutStat, BucketColumns, CompareBars, LineSeries } from '../components/charts/workCharts.jsx'
 import DayClock from '../components/charts/DayClock.jsx'
 import PulseRibbon from '../components/charts/PulseRibbon.jsx'
 import MoodScatter from '../components/charts/MoodScatter.jsx'
@@ -16,7 +16,8 @@ import {
   monthlyPulse, personalBests, smartInsights, moodScatter,
 } from '../lib/analytics.js'
 import { activeHabits, habitBestStreak } from '../lib/stats.js'
-import { shortDate, prettyDate } from '../lib/dates.js'
+import { shortDate, prettyDate, todayStr, subDaysStr } from '../lib/dates.js'
+import { isScheduled, categoryOf } from '../lib/schedule.js'
 import { Link } from '../lib/router.jsx'
 import { IconSparkle, IconInsights, IconFlame, IconChevronRight } from '../lib/icons.jsx'
 
@@ -47,6 +48,41 @@ export default function InsightsDeepDive({ state }) {
     }
     return best
   }, [state, habits])
+
+  // per-habit momentum: a 7-day rolling completion line for each habit,
+  // drawn in the habit's own category colour. Rolling means a single
+  // missed day can't spike the shape, and every point is real data.
+  const habitTrends = useMemo(() => {
+    const RANGE = 30
+    const WIN = 7
+    const today = todayStr()
+    const dates = Array.from({ length: RANGE }, (_, i) => subDaysStr(today, RANGE - 1 - i))
+    const series = []
+    for (const h of habits) {
+      let scheduledInRange = 0
+      for (const d of dates) if (isScheduled(h, d)) scheduledInRange++
+      if (scheduledInRange < 4) continue
+      const points = dates.map((date) => {
+        let done = 0
+        let eligible = 0
+        for (let k = 0; k < WIN; k++) {
+          const d = subDaysStr(date, k)
+          if (!isScheduled(h, d)) continue
+          eligible++
+          if (state.checkins?.[h.id]?.[d]?.done === true) done++
+        }
+        return { date, value: eligible >= 3 ? Math.round((done / eligible) * 100) : null }
+      })
+      const cat = categoryOf(h.category)
+      series.push({
+        id: h.id,
+        label: h.name.length > 16 ? `${h.name.slice(0, 15)}…` : h.name,
+        color: `var(${cat.cssVar})`,
+        points,
+      })
+    }
+    return series.slice(0, 8)
+  }, [state, habits])
   const streaks = useMemo(
     () => (streakHabit ? streakHistory(state, streakHabit.habit, 6) : null),
     [state, streakHabit]
@@ -62,7 +98,7 @@ export default function InsightsDeepDive({ state }) {
             {insights.map((ins) => (
               <article key={ins.id} className="insight-card" data-tone={ins.tone}>
                 <span className="insight-icon" aria-hidden="true"><IconSparkle size={16} /></span>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="grow">
                   <p className="insight-title">{ins.title}</p>
                   <p className="insight-text">{ins.text}</p>
                 </div>
@@ -102,6 +138,30 @@ export default function InsightsDeepDive({ state }) {
         ) : (
           <p className="empty-note">
             Consistency measures how evenly you show up, not just how often. It needs at least a few weeks of scheduled days.
+          </p>
+        )}
+      </SectionCard>
+
+      {/* ---- Habit trends: each habit wears its own colour ---- */}
+      <SectionCard className="pad">
+        <CardHead title="Habit trends">
+          <span className="tiny muted">7-day rolling · last 30 days</span>
+        </CardHead>
+        {habitTrends.length >= 2 ? (
+          <>
+            <LineSeries
+              series={habitTrends}
+              height={240}
+              showPoints={false}
+              ariaLabel={`Habit momentum over the last 30 days. ${habitTrends.map((s) => `${s.label}: ${s.points.filter((p) => p.value != null).length} days sampled`).join('. ')}.`}
+            />
+            <p className="card-blurb" style={{ marginTop: 12 }}>
+              Each habit wears its own colour — the line is its 7-day rolling completion. Hover or tap a day to compare them side by side.
+            </p>
+          </>
+        ) : (
+          <p className="empty-note">
+            Track two or more habits with a few scheduled days behind them, and their momentum lines up here — nothing is estimated.
           </p>
         )}
       </SectionCard>

@@ -98,7 +98,7 @@ export default function AssignmentsScreen({ route = 'assignments' }) {
 
             {urgent.length > 0 && (
               <SectionCard className="pad" style={{ borderColor: 'color-mix(in srgb, var(--bad) 40%, var(--border))' }}>
-                <CardHead title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--bad)' }}><IconAlert size={16} /> Needs attention now</span>} />
+                <CardHead title={<span className="card-head-alert"><IconAlert size={16} />Needs attention now</span>} />
                 <div className="work-list">
                   {sortWorkRows(urgent, 'urgency').slice(0, 3).map(({ assignment }) => (
                     <AssignmentCard key={assignment.id} assignment={assignment} now={now} />

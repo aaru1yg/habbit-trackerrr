@@ -8,8 +8,8 @@ const base = {
   'aria-hidden': true,
 }
 
-const wrap = (children, size) => (
-  <svg width={size || 20} height={size || 20} viewBox="0 0 24 24" {...base}>
+const wrap = (children, size, props) => (
+  <svg width={size || 20} height={size || 20} viewBox="0 0 24 24" {...base} {...props}>
     {children}
   </svg>
 )
@@ -56,7 +56,7 @@ export const IconPlus = ({ size }) => wrap(<path d="M12 5v14M5 12h14" />, size)
 export const IconCheck = ({ size }) => wrap(<path d="M4.5 12.5l5 5L19.5 7" />, size)
 
 export const IconChevronLeft = ({ size }) => wrap(<path d="M15 5l-7 7 7 7" />, size)
-export const IconChevronRight = ({ size }) => wrap(<path d="M9 5l7 7-7 7" />, size)
+export const IconChevronRight = ({ size, className }) => wrap(<path d="M9 5l7 7-7 7" />, size, { className })
 export const IconChevronDown = ({ size }) => wrap(<path d="M5 9l7 7 7-7" />, size)
 
 export const IconFlame = ({ size }) => wrap(<>
@@ -96,6 +96,13 @@ export const IconBell = ({ size }) => wrap(<>
 export const IconBellOff = ({ size }) => wrap(<>
   <path d="M6 8a6 6 0 0 1 9.3-5M18 8.5c.3 4.5 3 7.5 3 7.5H3M3 3l18 18" />
   <path d="M10.3 20a2 2 0 0 0 3.4 0" />
+</>, size)
+export const IconEye = ({ size }) => wrap(<>
+  <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z" />
+  <circle cx="12" cy="12" r="3" />
+</>, size)
+export const IconEyeOff = ({ size }) => wrap(<>
+  <path d="M4 4l16 16M10.6 6.2A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17.4 17.4 0 0 1-2.6 3.4M6.2 8.6A17 17 0 0 0 2.5 12S6 18 12 18a9.4 9.4 0 0 0 3.2-.6" />
 </>, size)
 
 export const IconDownload = ({ size }) => wrap(<>

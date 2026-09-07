@@ -117,7 +117,7 @@ export default function LibraryScreen({ title = 'Library', subtitle = null }) {
                 <FadeIn key={h.id} delay={Math.min(i * 0.03, 0.2)}>
                   <article className="work-card is-done" data-tone="neutral">
                     <div className="work-top">
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="grow">
                         <p className="work-title">{h.name}</p>
                         <p className="work-sub">
                           <span>{categoryOf(h.category).label}</span>
@@ -185,7 +185,7 @@ function HabitCard({ habit, index }) {
     <FadeIn delay={Math.min(index * 0.03, 0.24)}>
       <article className="work-card" data-tone="neutral" aria-label={`Habit ${habit.name}`}>
         <div className="work-top">
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="grow">
             <div className="wrap-gap" style={{ gap: 6, marginBottom: 6 }}>
               <span className="chip" style={{ minHeight: 22 }}>
                 <span className="dot" style={{ background: `var(${cat.cssVar})` }} />
@@ -235,7 +235,7 @@ function HabitCard({ habit, index }) {
           <span style={{ flex: 1 }} />
           <Link to={`habits/${habit.id}`} className="btn ghost sm" aria-label={`Open the ${habit.name} detail page`}>Details</Link>
           <button className="btn ghost sm" onClick={() => habitUI.archive(habit)} aria-label={`Archive ${habit.name}`}><IconArchive size={15} /></button>
-          <button className="btn ghost sm" style={{ color: 'var(--bad)' }} onClick={() => habitUI.remove(habit)} aria-label={`Delete ${habit.name}`}><IconTrash size={15} /></button>
+          <button className="btn ghost sm text-bad" onClick={() => habitUI.remove(habit)} aria-label={`Delete ${habit.name}`}><IconTrash size={15} /></button>
           <button className="btn ghost icon" onClick={() => habitUI.openDetail(habit)} aria-label={`Details for ${habit.name}`}><IconChevronRight size={18} /></button>
         </div>
       </article>
@@ -266,7 +266,7 @@ function RoutineCard({ routine, onEdit, onToggle, inactive = false }) {
     <FadeIn>
       <article className={`routine-card${inactive ? ' is-done' : ''}`} style={inactive ? { opacity: 0.7 } : undefined} aria-label={`Routine ${routine.name}`}>
         <div className="routine-head">
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="grow">
             <p className="eyebrow">{kind.label}</p>
             <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--fs-h2)', marginTop: 2 }} className="ellipsis">{routine.name}</p>
           </div>
@@ -299,7 +299,7 @@ function RoutineCard({ routine, onEdit, onToggle, inactive = false }) {
                   >
                     {done && <IconCheck size={13} />}
                   </button>
-                  <span style={{ flex: 1, minWidth: 0 }} className="ellipsis">{h.name}</span>
+                  <span className="ellipsis grow">{h.name}</span>
                   <span className="tiny muted tnum">{categoryOf(h.category).label}</span>
                 </div>
               )
@@ -311,7 +311,7 @@ function RoutineCard({ routine, onEdit, onToggle, inactive = false }) {
           <button className="btn ghost sm" onClick={onEdit}><IconPencil size={14} /> Edit</button>
           <button className="btn ghost sm" onClick={onToggle}>{routine.active === false ? 'Activate' : 'Deactivate'}</button>
           <span style={{ flex: 1 }} />
-          <button className="btn ghost sm" style={{ color: 'var(--bad)' }} onClick={remove} aria-label={`Delete routine ${routine.name}`}>
+          <button className="btn ghost sm text-bad" onClick={remove} aria-label={`Delete routine ${routine.name}`}>
             <IconTrash size={14} />
           </button>
         </div>
@@ -385,10 +385,10 @@ function RoutineForm({ open, onClose, editing }) {
           <label className="field-label" htmlFor="routine-name">Routine name</label>
           <input id="routine-name" className="field" autoFocus value={name} maxLength={60}
             placeholder="e.g. Morning reset" onChange={(e) => setName(e.target.value)} />
-          {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
+          {error && <p className="form-error">{error}</p>}
         </div>
 
-        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+        <fieldset className="fieldset-plain">
           <legend className="field-label">Type</legend>
           <div className="filter-bar" role="group" aria-label="Routine type">
             {ROUTINE_KINDS.map((k) => (
@@ -397,7 +397,7 @@ function RoutineForm({ open, onClose, editing }) {
           </div>
         </fieldset>
 
-        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+        <fieldset className="fieldset-plain">
           <legend className="field-label">Habits in this stack</legend>
           {habits.length === 0 ? (
             <p className="empty-note">Add habits first — then you can stack them.</p>
@@ -422,7 +422,7 @@ function RoutineForm({ open, onClose, editing }) {
                     return (
                       <div key={id} className="task-row" style={{ minHeight: 44 }}>
                         <span className="tiny muted tnum" style={{ width: 18 }}>{i + 1}</span>
-                        <span style={{ flex: 1, minWidth: 0 }} className="ellipsis">{h.name}</span>
+                        <span className="ellipsis grow">{h.name}</span>
                         <button className="btn ghost sm" style={{ minHeight: 36 }} aria-label={`Move ${h.name} earlier`} disabled={i === 0} onClick={() => move(id, -1)}>↑</button>
                         <button className="btn ghost sm" style={{ minHeight: 36 }} aria-label={`Move ${h.name} later`} disabled={i === picked.length - 1} onClick={() => move(id, 1)}>↓</button>
                         <button className="btn ghost icon" style={{ width: 36, height: 36, minHeight: 36 }} aria-label={`Remove ${h.name} from routine`}

@@ -127,7 +127,7 @@ export default function HabitDetailSheet({ habit, open, onClose, onEdit, onArchi
         {noteToday && (
           <div>
             <p className="eyebrow" style={{ marginBottom: 6 }}>Today&rsquo;s note</p>
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>{noteToday}</p>
+            <p className="soft fs-sm">{noteToday}</p>
           </div>
         )}
 
@@ -146,7 +146,7 @@ export default function HabitDetailSheet({ habit, open, onClose, onEdit, onArchi
               <IconTrash size={16} /> Really delete
             </button>
           ) : (
-            <button className="btn ghost" style={{ color: 'var(--bad)' }} onClick={() => setConfirmDelete(true)}>
+            <button className="btn ghost text-bad" onClick={() => setConfirmDelete(true)}>
               <IconTrash size={16} /> Delete
             </button>
           )}

@@ -29,7 +29,7 @@ function MoreOptions({ open, onToggle, children, id }) {
 
 function PriorityPicker({ value, onChange }) {
   return (
-    <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+    <fieldset className="fieldset-plain">
       <legend className="field-label">Priority</legend>
       <div className="seg" role="group" aria-label="Priority">
         {PRIORITIES.map((p) => (
@@ -136,7 +136,7 @@ export function ProjectForm({ open, onClose, editing }) {
             placeholder="e.g. Build portfolio website"
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
-          {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
+          {error && <p className="form-error">{error}</p>}
         </div>
 
         <div>
@@ -176,7 +176,7 @@ export function ProjectForm({ open, onClose, editing }) {
               onChange={(e) => setEstimateHrs(e.target.value)} />
           </div>
           {habits.length > 0 && (
-            <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+            <fieldset className="fieldset-plain">
               <legend className="field-label">
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <IconLink size={13} /> Linked habits
@@ -312,7 +312,7 @@ export function AssignmentForm({ open, onClose, editing, defaultProjectId = null
             placeholder="e.g. Submit DS assignment 3"
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && name.trim() && deadline) save() }} />
-          {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
+          {error && <p className="form-error">{error}</p>}
         </div>
 
         <div>

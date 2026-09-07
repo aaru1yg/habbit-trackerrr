@@ -73,10 +73,21 @@ jobs:
           wait "$CONTRAST_PID"; CONTRAST=$?
           set -e
           STATUS=0
-          [ "$E2E" -ne 0 ] && STATUS=1
-          [ "$RELEASE" -ne 0 ] && STATUS=1
-          [ "$LAYOUT" -ne 0 ] && STATUS=1
-          [ "$CONTRAST" -ne 0 ] && STATUS=1
+          # Name the script that failed. The annotation filter below only
+          # catches lines containing ✗/Error/FAIL, and qa/audit.mjs and
+          # qa/contrast.mjs report findings without any of those words — so
+          # without this a layout or contrast failure fails the step with no
+          # attributable annotation at all.
+          report() {
+            if [ "$3" -ne 0 ]; then
+              STATUS=1
+              echo "::error::${1} exited ${3} — tail of ${2} follows"
+            fi
+          }
+          report "qa/e2e.mjs (browser journeys)" qa/shots/e2e.log "$E2E"
+          report "qa/release.mjs (release UI)" qa/shots/release.log "$RELEASE"
+          report "qa/audit.mjs (layout/tap-target audit)" qa/shots/layout.log "$LAYOUT"
+          report "qa/contrast.mjs (theme contrast)" qa/shots/contrast.log "$CONTRAST"
           tail -n 35 qa/shots/{e2e,release,layout,contrast}.log
           exit "$STATUS"
 

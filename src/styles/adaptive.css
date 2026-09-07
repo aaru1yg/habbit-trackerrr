@@ -61,3 +61,58 @@
   .emphasis-bars li{grid-template-columns:minmax(78px,1fr) 1fr auto;gap:8px}
   .quick-action{flex:1 1 auto;justify-content:center}
 }
+
+/* ------------------------------------------------------------
+   Phase D — Analytics Lab.
+   One visual contract for every panel (headline → finding →
+   evidence → detail), dense but never clipped: the tabs scroll
+   rather than wrap onto tiny targets, and every control keeps a
+   44px minimum on a 390px phone.
+   ------------------------------------------------------------ */
+.lab{display:grid;gap:14px}
+.lab-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.lab-tab{flex:none;min-height:var(--touch,44px);padding:0 14px;font-weight:600}
+.lab-sub{margin:0;color:var(--text-2);font-size:var(--fs-xs)}
+.lab-story,.lab-timeline,.lab-trajectory,.lab-workload,.lab-habits,.lab-goals,.lab-trends{display:grid;gap:14px}
+.lab-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.lab-steps .chip{min-height:var(--touch,44px)}
+.lab-finding{display:grid;gap:10px}
+.lab-headline{margin:0;font-size:clamp(1rem,1.6vw,1.2rem);font-weight:700;line-height:1.3}
+.lab-headline[data-tone="good"]{color:var(--good)}
+.lab-headline[data-tone="warn"]{color:var(--warn)}
+.lab-headline[data-tone="bad"]{color:var(--bad)}
+.lab-detail{margin:0;color:var(--text-2);font-size:var(--fs-sm);line-height:1.55;max-width:66ch}
+.lab-evidence{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:4px 0 0}
+.lab-ev{padding:10px 12px;background:var(--surface-2);border-radius:10px;min-width:0}
+.lab-ev dt{font-size:var(--fs-micro);letter-spacing:var(--tr-caps);color:var(--text-2);text-transform:uppercase}
+.lab-ev dd{margin:4px 0 0;font-size:var(--fs-sm);font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.lab-sec-title{margin:6px 0 6px;font-size:var(--fs-micro);letter-spacing:var(--tr-caps);text-transform:uppercase;color:var(--text-2)}
+.lab-story-detail{border-top:1px solid var(--line);padding-top:10px}
+.lab-cmp{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.lab-cmp-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 6px}
+.lab-cmp-delta{font-size:var(--fs-sm);font-weight:700;font-variant-numeric:tabular-nums;color:var(--text-2)}
+.lab-cmp-delta.is-good{color:var(--good)}
+.lab-cmp-delta.is-warn{color:var(--warn)}
+.plain-list{list-style:none;padding:0;margin:0;display:grid;gap:7px}
+.plain-list .plain-list{margin-top:5px}
+.plain-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 11px;background:var(--surface-2);border-radius:9px;font-size:var(--fs-sm);min-width:0}
+.plain-row .strong{font-weight:600;overflow-wrap:anywhere}
+.plain-row .muted{color:var(--text-2);font-size:var(--fs-xs);text-align:right;flex:none}
+.tl-group{display:grid;gap:5px}
+.tl-day{margin:0;font-size:var(--fs-micro);letter-spacing:var(--tr-caps);text-transform:uppercase;color:var(--text-2)}
+.linkish{background:none;border:0;padding:0;font:inherit;font-size:inherit;font-weight:600;color:var(--accent-2);text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:2px;min-height:0}
+.linkish:hover{color:var(--accent-1)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.card-badge{white-space:nowrap}
+
+/* A matrix cell becomes a control only when the caller wants drill-down,
+   and then it is a real 22px focusable button with a visible ring. */
+.hmx-cell.hmx-tap{cursor:pointer;padding:0;border:0;font:inherit;appearance:none}
+.hmx-cell.hmx-tap:focus-visible{outline:2px solid var(--accent-2);outline-offset:1px;z-index:1}
+@media(prefers-reduced-motion:reduce){.hmx-cell.hmx-tap{transition:none}}
+
+@media(max-width:720px){
+  .lab-evidence{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+  .plain-row{flex-direction:column;align-items:flex-start;gap:3px}
+  .plain-row .muted{text-align:left}
+}

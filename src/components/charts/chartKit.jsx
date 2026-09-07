@@ -250,9 +250,9 @@ export function Heatmap({ weeks, onDayTap, ariaLabel = 'Completion heatmap' }) {
 
 /* ---------------- Habit × day matrix (sticky names) ---------------- */
 
-export function HabitMatrix({ rows, days, weekLabels }) {
+export function HabitMatrix({ rows, days, weekLabels, onCellTap }) {
   return (
-    <div className="habit-matrix" role="img" aria-label="Habit by day matrix">
+    <div className="habit-matrix" role={onCellTap ? 'table' : 'img'} aria-label="Habit by day matrix">
       <div className="hmx-scroll">
         <div className="hmx-grid" style={{ gridTemplateColumns: `132px repeat(${days.length}, 22px)` }}>
           <div className="hmx-corner" />
@@ -264,14 +264,22 @@ export function HabitMatrix({ rows, days, weekLabels }) {
               <div className="hmx-name" title={row.habit.name}>
                 <span className="hmx-name-text">{row.habit.name}</span>
               </div>
-              {row.cells.map((c) => (
-                <span
-                  key={c.date}
-                  className={`hmx-cell ${c.done ? 'done' : ''} ${c.scheduled ? 'sched' : ''} ${c.future ? 'future' : ''}`}
-                  title={`${row.habit.name} · ${c.date}${c.done ? ' · done' : c.scheduled ? ' · not done' : ' · not scheduled'}`}
-                  aria-hidden="true"
-                />
-              ))}
+              {row.cells.map((c) => {
+                const desc = `${row.habit.name} · ${c.date}${c.done ? ' · done' : c.scheduled ? ' · not done' : ' · not scheduled'}`
+                /* Read-only unless the caller asks for drill-down; then the cell
+                   becomes a real 22px focusable control rather than decoration. */
+                if (!onCellTap) return <span key={c.date} className={`hmx-cell ${c.done ? 'done' : ''} ${c.scheduled ? 'sched' : ''} ${c.future ? 'future' : ''}`} title={desc} aria-hidden="true" />
+                return (
+                  <button
+                    key={c.date}
+                    type="button"
+                    className={`hmx-cell hmx-tap ${c.done ? 'done' : ''} ${c.scheduled ? 'sched' : ''} ${c.future ? 'future' : ''}`}
+                    title={desc}
+                    aria-label={desc}
+                    onClick={() => onCellTap(row.habit, c)}
+                  />
+                )
+              })}
             </Fragment>
           ))}
         </div>

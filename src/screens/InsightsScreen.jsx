@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { SpatialStage } from '../components/spatial/Depth.jsx'
 import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
@@ -25,9 +25,14 @@ const RANGES = [
   { id: '1y', label: '1Y', days: 365 },
 ]
 
+/* Phase D: the Lab carries the heavy analytics engine, so it is loaded
+   only when the tab is opened — it never enters the Insights chunk. */
+const AnalyticsLab = lazy(() => import('./AnalyticsLab.jsx'))
+
 const INSIGHT_VIEWS = [
   { id: 'overview', label: 'Overview' },
   { id: 'deep', label: 'Deep dive' },
+  { id: 'lab', label: 'Lab' },
 ]
 
 export default function InsightsScreen() {
@@ -154,6 +159,12 @@ export default function InsightsScreen() {
         </div>
 
         {view === 'deep' && <InsightsDeepDive state={state} />}
+
+        {view === 'lab' && (
+          <Suspense fallback={<p className="empty-note">Loading the lab…</p>}>
+            <AnalyticsLab />
+          </Suspense>
+        )}
 
         {view === 'overview' && (
         <>

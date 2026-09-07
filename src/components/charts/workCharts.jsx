@@ -52,11 +52,11 @@ export function LineSeries({ series, height = 200, unit = '%', domain = [0, 100]
         {ticks.map((v) => (
           <g key={v}>
             <line x1={L} y1={geom.y(v)} x2={W - R} y2={geom.y(v)} stroke="var(--border)" strokeWidth="1" />
-            <text x={L - 6} y={geom.y(v) + 3} textAnchor="end" fontSize="11" fill="var(--text-3)" style={TNUM}>{v}</text>
+            <text x={L - 6} y={geom.y(v) + 3} textAnchor="end" fontSize="12.5" fill="var(--text-3)" style={TNUM}>{v}</text>
           </g>
         ))}
         {xIdx.filter((i) => dates[i]).map((i) => (
-          <text key={i} x={geom.x(i)} y={H - 6} textAnchor="middle" fontSize="11" fill="var(--text-3)">{shortDate(dates[i])}</text>
+          <text key={i} x={geom.x(i)} y={H - 6} textAnchor="middle" fontSize="12.5" fill="var(--text-3)">{shortDate(dates[i])}</text>
         ))}
         {selPoint && (
           <line x1={geom.x(sel)} y1={T} x2={geom.x(sel)} y2={H - B} stroke="var(--border-2)" strokeWidth="1" strokeDasharray="3 3" />
@@ -82,11 +82,11 @@ export function LineSeries({ series, height = 200, unit = '%', domain = [0, 100]
         {selPoint && (
           <g pointerEvents="none" transform={`translate(${Math.min(Math.max(geom.x(sel), L + 8), W - R - 150)}, ${T + 2})`}>
             <rect width="150" height={20 + series.length * 14} rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
-            <text x="9" y="14" fontSize="11" fontWeight="700" fill="var(--text)">{shortDate(selPoint)}</text>
+            <text x="9" y="14" fontSize="12.5" fontWeight="700" fill="var(--text)">{shortDate(selPoint)}</text>
             {series.map((s, k) => {
               const v = s.points[sel]?.value
               return (
-                <text key={s.id || s.label} x="9" y={28 + k * 14} fontSize="11" fill="var(--text-2)" style={TNUM}>
+                <text key={s.id || s.label} x="9" y={28 + k * 14} fontSize="12.5" fill="var(--text-2)" style={TNUM}>
                   {s.label}: {v == null ? '—' : `${v}${unit}`}
                 </text>
               )
@@ -138,11 +138,11 @@ export function BurndownChart({ rows, today }) {
         {[0, 50, 100].map((v) => (
           <g key={v}>
             <line x1={L} y1={y(v)} x2={W - R} y2={y(v)} stroke="var(--border)" />
-            <text x={L - 6} y={y(v) + 3} textAnchor="end" fontSize="11" fill="var(--text-3)" style={TNUM}>{v}</text>
+            <text x={L - 6} y={y(v) + 3} textAnchor="end" fontSize="12.5" fill="var(--text-3)" style={TNUM}>{v}</text>
           </g>
         ))}
         {xIdx.map((i) => rows[i] && (
-          <text key={i} x={x(i)} y={H - 6} textAnchor="middle" fontSize="11" fill="var(--text-3)">{shortDate(rows[i].date)}</text>
+          <text key={i} x={x(i)} y={H - 6} textAnchor="middle" fontSize="12.5" fill="var(--text-3)">{shortDate(rows[i].date)}</text>
         ))}
         {actualPts.length > 1 && (
           <path d={`${actualPath} L${x(rows.indexOf(actualPts[actualPts.length - 1])).toFixed(1)} ${y(0)} L${x(rows.indexOf(actualPts[0])).toFixed(1)} ${y(0)} Z`}

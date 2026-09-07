@@ -3618,8 +3618,108 @@ button.lb-row:hover {
    target never shrinks below 44px if the variable font hasn't finished
    loading yet or under CPU contention. */
 .week-habit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
   min-height: 44px;
-  min-width: 44px;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out);
+}
+.week-habit:hover {
+  background: var(--surface-3);
+  border-color: var(--border-2);
+}
+.week-habit:active {
+  transform: scale(0.99);
+}
+.week-habit:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+.week-habit-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  flex: none;
+}
+.week-habit-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.week-habit-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--warn);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.week-habit-cells {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+/* One mini-cell per day: weekday letter above, state box below. Reads as a
+   compact week strip on every screen width. */
+.wh-cell {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 22px;
+  opacity: 1;
+}
+.wh-cell-day {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+.wh-cell-box {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: transparent;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out);
+}
+.wh-cell.is-off .wh-cell-box {
+  border-color: var(--border);
+  border-style: dashed;
+}
+.wh-cell.is-sched:not(.is-done) .wh-cell-box {
+  background: var(--track);
+  border-color: var(--border-2);
+}
+.wh-cell.is-done .wh-cell-box {
+  background: var(--good);
+  border-color: transparent;
+  color: var(--bg-deep);
+}
+.wh-cell.is-done .wh-cell-day {
+  color: var(--good);
+}
+.wh-cell.is-future {
+  opacity: 0.45;
+}
+@media (max-width: 430px) {
+  .wh-cell { min-width: 0; }
+  .wh-cell-box { width: 18px; height: 18px; border-radius: 6px; }
+}
+.week-habit:hover .wh-cell.is-sched:not(.is-done) .wh-cell-box {
+  border-color: var(--accent-1);
 }
 .week-habit:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 
@@ -3955,4 +4055,60 @@ main svg text {
         so colour always means data. ---- */
 .today-week-bar i {
   border-radius: inherit;
+}
+
+/* ---- Ultra-wide composition: at very wide viewports the content
+        column stays centred inside the area right of the sidebar,
+        so 1920px screens read balanced instead of left-hugged. ---- */
+@media (min-width: 1280px) {
+  .screen {
+    margin-left: calc(var(--sidebar-w) + max(0px, (100vw - var(--sidebar-w) - var(--content-max)) * 0.5));
+    margin-right: auto;
+  }
+}
+
+/* ---- Insights editorial grid: on wide desktops the analytics
+        centre reads as paired panes (trend + week compare,
+        heatmap + matrix) instead of one stretched column. This
+        also keeps charts near their 640-unit design width so
+        axis text renders at a human size instead of scaling to
+        20px+. Below the threshold the single column is kept. ---- */
+@media (min-width: 1440px) {
+  .insights-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .insights-layout > .sp-depth {
+    grid-column: 1 / -1;
+  }
+  .insights-layout > .sp-pair-a {
+    grid-column: 1;
+  }
+  .insights-layout > .sp-pair-b {
+    grid-column: 2;
+  }
+}
+
+/* Charts that span a full-width column stop scaling past a
+   comfortable type size; anything narrower stays fluid. */
+.trend-chart svg {
+  max-width: min(100%, 760px);
+  margin-inline: auto;
+}
+/* On phones a fluid 640-unit canvas would shrink chart type to
+   ~6px. Give charts a readable floor width and let the card pan
+   horizontally instead — the same pattern the calendar matrix
+   already uses. */
+@media (max-width: 620px) {
+  .trend-chart {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .trend-chart svg {
+    min-width: 480px;
+    max-width: 480px;
+    margin-inline: 0;
+  }
 }

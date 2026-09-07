@@ -78,7 +78,7 @@ export default function PaceChart({ actual, expected = null, height = 190, ariaL
           {[0, 50, 100].map((v) => (
             <g key={v}>
               <line x1={L} y1={geom.y(v)} x2={W - R} y2={geom.y(v)} stroke="var(--grid)" strokeWidth="1" />
-              <text x={L - 6} y={geom.y(v) + 3} textAnchor="end" fontSize="11" fill="var(--text-3)" style={TNUM}>{v}</text>
+              <text x={L - 6} y={geom.y(v) + 3} textAnchor="end" fontSize="12.5" fill="var(--text-3)" style={TNUM}>{v}</text>
             </g>
           ))}
           {xIdx.filter((i) => days[i]).map((i) => (
@@ -88,7 +88,7 @@ export default function PaceChart({ actual, expected = null, height = 190, ariaL
               x={i === 0 ? L : i === n - 1 ? W - R : geom.x(i)}
               y={H - 6}
               textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}
-              fontSize="11"
+              fontSize="12.5"
               fill="var(--text-3)"
             >
               {shortDate(days[i])}
@@ -157,12 +157,12 @@ export default function PaceChart({ actual, expected = null, height = 190, ariaL
         {selRow && (
           <g pointerEvents="none" transform={`translate(${Math.min(Math.max(geom.x(sel), L + 8), W - R - 158)}, ${T + 2})`}>
             <rect width="158" height={expected ? 56 : 42} rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
-            <text x="9" y="14" fontSize="11" fontWeight="700" fill="var(--text)">{shortDate(selRow.day)}</text>
-            <text x="9" y="28" fontSize="11" fill="var(--text-2)" style={TNUM}>
+            <text x="9" y="14" fontSize="12.5" fontWeight="700" fill="var(--text)">{shortDate(selRow.day)}</text>
+            <text x="9" y="28" fontSize="12.5" fill="var(--text-2)" style={TNUM}>
               actual: {selRow.pct == null ? '—' : `${selRow.pct}%`}
             </text>
             {expected && (
-              <text x="9" y="42" fontSize="11" fill="var(--text-3)" style={TNUM}>
+              <text x="9" y="42" fontSize="12.5" fill="var(--text-3)" style={TNUM}>
                 expected: {expected[sel] ? `${expected[sel].pct}%` : '—'}
               </text>
             )}

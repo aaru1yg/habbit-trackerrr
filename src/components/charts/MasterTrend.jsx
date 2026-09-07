@@ -11,6 +11,8 @@ import { todayStr, subDaysStr, daysBetween, shortDate } from '../../lib/dates.js
 import { activeHabits, rollingSeries, scheduledIn } from '../../lib/stats.js'
 import { categoryOf } from '../../lib/schedule.js'
 import SectionCard, { CardHead } from '../ui/SectionCard.jsx'
+import { Link } from '../../lib/router.jsx'
+import { IconEye, IconEyeOff, IconChevronRight } from '../../lib/icons.jsx'
 
 const RANGES = [
   { id: '7d', label: '7D', aria: 'last 7 days', days: 7 },
@@ -179,7 +181,7 @@ export default function MasterTrend({ state }) {
         </p>
       ) : visible.length === 0 ? (
         <p className="empty-note">
-          All habit lines are switched off — tap a habit below to bring it back.
+          All habit lines are switched off — use the eye buttons below to bring them back.
         </p>
       ) : (
         <>
@@ -264,30 +266,44 @@ export default function MasterTrend({ state }) {
           </div>
 
           <p className="card-blurb mt-blurb">
-            Hover a habit below to isolate its line · tap it to hide it · hover or tap the chart to read one day across habits.
+            Hover a habit below to isolate its line · click its name to open it · use the eye to hide it — or hover the chart to read one day across habits.
           </p>
 
           <div className="mt-legend" role="group" aria-label="Habits on the chart">
             {model.shown.map((s) => {
               const off = hidden.includes(s.id)
+              const tip = `${s.full} — ${s.latest == null ? 'no completed week yet' : `${s.latest}% as of ${shortDate(s.latestDate)}`} · ${s.scheduled} scheduled days in range`
               return (
-                <button
+                <div
                   key={s.id}
-                  type="button"
                   className="mt-row"
                   data-off={off || undefined}
-                  aria-pressed={!off}
-                  title={`${s.full} — ${s.latest == null ? 'no completed week yet' : `${s.latest}% · ${shortDate(s.latestDate)}`} (${s.scheduled} scheduled days in range)`}
                   onPointerEnter={() => setHoverId(s.id)}
                   onPointerLeave={() => setHoverId((cur) => (cur === s.id ? null : cur))}
-                  onFocus={() => setHoverId(s.id)}
-                  onBlur={() => setHoverId((cur) => (cur === s.id ? null : cur))}
-                  onClick={() => toggle(s)}
+                  onFocusCapture={() => setHoverId(s.id)}
+                  onBlurCapture={() => setHoverId((cur) => (cur === s.id ? null : cur))}
                 >
-                  <i className="mt-swatch" style={off ? {} : { background: s.color }} aria-hidden="true" />
-                  <span className="mt-name">{s.full}</span>
-                  <span className="mt-val">{s.latest == null ? '—' : `${s.latest}%`}</span>
-                </button>
+                  <Link
+                    className="mt-main"
+                    to={`habits/${s.id}`}
+                    title={tip}
+                    aria-label={`Open ${s.full} — habit details`}
+                  >
+                    <i className="mt-swatch" style={off ? {} : { background: s.color }} aria-hidden="true" />
+                    <span className="mt-name">{s.full}</span>
+                    <span className="mt-val">{s.latest == null ? '—' : `${s.latest}%`}</span>
+                    <IconChevronRight className="mt-go" size={15} aria-hidden="true" />
+                  </Link>
+                  <button
+                    type="button"
+                    className="mt-toggle"
+                    aria-pressed={!off}
+                    aria-label={`${off ? 'Show' : 'Hide'} ${s.full} on the chart`}
+                    onClick={() => toggle(s)}
+                  >
+                    {off ? <IconEyeOff size={17} /> : <IconEye size={17} />}
+                  </button>
+                </div>
               )
             })}
           </div>

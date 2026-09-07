@@ -80,6 +80,20 @@ jobs:
           tail -n 35 qa/shots/{e2e,release,layout,contrast}.log
           exit "$STATUS"
 
+      - name: Publish browser failure details
+        if: always()
+        run: |
+          for log in qa/shots/*.log; do
+            [ -f "$log" ] || continue
+            echo "## $log" >> "$GITHUB_STEP_SUMMARY"
+            cat "$log" >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r line; do
+              case "$line" in
+                *"✗"*|*"Error"*|*"error"*|*"FAIL"*) echo "::error file=$log::$line" ;;
+              esac
+            done < "$log"
+          done
+
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -783,6 +783,24 @@
   box-shadow: var(--e-1);
 }
 
+/* The two-way view switch plus the separate Lab entry, side by side. The
+   switch keeps its own role="group" so its accessible name stays
+   "Insights view" and still describes exactly two choices. */
+.insights-view-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.insights-view-row .insights-switch {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.insights-lab-btn {
+  flex: 0 0 auto;
+}
+
 .insights-hero {
   grid-column: 1 / -1;
 }

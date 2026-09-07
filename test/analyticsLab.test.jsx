@@ -76,7 +76,7 @@ beforeEach(() => {
 
 /* ------------------------------------------------------------ */
 describe('Analytics Lab shell', () => {
-  it('offers the Lab as a third Insights view and lazy-loads it', async () => {
+  it('offers the Lab as a separate control and lazy-loads it', async () => {
     mountApp()
     await screen.findByRole('button', { name: /^Lab$/ })
     expect(screen.getByRole('button', { name: /^Overview$/ })).toBeTruthy()
@@ -85,6 +85,17 @@ describe('Analytics Lab shell', () => {
     expect(screen.queryByText('Your data story')).toBeNull() // not loaded yet
     fireEvent.click(screen.getByRole('button', { name: /^Lab$/ }))
     await screen.findByText('Your data story')
+  })
+
+  it('keeps the Insights switch a two-way choice, with the Lab outside it', async () => {
+    /* Mirrors the browser check "insights has an Overview / Deep dive switch".
+       The Lab is its own surface, so it must not join that group — otherwise
+       the switch stops describing a two-way choice. */
+    mountApp()
+    await screen.findByRole('button', { name: /^Lab$/ })
+    const labels = [...document.querySelectorAll('[aria-label="Insights view"] .seg-btn')]
+      .map((b) => b.textContent.trim())
+    expect(labels).toEqual(['Overview', 'Deep dive'])
   })
 
   it('shows all seven views', async () => {

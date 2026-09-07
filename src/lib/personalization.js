@@ -415,11 +415,16 @@ export function estimateAdvice(item, state, { days = PERSONALIZATION_THRESHOLDS.
    have learned something.
    ------------------------------------------------------------ */
 
+/* Labels describe *starting* something, and must never repeat the accessible
+   name of the submit button inside the form they open. Two controls named
+   "Add habit" on one screen is ambiguous to a screen reader and to anyone
+   driving the UI by name, so the shortcuts say "New …" and the forms keep
+   their own commit wording. */
 export const QUICK_ACTIONS = [
   { id: 'capture', label: 'Quick capture', signal: 'capture' },
-  { id: 'add-habit', label: 'Add habit', signal: 'habit-add' },
-  { id: 'add-project', label: 'Add project', signal: 'work-add', target: 'project' },
-  { id: 'add-assignment', label: 'Add assignment', signal: 'work-add', target: 'assignment' },
+  { id: 'add-habit', label: 'New habit', signal: 'habit-add' },
+  { id: 'add-project', label: 'New project', signal: 'work-add', target: 'project' },
+  { id: 'add-assignment', label: 'New assignment', signal: 'work-add', target: 'assignment' },
   { id: 'start-focus', label: 'Start focus', signal: 'focus-start' },
   { id: 'plan-day', label: 'Plan my day', signal: 'plan-build' },
   { id: 'review-workload', label: 'Review workload', signal: 'screen-visit', target: 'workload' },

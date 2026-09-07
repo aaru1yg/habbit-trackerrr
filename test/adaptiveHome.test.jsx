@@ -153,6 +153,20 @@ describe('quick actions', () => {
     expect(within(row).getAllByRole('button')[0].textContent).toMatch(/Start focus/)
   })
 
+  it('never shares an accessible name with the form it opens', async () => {
+    /* A quick action *opens* a form; the form's own button *commits* it. When
+       both read "Add habit" nothing can tell them apart — not a screen reader,
+       and not anything that drives the UI by name. The shortcut says "New …". */
+    mountApp()
+    await screen.findByText('Quick actions')
+    fireEvent.click(within(document.querySelector('.quick-action-row')).getByText('New habit'))
+    const dialog = await screen.findByRole('dialog')
+    const named = [...document.querySelectorAll('button')]
+      .filter((b) => b.textContent.trim() === 'Add habit' || b.getAttribute('aria-label') === 'Add habit')
+    expect(named.length).toBe(1)
+    expect(within(dialog).getByText('Add habit')).toBeTruthy()
+  })
+
   it('opens focus mode from a quick action', async () => {
     mountApp({
       signals: [

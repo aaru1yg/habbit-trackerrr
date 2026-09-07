@@ -7,6 +7,7 @@
    ============================================================ */
 import { useEffect, useMemo, useState } from 'react'
 import { focusRecommendation } from '../../lib/planning.js'
+import { completionAction, hrefFor, isCompletable } from '../../lib/completion.js'
 import { estimateAdvice } from '../../lib/personalization.js'
 import { Link } from '../../lib/router.jsx'
 
@@ -71,8 +72,11 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
   }
 
   const complete = () => {
-    if (item.kind === 'habit') dispatch({ type: 'TOGGLE_CHECKIN', habitId: item.id, date: new Date().toISOString().slice(0, 10) })
-    if (item.kind === 'assignment') dispatch({ type: 'SET_ASSIGNMENT_PROGRESS', id: item.id, pct: 100 })
+    /* One mapping for every kind. A project has no honest one-tap
+       completion, so the button is not offered for one — recording a
+       finished session while changing nothing would be a lie. */
+    const action = completionAction(item.kind, item)
+    if (action) dispatch(action)
     endSession(true)
     setDone(true)
   }
@@ -130,9 +134,11 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
             {!started
               ? <button className="btn primary" onClick={start}>Start</button>
               : <button className="btn" onClick={() => setPaused((x) => !x)}>{paused ? 'Resume' : 'Pause'}</button>}
-            <button className="btn primary" onClick={complete} disabled={!started}>Complete</button>
+            {isCompletable(item.kind)
+              ? <button className="btn primary" onClick={complete} disabled={!started}>Complete</button>
+              : <span className="tiny muted" role="note">A project is finished by finishing its work — there is no one-tap complete.</span>}
             <button className="btn ghost" onClick={skip} disabled={!started}>Skip</button>
-            <Link className="btn ghost" to={item.kind === 'assignment' ? `assignments/${item.id}` : 'today'}>View</Link>
+            <Link className="btn ghost" to={hrefFor(item.kind, item)}>View</Link>
           </div>
 
           <details>

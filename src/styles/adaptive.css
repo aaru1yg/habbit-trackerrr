@@ -170,3 +170,35 @@
   .nav-capture .nav-pill-accent{box-shadow:0 0 0 1px color-mix(in srgb,var(--accent-2) 45%,transparent)}
 }
 @media(prefers-reduced-motion:reduce){.cc-row,.nav-capture{transition:none}}
+
+/* ------------------------------------------------------------
+   Phase F — the execution flow.
+   Deliberately quiet: a nudge is one line, the contextual reading is
+   one card, and neither is a modal. Everything keeps a 44px target and
+   nothing scrolls sideways at 390px.
+   ------------------------------------------------------------ */
+.priority-row{position:relative}
+.priority-actions{position:absolute;top:6px;right:6px;min-width:var(--touch,44px);min-height:var(--touch,44px);padding:0;display:grid;place-items:center;z-index:1}
+.priority-row-inner{padding-right:44px}
+.item-actions{display:grid;gap:8px}
+.item-action{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:var(--touch,44px);text-align:left}
+.item-action.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.item-action:disabled{opacity:.5;cursor:not-allowed}
+.nudge{border-left:3px solid var(--accent-2)}
+.nudge[data-tone="warn"]{border-left-color:var(--warn)}
+.nudge[data-tone="good"]{border-left-color:var(--good)}
+.nudge-title{display:flex;align-items:center;gap:7px;margin:0 0 5px;font-weight:700;font-size:var(--fs-sm)}
+.nudge-text{margin:0 0 10px;color:var(--text-2);font-size:var(--fs-sm);line-height:1.55}
+.exec-context,.weekly-adapt{overflow:hidden}
+.exec-name{margin:0;font-size:clamp(1.05rem,1.8vw,1.35rem);font-weight:700}
+.exec-detail{margin:5px 0 10px;color:var(--text-2);font-size:var(--fs-sm);line-height:1.55;max-width:62ch}
+.adapt-list{list-style:none;padding:0;margin:10px 0;display:grid;gap:9px}
+.adapt-list li{display:grid;gap:4px;padding:11px 12px;background:var(--surface-2);border-radius:10px;border-left:3px solid var(--line)}
+.adapt-list li[data-tone="warn"]{border-left-color:var(--warn)}
+.adapt-list li[data-tone="good"]{border-left-color:var(--good)}
+.adapt-list li span{color:var(--text-2);font-size:var(--fs-xs);line-height:1.5}
+@media(max-width:600px){
+  .priority-actions{top:4px;right:4px}
+  .exec-detail{max-width:none}
+}
+@media(prefers-reduced-motion:reduce){.item-action,.nudge{transition:none}}

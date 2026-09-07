@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Reorder } from 'framer-motion'
 import { useStore } from '../store.jsx'
 import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
@@ -14,6 +14,11 @@ import AdaptiveCommandCenter from '../components/today/AdaptiveCommandCenter.jsx
 import PlanningPanel from '../components/today/PlanningPanel.jsx'
 import FocusMode from '../components/today/FocusMode.jsx'
 import { takeIntent, onIntent, INTENTS } from '../lib/intents.js'
+/* Lazy on purpose. execution.js composes contextualLens (dead code before
+   Phase F) and ItemActionsSheet owns the action registry; importing either
+   eagerly would move their dependency subgraphs into the initial chunk. */
+const ItemActionsSheet = lazy(() => import('../components/ui/ItemActionsSheet.jsx'))
+const ExecutionPanels = lazy(() => import('../components/today/ExecutionPanels.jsx'))
 import { AdaptiveEmphasis, AdaptiveQuickActions, emphasisVars } from '../components/today/AdaptiveHome.jsx'
 import { homeEmphasis, preferencesOf } from '../lib/personalization.js'
 import { recoveryPlan } from '../lib/planning.js'
@@ -28,7 +33,7 @@ import { isScheduled } from '../lib/schedule.js'
 import { Link } from '../lib/router.jsx'
 import {
   IconSettings, IconPlus, IconSparkle, IconChevronRight, IconDownload, IconFlame,
-  IconSearch,
+  IconSearch, IconMore,
 } from '../lib/icons.jsx'
 
 export default function TodayScreen({ onFire, onCapture }) {
@@ -110,6 +115,7 @@ export default function TodayScreen({ onFire, onCapture }) {
   const emphasis = useMemo(() => homeEmphasis(state, { now: new Date() }), [state])
   const [focusTick, setFocusTick] = useState(0)
   const [planTick, setPlanTick] = useState(0)
+  const [actionTarget, setActionTarget] = useState(null)
 
   /* The Command Center can be opened from any route, but the panels that
      perform "Plan my day" and "Start focus" live here. It queues an intent;
@@ -247,6 +253,16 @@ export default function TodayScreen({ onFire, onCapture }) {
                     </span>
                     <span className="priority-kind">{row.kind}</span>
                   </Link>
+                  {/* #19/#22 — act without navigating. The sheet is loaded on
+                      first use, not on first paint. */}
+                  <button
+                    type="button"
+                    className="btn ghost sm priority-actions"
+                    aria-label={`Actions for ${row.name}`}
+                    onClick={() => setActionTarget({ kind: row.kind, id: row.id })}
+                  >
+                    <IconMore size={16} />
+                  </button>
                 </li>
               ))}
             </ol>
@@ -428,7 +444,18 @@ export default function TodayScreen({ onFire, onCapture }) {
             </div>
           </Reveal>
         )}
+
+        <Suspense fallback={null}><ExecutionPanels /></Suspense>
       </div>
+
+      <Suspense fallback={null}>
+        <ItemActionsSheet
+          open={!!actionTarget}
+          onClose={() => setActionTarget(null)}
+          kind={actionTarget?.kind}
+          id={actionTarget?.id}
+        />
+      </Suspense>
 
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
       </SpatialStage>

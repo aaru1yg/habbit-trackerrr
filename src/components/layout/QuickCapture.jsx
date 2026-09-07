@@ -15,7 +15,7 @@ import { useStore, newId } from '../../store.jsx'
 import { useToast } from '../ui/Toaster.jsx'
 import { navigate } from '../../lib/router.jsx'
 import { setIntent, INTENTS } from '../../lib/intents.js'
-import { shortDate, minutesLabel } from '../../lib/dates.js'
+import { shortDate, minutesLabel, dayStr } from '../../lib/dates.js'
 import {
   parseCapture, validateCapture, detectDuplicate, captureToAction,
   CAPTURE_TYPES, CONFIDENCE,
@@ -104,7 +104,7 @@ export function CaptureBody({ text, setText, preset = null, bare = false, onClos
     if (!v.ok) { setErrors(v.errors); setEditing(true); return }
 
     const id = newId()
-    const existingNote = draft.type === 'note' ? (state.moods?.[new Date().toISOString().slice(0, 10)]?.note || null) : null
+    const existingNote = draft.type === 'note' ? (state.moods?.[dayStr(new Date())]?.note || null) : null
     const action = captureToAction(draft, { id, existingNote })
     if (!action) { setErrors([{ field: 'type', message: 'That type cannot be saved yet.' }]); return }
 

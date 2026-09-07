@@ -18,6 +18,7 @@ import {
 import { todayStr,  weekDays, shortDate,  minutesLabel, prettyDate } from '../lib/dates.js'
 import { IconWorkload, IconPlus, IconAlert } from '../lib/icons.jsx'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
+import { workloadByDay, rescheduleSuggestions } from '../lib/adaptive.js'
 
 export default function WorkloadScreen({ route = 'workload' }) {
   const { state } = useStore()
@@ -36,6 +37,8 @@ export default function WorkloadScreen({ route = 'workload' }) {
 
   const week = useMemo(() => weekDays(today), [today])
   const weekLoad = useMemo(() => workloadSeries(state, { from: week[0], days: 7, now }), [state, week, now])
+  const intelligentDays = useMemo(() => workloadByDay(state, { from: today, days: 7, now, capacityMin: Number.isFinite(state.profile?.dailyCapacityMin) ? state.profile.dailyCapacityMin : null }), [state, today, now])
+  const pressure = useMemo(() => intelligentDays.map((d) => ({ ...d, suggestions: rescheduleSuggestions(d) })), [intelligentDays])
 
   const selectedRow = series.rows.find((r) => r.date === selected) || series.rows[0]
   const overdue = [
@@ -99,6 +102,12 @@ export default function WorkloadScreen({ route = 'workload' }) {
             { label: 'Estimated left', value: summary.estimatedLabel || '—', small: true, note: `${summary.openTasks} open tasks` },
           ]}
         />
+
+        <SectionCard className="pad adaptive-workload" aria-label="Capacity intelligence">
+          <CardHead title="Capacity intelligence"><span className="tiny muted">based on estimates and your capacity</span></CardHead>
+          <div className="adaptive-day-grid">{pressure.map((day) => <button type="button" className={`adaptive-day${day.overloaded ? ' is-overloaded' : ''}`} key={day.date} onClick={() => setSelected(day.date)}><strong>{day.label}</strong><span>Available {day.availableMin == null ? 'Not enough data yet.' : `${Math.round(day.availableMin)}m`}</span><span>Committed {Math.round(day.committedMin)}m</span><span>{day.remainingMin == null ? 'Remaining Not enough data yet.' : day.overloaded ? `Overload ${Math.abs(Math.round(day.remainingMin))}m` : `Remaining ${Math.round(day.remainingMin)}m`}</span></button>)}</div>
+          {selectedRow && pressure.find((d) => d.date === selectedRow.date)?.overloaded && <p className="pace-note" data-tone="warn">{pressure.find((d) => d.date === selectedRow.date).reason} Caused by: {pressure.find((d) => d.date === selectedRow.date).items.map((i) => i.label || i.name).join(', ')}. Suggestions are optional and require your confirmation.</p>}
+        </SectionCard>
 
         {overdue.length > 0 && (
           <SectionCard className="pad" style={{ borderColor: 'color-mix(in srgb, var(--bad) 40%, var(--border))' }}>

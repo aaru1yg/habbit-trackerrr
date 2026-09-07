@@ -26,6 +26,7 @@ import {
   IconChevronLeft, IconPlus, IconTrash, IconPencil, IconProjects, IconGrip, IconCheck,
   IconClock, IconX,
 } from '../lib/icons.jsx'
+import { ProjectForecastCard } from '../components/work/ForecastCard.jsx'
 
 export default function ProjectDetailScreen({ id }) {
   const { state, dispatch } = useStore()
@@ -154,6 +155,8 @@ export default function ProjectDetailScreen({ id }) {
             </div>
           )}
         </SectionCard>
+
+        <ProjectForecastCard project={project} now={now} />
 
         {/* V3: the project as an object on its own track */}
         <SectionCard className="pad project-track-card">

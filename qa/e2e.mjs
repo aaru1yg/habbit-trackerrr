@@ -1278,10 +1278,10 @@ console.log('\n— Keyboard & focus (a11y) —')
   await desk.bringToFront()
   await desk.keyboard.press('/')
   let opened = false
-  try { await desk.waitForSelector('[role="dialog"]', { visible: true, timeout: 5000 }); opened = true } catch {}
+  try { await desk.waitForSelector('[role="dialog"]', { visible: true, timeout: 5000 }); opened = true } catch { /* selector timeout means the assertion below records failure */ }
   await desk.keyboard.press('Escape')
   let closed = false
-  try { await desk.waitForSelector('[role="dialog"]', { hidden: true, timeout: 5000 }); closed = true } catch {}
+  try { await desk.waitForSelector('[role="dialog"]', { hidden: true, timeout: 5000 }); closed = true } catch { /* selector timeout means the assertion below records failure */ }
   check('[a11y] search opens with / and Escape closes it', opened && closed)
   await desk.close()
 

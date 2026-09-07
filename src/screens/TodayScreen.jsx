@@ -10,11 +10,16 @@ import { SpatialStage } from '../components/spatial/Depth.jsx'
 import { CardHead } from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import SearchPalette from '../components/layout/SearchPalette.jsx'
+import AdaptiveCommandCenter from '../components/today/AdaptiveCommandCenter.jsx'
+import PlanningPanel from '../components/today/PlanningPanel.jsx'
+import FocusMode from '../components/today/FocusMode.jsx'
+import { recoveryPlan } from '../lib/planning.js'
+import AiCoach from '../components/today/AiCoach.jsx'
 
 import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween, weekdayShort } from '../lib/dates.js'
 import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak,  routineStats, activeRoutines, trendSeries } from '../lib/stats.js'
-import { } from '../lib/work.js'
 import { todayPriorities, dayTimeline, todayGoals, todayProjectGoals, todayHeadline } from '../lib/today.js'
+import { getTodayPriorities, getNextBestAction, workloadCapacity } from '../lib/adaptive.js'
 import { streakMilestone } from '../lib/analytics.js'
 import { isScheduled } from '../lib/schedule.js'
 import { Link } from '../lib/router.jsx'
@@ -95,6 +100,25 @@ export default function TodayScreen({ onFire }) {
       headline: todayHeadline(state, { now }),
     }
   }, [state, today])
+  const recovery = useMemo(() => recoveryPlan(state, { now: new Date() }), [state])
+  const adaptive = useMemo(() => {
+    const now = new Date()
+    const capacityMin = Number.isFinite(state.profile?.dailyCapacityMin) ? state.profile.dailyCapacityMin : null
+    const priorities = getTodayPriorities(state, { now, limit: 5, capacityMin })
+    const next = getNextBestAction(state, { now, capacityMin })
+    const workload = workloadCapacity({ availableMin: capacityMin, items: priorities.map((p) => p.item) })
+    return { priorities, next, workload }
+  }, [state])
+
+  const completeAdaptive = (entry) => {
+    const item = entry?.item
+    if (!item) return
+    if (entry.kind === 'habit') dispatch({ type: 'TOGGLE_CHECKIN', habitId: item.id, date: today })
+    if (entry.kind === 'assignment') dispatch({ type: 'SET_ASSIGNMENT_PROGRESS', id: item.id, pct: 100 })
+    if (entry.kind === 'project-task') dispatch({ type: 'TOGGLE_TASK', projectId: item.projectId, milestoneId: item.milestoneId, taskId: item.id })
+    if (entry.kind === 'goal-milestone') dispatch({ type: 'TOGGLE_GOAL_MILESTONE', id: item.goalId, milestoneId: item.id })
+  }
+
   const routinesToday = useMemo(
     () => activeRoutines(state).filter((r) => routineStats(state, r, today).total > 0),
     [state, today]
@@ -165,6 +189,12 @@ export default function TodayScreen({ onFire }) {
           copy={heroCopy}
           week={week}
         />
+
+        <AdaptiveCommandCenter data={adaptive} onComplete={completeAdaptive} />
+        <PlanningPanel state={state} now={new Date()} />
+        <FocusMode state={state} dispatch={dispatch} now={new Date()} />
+        {adaptive.next && <AiCoach state={state} facts={{ title: adaptive.next.item.label || adaptive.next.item.name, progress: adaptive.next.progress, expectedProgress: adaptive.next.risk?.id === 'AT RISK' ? 100 : undefined, risk: adaptive.next.risk?.id, summary: adaptive.next.reason, evidence: adaptive.next.reasons }} />}
+        {recovery.keep.length > 0 && <section className="card pad recovery-panel"><CardHead title="Recovery plan"><span className="tiny muted">suggestion only</span></CardHead><p className="card-blurb">{recovery.explanation}</p><div className="recovery-groups"><div><strong>KEEP</strong>{recovery.keep.map(x=><span key={x.item.id}>{x.item.label||x.item.name}<small>{x.reasons?.join(' · ')||'Highest current risk'}</small></span>)}</div><div><strong>MOVE / DEFER</strong>{[...(recovery.move||[]),...(recovery.defer||[])].map(x=><span key={x.item.id}>{x.item.label||x.item.name}<small>Consider moving; it is less urgent than the keep group.</small></span>)}</div></div><p className="tiny muted">{recovery.validation.reason}</p></section>}
 
         {/* Today's priorities — what actually needs doing, in order */}
         {plan.rows.length > 0 && (

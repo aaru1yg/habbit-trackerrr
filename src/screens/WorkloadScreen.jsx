@@ -102,7 +102,7 @@ export default function WorkloadScreen({ route = 'workload' }) {
 
         {overdue.length > 0 && (
           <SectionCard className="pad" style={{ borderColor: 'color-mix(in srgb, var(--bad) 40%, var(--border))' }}>
-            <CardHead title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--bad)' }}><IconAlert size={16} /> Overdue</span>} />
+            <CardHead title={<span className="card-head-alert"><IconAlert size={16} />Overdue</span>} />
             <div className="deadline-strip">
               {overdue.map((o) => (
                 <WorkRow key={`${o.kind}-${o.item.id}`} kind={o.kind} item={o.item} status={o.status}

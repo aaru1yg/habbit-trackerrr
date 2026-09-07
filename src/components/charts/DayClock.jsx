@@ -53,7 +53,7 @@ export default function DayClock({ data, size = 220 }) {
             return (
               <g key={h}>
                 <line x1={x0} y1={y0} x2={x1} y2={y1} stroke="var(--border-2)" strokeWidth="1" />
-                <text x={tx} y={ty + 3} fontSize="10" fill="var(--text-3)" textAnchor="middle">
+                <text x={tx} y={ty + 3} fontSize="12.5" fill="var(--text-3)" textAnchor="middle">
                   {String(h).padStart(2, '0')}
                 </text>
               </g>
@@ -81,7 +81,7 @@ export default function DayClock({ data, size = 220 }) {
           <text x={C} y={C - 4} fontSize="20" fontWeight="800" fill="var(--text)" textAnchor="middle" className="tnum">
             {total}
           </text>
-          <text x={C} y={C + 12} fontSize="10.5" fill="var(--text-3)" textAnchor="middle">
+          <text x={C} y={C + 12} fontSize="12.5" fill="var(--text-3)" textAnchor="middle">
             timed check-ins
           </text>
         </svg>

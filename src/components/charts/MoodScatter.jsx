@@ -48,7 +48,7 @@ export default function MoodScatter({ data, dimLabel = 'mood' }) {
                 {m}
               </text>
             ))}
-            <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="10" fill="var(--text-3)" dy="10">{dimLabel} →</text>
+            <text x={(L + W - R) / 2} y={H - 8} textAnchor="middle" fontSize="12.5" fill="var(--text-3)" dy="10">{dimLabel} →</text>
           </g>
           {trend && (
             <line

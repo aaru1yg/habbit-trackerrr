@@ -81,12 +81,12 @@ export function LineSeries({ series, height = 200, unit = '%', domain = [0, 100]
         ))}
         {selPoint && (
           <g pointerEvents="none" transform={`translate(${Math.min(Math.max(geom.x(sel), L + 8), W - R - 150)}, ${T + 2})`}>
-            <rect width="150" height={20 + series.length * 14} rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
-            <text x="9" y="14" fontSize="12.5" fontWeight="700" fill="var(--text)">{shortDate(selPoint)}</text>
+            <rect width="150" height={36 + series.length * 17} rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
+            <text x="9" y="16" fontSize="12.5" fontWeight="700" fill="var(--text)">{shortDate(selPoint)}</text>
             {series.map((s, k) => {
               const v = s.points[sel]?.value
               return (
-                <text key={s.id || s.label} x="9" y={28 + k * 14} fontSize="12.5" fill="var(--text-2)" style={TNUM}>
+                <text key={s.id || s.label} x="9" y={32 + k * 17} fontSize="12.5" fill="var(--text-2)" style={TNUM}>
                   {s.label}: {v == null ? '—' : `${v}${unit}`}
                 </text>
               )
@@ -153,7 +153,7 @@ export function BurndownChart({ rows, today }) {
         {todayIdx >= 0 && (
           <g>
             <line x1={x(todayIdx)} y1={T} x2={x(todayIdx)} y2={H - B} stroke="var(--accent-1)" strokeWidth="1.2" opacity="0.7" />
-            <text x={x(todayIdx) + 4} y={T + 9} fontSize="10.5" fill="var(--accent-1)" fontWeight="700">today</text>
+            <text x={x(todayIdx) + 4} y={T + 9} fontSize="12.5" fill="var(--accent-1)" fontWeight="700">today</text>
           </g>
         )}
         {actualPts.map((r) => (

@@ -4112,3 +4112,12 @@ main svg text {
     margin-inline: 0;
   }
 }
+
+/* ---- Alert card heads: one shared treatment for urgent
+        section titles (assignments, workload) ---- */
+.card-head-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bad);
+}

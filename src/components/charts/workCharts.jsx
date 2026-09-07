@@ -80,8 +80,8 @@ export function LineSeries({ series, height = 200, unit = '%', domain = [0, 100]
             fill="transparent" onPointerEnter={() => setSel(i)} onClick={() => setSel(sel === i ? null : i)} />
         ))}
         {selPoint && (
-          <g pointerEvents="none" transform={`translate(${Math.min(Math.max(geom.x(sel), L + 8), W - R - 150)}, ${T + 2})`}>
-            <rect width="150" height={36 + series.length * 17} rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
+          <g pointerEvents="none" transform={`translate(${Math.min(Math.max(geom.x(sel), L + 8), W - R - 172)}, ${T + 2})`}>
+            <rect width="172" height={36 + series.length * 17} rx="9" fill="var(--surface-solid)" stroke="var(--border-2)" />
             <text x="9" y="16" fontSize="12.5" fontWeight="700" fill="var(--text)">{shortDate(selPoint)}</text>
             {series.map((s, k) => {
               const v = s.points[sel]?.value

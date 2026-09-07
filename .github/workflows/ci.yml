@@ -98,11 +98,17 @@ jobs:
             [ -f "$log" ] || continue
             echo "## $log" >> "$GITHUB_STEP_SUMMARY"
             cat "$log" >> "$GITHUB_STEP_SUMMARY"
-            while IFS= read -r line; do
-              case "$line" in
-                *"✗"*|*"Error"*|*"error"*|*"FAIL"*) echo "::error file=$log::$line" ;;
-              esac
-            done < "$log"
+            # Findings, not just crashes. qa/audit.mjs reports "## tap-target — 3"
+            # plus one "route  detail  [N vp: …]" line per finding, and
+            # qa/contrast.mjs reports "2.9 (need 4.5) …" — neither mentions
+            # ✗/Error/FAIL, so a layout or contrast failure was invisible here.
+            # The "no page errors" / "0 failing" lines are passes; drop them so
+            # the annotation list shows only real findings.
+            grep -aE '✗|Error|error|FAIL|^## |vp: |\(need |failing text nodes' "$log" \
+              | grep -avE 'no (page|console) errors|— 0 failing' \
+              | while IFS= read -r line; do
+                  echo "::error file=$log::$line"
+                done
           done
 
       - name: Upload browser evidence

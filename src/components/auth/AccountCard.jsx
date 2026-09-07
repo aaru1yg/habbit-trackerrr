@@ -143,7 +143,7 @@ export default function AccountCard() {
       >
         <div className="stack" style={{ gap: 12 }}>
           <p className="chip tag-bad" style={{ whiteSpace: 'normal' }}>This cannot be undone.</p>
-          <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>
+          <p className="soft fs-sm">
             Every habit, check-in, project, assignment and mood entry stored in
             your account will be permanently erased, and your login will stop
             working. Export your data first if you want to keep a copy.

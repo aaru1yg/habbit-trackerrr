@@ -96,10 +96,10 @@ export default function HabitForm({ open, onClose, editing }) {
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && save()}
           />
-          {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
+          {error && <p className="form-error">{error}</p>}
         </div>
 
-        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+        <fieldset className="fieldset-plain">
           <legend className="field-label">Category</legend>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {CATEGORIES.map((c) => (
@@ -118,7 +118,7 @@ export default function HabitForm({ open, onClose, editing }) {
           </div>
         </fieldset>
 
-        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+        <fieldset className="fieldset-plain">
           <legend className="field-label">Schedule</legend>
           <div className="seg" role="group" aria-label="Schedule type">
             <button type="button" aria-pressed={schedType === 'daily'} onClick={() => setSchedType('daily')}>Every day</button>

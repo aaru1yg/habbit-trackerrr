@@ -390,7 +390,7 @@ export default function CalendarScreen({ ymParam }) {
                     <span className="tnum">{dayNum(day)}</span>
                     <span className="tiny">{weekdayInitial(day)}</span>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="grow">
                     <WorkRow kind={kind} item={item} status={status} progressPct={workProgressOf(kind, item)} />
                   </div>
                 </div>
@@ -441,7 +441,7 @@ export default function CalendarScreen({ ymParam }) {
       >
         {noteFor && (
           <div className="stack">
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>{prettyDate(noteFor.date)}</p>
+            <p className="soft fs-sm">{prettyDate(noteFor.date)}</p>
             <textarea
               className="field"
               autoFocus

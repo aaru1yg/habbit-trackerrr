@@ -41,7 +41,7 @@ export function ProjectCard({ project, now = new Date(), showStepper = true }) {
   return (
     <article className={`work-card project-card${status.complete ? ' is-done' : ''}`} data-tone={status.tone} aria-label={`Project ${project.name}`}>
       <div className="work-top">
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="grow">
           <div className="wrap-gap" style={{ gap: 6, marginBottom: 6 }}>
             <KindTag kind="project">Project</KindTag>
             <span className="status-pill" data-tone={phaseTone(projectPhase(project, now))}>
@@ -118,7 +118,7 @@ export function ProjectCard({ project, now = new Date(), showStepper = true }) {
         <button className="btn ghost icon" aria-label={`Edit ${project.name}`} onClick={() => work.editProject(project)}>
           <IconPencil size={17} />
         </button>
-        <button className="btn ghost icon" style={{ color: 'var(--bad)' }} aria-label={`Delete ${project.name}`} onClick={() => work.deleteProject(project)}>
+        <button className="btn ghost icon text-bad" aria-label={`Delete ${project.name}`} onClick={() => work.deleteProject(project)}>
           <IconTrash size={17} />
         </button>
         <a className="btn ghost icon" href={`#/projects/${project.id}`} aria-label={`Open ${project.name}`}>
@@ -144,7 +144,7 @@ export function AssignmentCard({ assignment, now = new Date() }) {
   return (
     <article className={`work-card assignment-card${status.complete ? ' is-done' : ''}`} data-tone={status.tone} aria-label={`Assignment ${assignment.name}`}>
       <div className="work-top">
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="grow">
           <div className="wrap-gap" style={{ gap: 6, marginBottom: 6 }}>
             <KindTag kind="assignment">Assignment</KindTag>
             <StatusPill status={status} />
@@ -223,7 +223,7 @@ export function AssignmentCard({ assignment, now = new Date() }) {
         <button className="btn ghost icon" aria-label={`Edit ${assignment.name}`} onClick={() => work.editAssignment(assignment)}>
           <IconPencil size={17} />
         </button>
-        <button className="btn ghost icon" style={{ color: 'var(--bad)' }} aria-label={`Delete ${assignment.name}`} onClick={() => work.deleteAssignment(assignment)}>
+        <button className="btn ghost icon text-bad" aria-label={`Delete ${assignment.name}`} onClick={() => work.deleteAssignment(assignment)}>
           <IconTrash size={17} />
         </button>
         <a className="btn ghost icon" href={`#/assignments/${assignment.id}`} aria-label={`Open ${assignment.name}`}>

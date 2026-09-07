@@ -98,7 +98,7 @@ export default function InsightsDeepDive({ state }) {
             {insights.map((ins) => (
               <article key={ins.id} className="insight-card" data-tone={ins.tone}>
                 <span className="insight-icon" aria-hidden="true"><IconSparkle size={16} /></span>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="grow">
                   <p className="insight-title">{ins.title}</p>
                   <p className="insight-text">{ins.text}</p>
                 </div>

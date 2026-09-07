@@ -176,7 +176,7 @@ export default function SettingsScreen() {
         <SectionCard className="pad">
           <CardHead title="Reminders" />
           {habitsWithReminders.length === 0 ? (
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>
+            <p className="soft fs-sm">
               No reminders set. Add one when creating or editing a habit — permission is only asked then.
             </p>
           ) : (
@@ -260,7 +260,7 @@ export default function SettingsScreen() {
         <SectionCard className="pad">
           <CardHead title="Your data" />
           <div className="stack" style={{ gap: 10 }}>
-            <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>
+            <p className="soft fs-sm">
               {lastExport
                 ? `Last backup: ${backupAge === 0 ? 'today' : `${backupAge} day${backupAge === 1 ? '' : 's'} ago`}.`
                 : 'You haven\u2019t exported a backup yet.'}
@@ -290,7 +290,7 @@ export default function SettingsScreen() {
                   <button className="btn ghost" onClick={() => setConfirmReset(false)}>Cancel</button>
                 </>
               ) : (
-                <button className="btn ghost" style={{ color: 'var(--bad)' }} onClick={() => setConfirmReset(true)}>
+                <button className="btn ghost text-bad" onClick={() => setConfirmReset(true)}>
                   <IconTrash size={16} /> Erase all data
                 </button>
               )}

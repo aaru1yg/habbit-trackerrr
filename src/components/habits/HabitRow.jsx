@@ -130,7 +130,7 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
             <HabitCheck done={done} label={done ? 'Completed' : 'Not completed'} />
             <Burst fire={burst} count={9} spread={30} size={4} />
           </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="grow">
             {editing ? (
               <input
                 className="field"

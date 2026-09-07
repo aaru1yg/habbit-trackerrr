@@ -51,7 +51,7 @@ export default function MigrationDialog() {
       }
     >
       <div className="stack" style={{ gap: 16 }}>
-        <p style={{ color: 'var(--text-2)', fontSize: 'var(--fs-sm)' }}>
+        <p className="soft fs-sm">
           This device and your account both contain data. Choose how to combine
           them — nothing is deleted until you pick.
         </p>

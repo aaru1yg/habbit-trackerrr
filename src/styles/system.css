@@ -4234,3 +4234,17 @@ main svg text {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ------------------------------------------------------------
+   LAYOUT UTILITIES — shared by many screens (tail block so they
+   outrank component rules loaded earlier).
+   ------------------------------------------------------------ */
+.grow { flex: 1; min-width: 0; }
+.text-bad { color: var(--bad); }
+/* ghost buttons sit on a higher-specificity rule; keep their destructive
+   colour through rest + hover exactly as the old inline style did */
+.btn.ghost.text-bad,
+.btn.ghost.text-bad:hover { color: var(--bad); }
+.form-error { color: var(--bad); font-size: var(--fs-sm); margin-top: 6px; }
+.fieldset-plain { border: 0; padding: 0; margin: 0; }
+.fs-sm { font-size: var(--fs-sm); }

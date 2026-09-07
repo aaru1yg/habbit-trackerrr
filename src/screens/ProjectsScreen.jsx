@@ -413,7 +413,7 @@ function ProjectAnalytics() {
                 </span>
                 <span className="perf-cell tnum">{r.pct}%</span>
                 <span className="perf-cell tnum">
-                  {r.overdue ? <span style={{ color: 'var(--bad)' }}>overdue</span> : r.daysLeft != null ? `${r.daysLeft}d` : '—'}
+                  {r.overdue ? <span className="text-bad">overdue</span> : r.daysLeft != null ? `${r.daysLeft}d` : '—'}
                 </span>
                 <span className="perf-cell tnum">{r.speed != null ? `${r.speed > 0 ? '+' : ''}${r.speed}%/d` : '—'}</span>
               </div>

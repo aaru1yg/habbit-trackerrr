@@ -99,7 +99,7 @@ export default function ProjectDetailScreen({ id }) {
         </div>
         <div className="head-actions">
           <button className="btn ghost icon" aria-label="Edit project" onClick={() => work.editProject(project)}><IconPencil size={17} /></button>
-          <button className="btn ghost icon" style={{ color: 'var(--bad)' }} aria-label="Delete project" onClick={removeProject}><IconTrash size={17} /></button>
+          <button className="btn ghost icon text-bad" aria-label="Delete project" onClick={removeProject}><IconTrash size={17} /></button>
         </div>
       </header>
 

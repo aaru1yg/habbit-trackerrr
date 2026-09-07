@@ -1,0 +1,5 @@
+import { describe, expect, it } from 'vitest'
+import { routeCoachQuestion, LOCAL_COACH_STATUS } from '../src/lib/localCoach.js'
+const state={profile:{},assignments:[{id:'a',name:'Assignment',priority:'high',progress:0,estimateMin:60,deadline:'2026-09-07T12:00:00'}],projects:[],habits:[],checkins:{}}
+const now=new Date('2026-09-07T10:00:00')
+describe('zero-cost local coach',()=>{it('declares external AI off',()=>expect(LOCAL_COACH_STATUS).toMatchObject({provider:'LOCAL',externalAI:'OFF',apiCost:'$0'}));it('routes next questions to Next Best Action',()=>expect(routeCoachQuestion('What should I do today?',state,{now}).source).toBe('Next Best Action'));it('routes risk questions to real risk facts',()=>expect(routeCoachQuestion('what is at risk?',state,{now}).evidence[0]).toMatch(/Assignment/));it('routes workload questions',()=>expect(routeCoachQuestion('why am I overloaded?',state,{now}).source).toBe('Workload intelligence'));it('does not pretend unsupported language is understood',()=>expect(routeCoachQuestion('write me a poem',state).summary).toMatch(/Try asking/))})

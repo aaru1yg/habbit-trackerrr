@@ -163,6 +163,25 @@ const WD_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 export function Heatmap({ weeks, onDayTap, ariaLabel = 'Completion heatmap' }) {
   const [tip, setTip] = useState(null) // { date, pct, x, y }
   const innerRef = useRef(null)
+  const descId = useId()
+
+  /* role="img" flattens the whole subtree for assistive tech, so the
+     per-day titles below are decorative. Without a text alternative a
+     screen reader would announce the label and nothing else. This
+     summarises the same data the grid shows, and it sits outside the
+     img so it is actually read. */
+  const summary = useMemo(() => {
+    const days = weeks.flat().filter((c) => !c.future)
+    const withData = days.filter((c) => c.pct != null)
+    if (!withData.length) return 'No days with recorded activity in this range yet.'
+    const avg = Math.round(withData.reduce((n, c) => n + c.pct, 0) / withData.length)
+    const perfect = withData.filter((c) => c.pct >= 100).length
+    const empty = withData.filter((c) => c.pct === 0).length
+    const from = withData[0].date
+    const to = withData[withData.length - 1].date
+    return `${withData.length} days with data from ${from} to ${to}, averaging ${avg}% complete. ` +
+      `${perfect} day${perfect === 1 ? '' : 's'} at 100%, ${empty} day${empty === 1 ? '' : 's'} at 0%.`
+  }, [weeks])
 
   const months = useMemo(() => {
     const out = []
@@ -201,7 +220,7 @@ export function Heatmap({ weeks, onDayTap, ariaLabel = 'Completion heatmap' }) {
   }
 
   return (
-    <div className="heatmap" role="img" aria-label={ariaLabel}>
+    <div className="heatmap" role="img" aria-label={ariaLabel} aria-describedby={descId}>
       <div className="heatmap-inner" ref={innerRef} onClick={onGridClick}>
         {/* weekday gutter */}
         <div className="hm-gutter" aria-hidden="true">
@@ -239,6 +258,7 @@ export function Heatmap({ weeks, onDayTap, ariaLabel = 'Completion heatmap' }) {
           </div>
         )}
       </div>
+      <p id={descId} className="sr-only">{summary}</p>
       <div className="hm-legend" aria-hidden="true">
         <span>Less</span>
         {[0, 1, 2, 3, 4].map((l) => <i key={l} className={`hm-day l${l}`} />)}

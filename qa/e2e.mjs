@@ -1267,17 +1267,21 @@ console.log('\n— Keyboard & focus (a11y) —')
     return cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 1
   }))
 
-  // Escape closes the search overlay (desktop, where the shortcut lives)
+  // Escape closes the search overlay (desktop, where the shortcut lives).
+  // Wait for the dialog to mount/unmount rather than guessing a fixed sleep —
+  // the palette is a spring-animated Sheet and mounts asynchronously, so a
+  // fixed delay flakes under CPU contention. waitForSelector still asserts the
+  // real behaviour (opens with /, closes with Escape).
   const desk = await newPage(browser, VIEWPORTS.desktop)
   await seedAndGoto(desk, seededStateV4(), 'today', BASE)
   await sleep(700)
   await desk.bringToFront()
   await desk.keyboard.press('/')
-  await sleep(700)
-  const opened = await desk.evaluate(() => !!document.querySelector('[role="dialog"]'))
+  let opened = false
+  try { await desk.waitForSelector('[role="dialog"]', { visible: true, timeout: 5000 }); opened = true } catch {}
   await desk.keyboard.press('Escape')
-  await sleep(800)
-  const closed = await desk.evaluate(() => !document.querySelector('[role="dialog"]'))
+  let closed = false
+  try { await desk.waitForSelector('[role="dialog"]', { hidden: true, timeout: 5000 }); closed = true } catch {}
   check('[a11y] search opens with / and Escape closes it', opened && closed)
   await desk.close()
 

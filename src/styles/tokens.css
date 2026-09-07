@@ -113,6 +113,28 @@
      TOUCH
      -------------------------------------------------------- */
   --touch: 44px;
+
+  /* --------------------------------------------------------
+     LEGACY ALIASES — the codes below were referenced across
+     components.css / work.css but never defined, so every
+     hover transition, card shadow and hairline border silently
+     fell back to "none". Resolving them restores the intended
+     motion + elevation language product-wide. They reference the
+     real token, so they stay theme-aware (each theme owns the
+     underlying --e-* / --dur-* value).
+     -------------------------------------------------------- */
+  --dur-fast: var(--dur-1);   /* 120ms  press, checkbox */
+  --dur-med: var(--dur-2);    /* 200ms  hover, chip */
+  --dur-slow: var(--dur-3);   /* 320ms  sheet, page */
+  --ease: var(--ease-out);    /* default motion curve      */
+
+  --shadow-1: var(--e-card);       /* resting card          */
+  --shadow-2: var(--e-2);          /* floating FAB / pop    */
+  --shadow-3: var(--e-3);          /* sheet / deep layer    */
+
+  --border-1: var(--border);       /* hairline border colour */
+  --surface-1: var(--surface);     /* stacked surface colour  */
+  --hairline: var(--border);       /* subtle divider line    */
 }
 
 /* ============================================================

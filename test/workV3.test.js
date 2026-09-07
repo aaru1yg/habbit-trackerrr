@@ -27,10 +27,18 @@ describe('projectPhase', () => {
     expect(projectPhase(p)).toBe('active')
   })
   it('at risk when behind the pace line', () => {
-    // 30-day window, 2/3 of the time gone, 10% done
+    // 30-day window, 2/3 of the time gone, 10% done. Keep the project
+    // decisively behind the pace (not exactly on the 15-point boundary) so
+    // the phase is 'at-risk' regardless of the runner's clock hour; elapsed
+    // % is quantised to whole points, so 2/3 elapsed + ~50% progress was a
+    // knife-edge at exactly behind=15 (which fails behind > 15) in the
+    // 00:00–07:59 hours.
     const p = project({
       startDate: day(-20), deadline: `${day(10)}T18:00:00`,
-      milestones: [{ id: 'm', name: 'm', tasks: [{ id: 't', done: false, status: 'todo' }, { id: 't2', done: true, status: 'done' }] }],
+      milestones: [{
+        id: 'm', name: 'm',
+        tasks: Array.from({ length: 10 }, (_, i) => ({ id: `t${i}`, done: i === 0, status: i === 0 ? 'done' : 'todo' })),
+      }],
     })
     expect(projectPhase(p)).toBe('at-risk')
   })

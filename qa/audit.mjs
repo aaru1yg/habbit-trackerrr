@@ -35,6 +35,12 @@ try {
     for (const route of ROUTES) {
       await seedAndGoto(page, seededStateV4(), route, base)
       await sleep(700)
+      // Let the variable web font settle before measuring tap targets and
+      // overflow. Under CPU contention (or a slow network) a text-driven
+      // button can compute to ~43px with the fallback font and be falsely
+      // flagged as a sub-44px target. Wait for the fonts' ready promise so we
+      // measure the real, settled layout (matching qa/release.mjs's ready()).
+      await page.evaluate(() => document.fonts.ready)
       const res = await page.evaluate(() => {
         const out = { overflow: [], tiny: [], docOverflow: 0, innerW: 0 }
         const de = document.documentElement

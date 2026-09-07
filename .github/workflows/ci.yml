@@ -47,10 +47,17 @@ jobs:
           '
           mkdir -p qa/shots
           # Independent browser profiles; no cloud credentials in this build.
+          # The 2-core runner cannot feed four heavy headless-Chromium jobs at
+          # once — running e2e+release and audit+contrast as two sequential
+          # groups caps concurrency at two browsers, so the layout/font can
+          # settle and the timing-sensitive checks are measured on the real,
+          # settled DOM rather than a CPU-starved frame.
           npm run test:e2e > qa/shots/e2e.log 2>&1 &
           E2E_PID=$!
           npm run test:release > qa/shots/release.log 2>&1 &
           RELEASE_PID=$!
+          wait "$E2E_PID"; E2E=$?
+          wait "$RELEASE_PID"; RELEASE=$?
           node qa/audit.mjs http://localhost:4173 > qa/shots/layout.log 2>&1 &
           LAYOUT_PID=$!
           (
@@ -59,10 +66,13 @@ jobs:
             done
           ) > qa/shots/contrast.log 2>&1 &
           CONTRAST_PID=$!
+          wait "$LAYOUT_PID"; LAYOUT=$?
+          wait "$CONTRAST_PID"; CONTRAST=$?
           STATUS=0
-          for PID in "$E2E_PID" "$RELEASE_PID" "$LAYOUT_PID" "$CONTRAST_PID"; do
-            wait "$PID" || STATUS=1
-          done
+          [ "$E2E" -ne 0 ] && STATUS=1
+          [ "$RELEASE" -ne 0 ] && STATUS=1
+          [ "$LAYOUT" -ne 0 ] && STATUS=1
+          [ "$CONTRAST" -ne 0 ] && STATUS=1
           tail -n 35 qa/shots/{e2e,release,layout,contrast}.log
           exit "$STATUS"
 

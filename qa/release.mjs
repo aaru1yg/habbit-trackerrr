@@ -79,7 +79,10 @@ async function verifyArtifact() {
 }
 
 const titles = {
-  today: /Good (morning|afternoon|evening)/, calendar: /Calendar/, habits: /^Habits$/,
+  // The Today title is a time-appropriate greeting; the app greets "Up late"
+  // between 00:00–04:59 (src/lib/dates.js). Accept either so the check is
+  // deterministic regardless of when the runner executes.
+  today: /(Good (morning|afternoon|evening)|Up late)/, calendar: /Calendar/, habits: /^Habits$/,
   goals: /^Goals$/, projects: /^Projects$/, assignments: /^Assignments$/,
   insights: /^Insights$/, workload: /^Workload$/, achievements: /^Achievements$/, settings: /^Settings$/,
 }

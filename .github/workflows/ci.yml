@@ -56,8 +56,10 @@ jobs:
           E2E_PID=$!
           npm run test:release > qa/shots/release.log 2>&1 &
           RELEASE_PID=$!
+          set +e
           wait "$E2E_PID"; E2E=$?
           wait "$RELEASE_PID"; RELEASE=$?
+          set -e
           node qa/audit.mjs http://localhost:4173 > qa/shots/layout.log 2>&1 &
           LAYOUT_PID=$!
           (
@@ -66,8 +68,10 @@ jobs:
             done
           ) > qa/shots/contrast.log 2>&1 &
           CONTRAST_PID=$!
+          set +e
           wait "$LAYOUT_PID"; LAYOUT=$?
           wait "$CONTRAST_PID"; CONTRAST=$?
+          set -e
           STATUS=0
           [ "$E2E" -ne 0 ] && STATUS=1
           [ "$RELEASE" -ne 0 ] && STATUS=1

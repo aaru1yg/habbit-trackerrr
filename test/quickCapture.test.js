@@ -18,8 +18,14 @@ import { dayStr } from '../src/lib/dates.js'
 
 const NOON = (s) => new Date(`${s}T12:00:00`)
 const state = {
+  // Both names contain type keywords on purpose: "Habit OS" contains
+  // "habit", "Daily Reading" contains "daily". Neither must be read as
+  // the user describing a kind of thing.
   projects: [{ id: 'p1', name: 'Habit OS', archived: false }],
-  goals: [{ id: 'g1', title: 'Run a marathon', archived: false }],
+  goals: [
+    { id: 'g1', title: 'Run a marathon', archived: false },
+    { id: 'g2', title: 'Daily Reading', archived: false },
+  ],
   habits: [{ id: 'h1', name: 'Morning run', createdAt: '2026-09-01' }],
   assignments: [{ id: 'a1', name: 'Physics set', createdAtDay: '2026-09-05' }],
 }
@@ -208,6 +214,15 @@ describe('classifyCapture', () => {
     const c = classifyCapture('add a habit and an assignment', state, { now })
     expect(c.confidence).toBe(CONFIDENCE.AMBIGUOUS)
     expect(c.candidates).toEqual(expect.arrayContaining(['habit', 'assignment']))
+  })
+
+  it('does not read a project or goal NAME as a type word', () => {
+    // "Habit OS" contains the word "habit"; the item is not a habit.
+    const c = classifyCapture('Finish API work for Habit OS by Friday', state, { now })
+    expect(c.type).not.toBe('habit')
+    // "Daily Reading" contains "daily"; a one-off task is not a recurrence.
+    const c2 = classifyCapture('Photograph the cover for Daily Reading', state, { now })
+    expect(c2.type).not.toBe('habit')
   })
 
   it('always exposes a reason a human can read', () => {

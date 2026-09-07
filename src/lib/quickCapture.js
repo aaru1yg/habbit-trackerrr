@@ -230,7 +230,19 @@ const TYPE_SCORE_THRESHOLD = 1
 const TYPE_MARGIN = 1
 
 export function classifyCapture(text, state, { now = new Date() } = {}) {
-  const src = String(text || '').toLowerCase()
+  /* A project called "Habit OS" or a goal called "Daily Reading" must not
+     make the item look like a habit. Strip the names of things that already
+     exist before looking for type words — the user is naming a target, not
+     describing a kind. */
+  const names = [
+    ...(state?.projects || []).map((p) => p?.name),
+    ...(state?.goals || []).map((g) => g?.title),
+  ].filter((n) => typeof n === 'string' && n.trim().length >= 3)
+  let src = String(text || '').toLowerCase()
+  for (const name of names) {
+    const escaped = name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    src = src.replace(new RegExp(escaped, 'g'), ' ')
+  }
   const scores = Object.fromEntries(CAPTURE_TYPES.map((t) => [t.id, 0]))
   const evidence = {}
   const add = (id, why) => { scores[id] += 1; (evidence[id] = evidence[id] || []).push(why) }
@@ -347,7 +359,7 @@ export function extractTitle(text, parsed) {
   // leading/trailing connective noise left behind by the removals
   out = out
     .replace(/^\s*(and|then|to|for|by|on|at|in)\s+/i, '')
-    .replace(/\s+(by|on|at|for|in)\s*$/i, '')
+    .replace(/\s+(by|on|at|for|in|due|due by|before|until)\s*$/i, '')
     .replace(/^\s*(create|add|make|start|new)\s+(a|an|the)?\s*/i, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
@@ -383,8 +395,21 @@ export function parseCapture(text, state = {}, { now = new Date(), weekStartsOn 
      is stated out loud and the preview offers it as a *suggestion* the
      user confirms or changes — `defaulted` is what tells the UI to say
      "Suggested" instead of "Detected". */
+const ACTION_VERB = /\b(prepare|finish|complete|write|build|make|do|revise|review|draft|create|submit|send|fix|update|plan|organise|organize|schedule|book|call|email|read|study|practice)\b/i
+
   let defaulted = false
-  if (classification.confidence === CONFIDENCE.UNRESOLVED && date.date && !date.ambiguous) {
+  if (classification.confidence === CONFIDENCE.UNRESOLVED && !date.date && !date.ambiguous && ACTION_VERB.test(raw)) {
+    /* No deadline and no type words: it is a one-off piece of work, but
+       whether it belongs to a project is not knowable from the text.
+       Ask rather than pick. */
+    classification = {
+      ...classification,
+      type: null,
+      confidence: CONFIDENCE.AMBIGUOUS,
+      candidates: ['assignment', 'project-task'],
+      reason: 'This looks like a one-off piece of work, but I cannot tell whether it belongs to a project.',
+    }
+  } else if (classification.confidence === CONFIDENCE.UNRESOLVED && date.date && !date.ambiguous) {
     classification = {
       ...classification,
       type: 'assignment',

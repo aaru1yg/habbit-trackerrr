@@ -10,3 +10,5 @@ Deploy with `supabase functions deploy ai --no-verify-jwt` only if the runtime m
 The browser adapter is `createSupabaseAiProvider({ supabase })`; it obtains the current session access token and calls `${supabase.supabaseUrl}/functions/v1/ai`. No token or key is persisted by this adapter.
 
 This environment does not have the production Supabase project credentials, an OpenAI secret, or a configured deployment target available to this coding session. The function is implemented and locally testable with mocks, but it has **not** been deployed or real-provider verified. AI must not be reported live until those manual deployment and browser checks succeed.
+
+Release validation note: deterministic local Coach is the production default; external AI remains off.

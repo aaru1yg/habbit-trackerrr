@@ -134,6 +134,9 @@ The absent cluster is almost entirely *execution* (17, 18, 20, 22, 24) plus the 
 
 These are not Next Gen features. They are things that are wrong today.
 
+> **Status: all three were fixed in Phase B** (commit `b8de72f`). Kept here as
+> the record of what was wrong and why the fix looks the way it does.
+
 ### 4.1 `dailyCapacityMin` is read in four places and can never be set
 
 `grep -rn "dailyCapacityMin" src/` returns exactly:
@@ -255,3 +258,61 @@ logic is unaffected and is the primary gate during development.
 
 Each phase ends with `npm test`, `npm run build`, `npm run lint`, `npm run test:schema`,
 `git diff --check` — all green — in its own commit.
+
+---
+
+## 8. Phase B — delivered
+
+Commit `b8de72f` · `feat: add personalization engine, preferences, signal and focus logs`
+
+New module **`src/lib/personalization.js`** — pure, deterministic, and reading only from
+two sources: observable app behaviour, and preferences the user explicitly set.
+
+| Capability | Function | Honesty gate |
+|---|---|---|
+| Behaviour log | `recordSignal`, `pruneSignals`, `signalCounts` | unknown types rejected, capped at 400 |
+| Preferences | `coercePreferences`, `preferencesOf`, `preferencesSet` | everything defaults to `null` |
+| Focus log | `recordFocusSession`, `baseFocusSession` | a session with no end is not stored |
+| Completion history | `completedByKind`, `activityMix` | needs ≥ 5 dated completions |
+| Working window | `preferredWindow`, `workingWindow` | ≥ 5 observations, ≥ 3 in the winning hour |
+| Adaptive estimates | `estimateAdvice` | ≥ 3 completed estimate/actual pairs |
+| Quick actions | `quickActions` | below threshold → default order, and says so |
+| Home emphasis | `homeEmphasis` | weights clamped to `0.85–1.35` |
+| Profile | `productivityProfile`, `typicalFocusDuration`, `typicalDailyLoad` | per-section `enough` |
+| Personalized priority | `personalizeScore`, `personalizedRanking` | total nudge capped at `±0.08` |
+| Context | `contextualLens` | clock + real workload + explicit focus hours |
+
+`EMPHASIS_WEIGHTS` returns the **same four section keys for every state**, so the adapter can
+change emphasis but never structure (requirement 1). `personalizeScore` refuses to touch an item
+that already has a hard deadline — a deadline outranks the clock, and it should.
+
+### Two bugs this phase surfaced and fixed
+
+Both were mine, and both were caught by tests rather than by review:
+
+1. **`coercePreferences` turned a `null` hour into `0`.** `Number(null)` is `0`, which passed the
+   `0…23` range check, so "no preference set" silently became "midnight". That is precisely the
+   assumption this layer exists to avoid — and it also broke `normalizeImport` idempotency, which
+   is what made a synced document look permanently different from the cloud copy.
+2. **`baseFocusSession` spread raw input last**, so `actualMin: 99999` survived its own range
+   validation and was stored. Validation now runs after the spread.
+
+### Verification
+
+| Command | Before | After |
+|---|---|---|
+| `npm test` | 354 tests / 27 files | **432 tests / 29 files** |
+| `npm run lint` | 0 warnings | 0 warnings |
+| `npm run test:schema` | 28 / 28 | 28 / 28 |
+| `npm run build` | 225.8 kB gz initial JS | **226.7 kB gz** (+0.9 kB of a 236 kB budget) |
+| `git diff --check` | clean | clean |
+
+The engine landed in the eager bundle because `TodayScreen` will consume it, and it cost 0.9 kB
+gzip. Phase D's analytics work must not be imported the same way.
+
+### Still open after Phase B
+
+The engine is wired into the store, persistence, import/export and sync — but **nothing in the UI
+calls it yet**. No screen reads `homeEmphasis`, no action dispatches `RECORD_SIGNAL`, and there is
+still no Preferences editor. That is Phase C. Until then the user-visible product is unchanged,
+which is the point: the foundation was verified before anything was built on it.

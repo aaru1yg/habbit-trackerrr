@@ -5,6 +5,7 @@
    dropped, invalid ones fall back to honest defaults.
    ============================================================ */
 import { isValidDayStr, isoLocal, todayStr } from './dates.js'
+import { SIGNAL_TYPES, coercePreferences } from './personalization.js'
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3)
 
@@ -317,7 +318,65 @@ function coerceProfile(raw) {
     reminderNoteSeen: p.reminderNoteSeen === true,
     workReminders: p.workReminders !== false,
     workReminderHours: [12, 24, 48, 72].includes(Number(p.workReminderHours)) ? Number(p.workReminderHours) : 24,
+    // Carried so mergeDocs can resolve a profile conflict by recency
+    // instead of always letting local win (docs/NEXTGEN-AUDIT.md §4.2).
+    updatedAt: typeof p.updatedAt === 'string' && Date.parse(p.updatedAt) ? p.updatedAt : null,
   }
+}
+
+/* ---------------- Adaptive layer ----------------
+   The signal log and focus log hold only events that really happened.
+   A malformed entry is dropped rather than repaired: an invented
+   behaviour record would poison every personalisation built on it. */
+
+const MAX_IMPORT_SIGNALS = 400
+const MAX_IMPORT_SESSIONS = 300
+
+function coerceSignals(raw) {
+  if (!Array.isArray(raw)) return []
+  const out = []
+  for (const s of raw) {
+    if (!s || typeof s !== 'object') continue
+    if (typeof s.type !== 'string' || !SIGNAL_TYPES[s.type]) continue
+    if (typeof s.at !== 'string' || !Date.parse(s.at)) continue
+    out.push({
+      id: typeof s.id === 'string' && s.id ? s.id.slice(0, 60) : newId(),
+      type: s.type,
+      at: s.at,
+      target: typeof s.target === 'string' && s.target.trim() ? s.target.slice(0, 80) : null,
+      note: typeof s.note === 'string' && s.note.trim() ? s.note.slice(0, 120) : null,
+    })
+  }
+  return out.slice(-MAX_IMPORT_SIGNALS)
+}
+
+const num = (v, min, max) => (Number.isFinite(v) && v >= min && v <= max ? Math.round(v) : null)
+const iso = (v) => (typeof v === 'string' && Date.parse(v) ? v : null)
+
+function coerceFocusLog(raw) {
+  if (!Array.isArray(raw)) return []
+  const kinds = ['habit', 'assignment', 'project', 'project-task', 'goal-milestone']
+  const out = []
+  for (const s of raw) {
+    if (!s || typeof s !== 'object') continue
+    const startedAt = iso(s.startedAt)
+    const endedAt = iso(s.endedAt)
+    // A session with no real start and end is not a session.
+    if (!startedAt || !endedAt) continue
+    out.push({
+      id: typeof s.id === 'string' && s.id ? s.id.slice(0, 60) : newId(),
+      kind: kinds.includes(s.kind) ? s.kind : null,
+      itemId: s.itemId == null ? null : String(s.itemId).slice(0, 60),
+      name: typeof s.name === 'string' && s.name.trim() ? s.name.slice(0, 120) : null,
+      startedAt,
+      endedAt,
+      plannedMin: num(s.plannedMin, 1, 1440),
+      actualMin: num(s.actualMin, 0, 14400),
+      completed: s.completed === true,
+      interrupted: s.interrupted === true,
+    })
+  }
+  return out.slice(-MAX_IMPORT_SESSIONS)
 }
 
 /* ---------------- Entry point ---------------- */
@@ -364,6 +423,11 @@ export function normalizeImport(parsed) {
   const checkins = coerceCheckins(source.checkins)
   const moods = coerceMoods(source.moods ?? source.mood ?? {})
   const profile = coerceProfile(source.profile)
+  // Adaptive layer: strict by default. An older file simply has none,
+  // which is honest — no preferences and no history are invented here.
+  const preferences = coercePreferences(source.preferences)
+  const signals = coerceSignals(source.signals)
+  const focusLog = coerceFocusLog(source.focusLog)
 
   // Drop check-ins that reference an unknown habit; keep everything else intact.
   for (const key of Object.keys(checkins)) if (!habitIds.has(key)) delete checkins[key]
@@ -384,6 +448,9 @@ export function normalizeImport(parsed) {
     assignments: assignments.map((a) => ({ ...a, projectId: a.projectId && projectIds.has(a.projectId) ? a.projectId : null })),
     goals,
     moods,
+    preferences,
+    signals,
+    focusLog,
   }
 }
 
@@ -410,6 +477,9 @@ export function exportPayload(state) {
       goals: state.goals || [],
       assignments: state.assignments,
       moods: state.moods,
+      preferences: state.preferences,
+      signals: state.signals,
+      focusLog: state.focusLog,
     },
   }
 }

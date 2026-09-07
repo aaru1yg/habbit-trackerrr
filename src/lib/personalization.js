@@ -57,6 +57,9 @@ export const SIGNAL_TYPES = {
   'plan-build': 'Built a plan',
   'capture': 'Used quick capture',
   'item-defer': 'Moved work to another day',
+  /* Phase G: the user acted on a suggestion. Observable product behaviour,
+     not an inferred attribute. */
+  'estimate-accept': 'Accepted a learned estimate',
 }
 
 export const MAX_SIGNALS = 400

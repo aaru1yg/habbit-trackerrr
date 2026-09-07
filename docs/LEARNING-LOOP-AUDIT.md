@@ -143,3 +143,88 @@ Applyable kinds: **assignment, project, project-task**. Nothing else.
   this in Settings; Phase G does not duplicate it.
 - Visual QA at 390×844 / 430×932 — Phase H.
 - Deployment.
+
+---
+
+## 7. Delivery record
+
+Shipped in five commits on `arena/01a07d32-habbit-trackerrr`:
+
+| Commit | What |
+| --- | --- |
+| `5c37678` | `docs: audit the learning loop before phase G` |
+| `58259c5` | `feat: add the learning loop's accept path` — `learning.js`, `estimate-accept` signal |
+| `5e3c8fb` | `feat: surface the accept path where the evidence is shown` — weekly panel + Focus Mode |
+| `2a84c24` | `test: cover the learning loop and its accept path` — 40 tests |
+| `1e612f2` | `perf: keep the kind-level suggestion out of the initial chunk` |
+
+### 7.1 What changed
+
+**The weekly panel now keeps its promise.** Phase F shipped it ending with *"Nothing changes
+unless you accept it."* and no accept control in the file. It now renders one button per
+suggestion, labelled with the number it writes (`Plan 45m instead`), dispatching an existing
+reducer action, followed by the established undo toast.
+
+**Focus Mode's advice became actionable.** `estimateAdvice` computed `suggestedMin` and the
+UI threw it away as read-only text. The stored estimate is still shown alongside and is
+still never substituted silently.
+
+**Acceptance is recorded** as a new `estimate-accept` signal, so the product can eventually
+distinguish acted-on from ignored. That is observable product behaviour, not an inferred
+attribute.
+
+### 7.2 Three design corrections made during the build
+
+**A habit is explained, not applied.** A habit record carries no `estimateMin`, so the accept
+path returns `null` for one and the UI states why. Inventing the field would be exactly the
+silent mutation #25 forbids.
+
+**One evidence source per claim.** The first version re-derived the number through
+`estimateAdvice`, which reads *completed records*, while the weekly suggestion is measured
+from the *focus log*. Two sources for one claim meant the panel could quote a figure the
+button would not write — or not appear at all. `kindSuggestion` now writes the figure the
+suggestion itself measured.
+
+**No local "Applied" flag.** It went stale the moment a user pressed Undo. The suggestion is
+derived from state, so it resolves itself once the estimate matches the evidence and returns
+if the change is undone.
+
+### 7.3 Bundle
+
+The audit predicted in §5 that Focus Mode is eager and would cost the initial chunk. It did,
+and a second cost was missed until the built bundle was grepped.
+
+| | initial JS (gz) | vs 236 kB cap |
+| --- | --- | --- |
+| Phase F (`1928b3c`) | 233.7 kB | 2.3 kB headroom |
+| Phase G, first wiring | 234.9 kB | 1.1 kB headroom |
+| Phase G, after the split | **234.5 kB** | **1.5 kB headroom** |
+
+Wiring the accept path into the lazy `ExecutionPanels` was assumed to be free. It was not:
+`learning.js` is also imported by the eager Focus Mode, so the whole module — including
+`kindSuggestion`, used only by the lazy panel — was pulled into the initial chunk. Grepping
+the built bundle showed the panel's own literals present in `index-*.js` and absent from the
+`ExecutionPanels` chunk. Splitting into `learning.js` (eager-safe) and `learningKinds.js`
+(lazy-only) fixed it.
+
+**Headroom is now 1.5 kB.** Phase H adds no eager code by design.
+
+### 7.4 Gates at `1e612f2`
+
+- `npm test` — **753 passed / 39 files** (was 713 / 37). No existing test changed.
+- `npm run lint` — clean.
+- `npm run test:schema` — 28 passed, 0 failed.
+- `npm run build` — `Perf budget OK — initial JS 234.5 kB gz, CSS 38.3 kB gz, three lazy-only`.
+- `git diff --check` — clean.
+- Preview on :4173 — `/`, `release.json`, and all JS chunks plus CSS return 200.
+- Laziness verified by grepping literals that survive minification: the panel's strings
+  appear only in `ExecutionPanels-*.js`; Focus Mode's correctly appear in `index-*.js`.
+
+### 7.5 Not done
+
+- **No learning dashboard.** `productivityProfile` already surfaces this in Settings.
+- **No bulk apply, and none is planned.** A suggestion resolves to one named record.
+- **No prediction.** Only the observed mean of comparable completed work — no model, no
+  extrapolation.
+- Visual QA at 390×844 / 430×932 / 1440×900 — Phase H, needs a real browser.
+- Nothing deployed.

@@ -42,7 +42,7 @@ try {
       // measure the real, settled layout (matching qa/release.mjs's ready()).
       await page.evaluate(() => document.fonts.ready)
       const res = await page.evaluate(() => {
-        const out = { overflow: [], tiny: [], docOverflow: 0, innerW: 0 }
+        const out = { overflow: [], tiny: [], docOverflow: 0, innerW: 0, worst: null }
         const de = document.documentElement
         out.docOverflow = de.scrollWidth - de.clientWidth
         out.innerW = window.innerWidth
@@ -67,6 +67,22 @@ try {
             if (clipped(el)) continue
             const cls = (el.className || '').toString().split(' ').filter(Boolean).slice(0, 2).join('.')
             out.overflow.push(`${el.tagName.toLowerCase()}${cls ? '.' + cls : ''} [${Math.round(r.left)}..${Math.round(r.right)}]`)
+            // The finding list is capped, and the offending element is rarely
+            // the one that establishes the bad width. For the widest offender
+            // on this route, record the ancestor chain with each box's width,
+            // display and overflow-x so the real culprit is identifiable from
+            // the log alone.
+            if (!out.worst || r.right > out.worst.right) {
+              const chain = []
+              for (let p = el; p && p !== document.documentElement; p = p.parentElement) {
+                const pr = p.getBoundingClientRect()
+                const pcs = getComputedStyle(p)
+                const pcls = (p.className || '').toString().trim().split(/\s+/).filter(Boolean).slice(0, 2).join('.')
+                chain.push(`${p.tagName.toLowerCase()}${p.id ? '#' + p.id : ''}${pcls ? '.' + pcls : ''}` +
+                  `[w=${Math.round(pr.width)} d=${pcs.display} ox=${pcs.overflowX}]`)
+              }
+              out.worst = { right: r.right, chain }
+            }
           }
         }
         // tap targets
@@ -102,7 +118,8 @@ try {
         return out
       })
       if (res.docOverflow > 1) note(vname, route, 'overflow-x', `document overflows by ${res.docOverflow}px`)
-      for (const o of [...new Set(res.overflow)].slice(0, 6)) note(vname, route, 'overflow-el', o)
+      for (const o of [...new Set(res.overflow)].slice(0, 12)) note(vname, route, 'overflow-el', o)
+      if (res.worst) note(vname, route, 'widest-chain', res.worst.chain.join(' < '))
       for (const t of [...new Set(res.tiny)].slice(0, 8)) note(vname, route, 'tap-target', t)
       const errs = [...page._qa.pageErrors, ...page._qa.consoleErrors]
       for (const e of errs.slice(0, 3)) note(vname, route, 'console', e.slice(0, 160))

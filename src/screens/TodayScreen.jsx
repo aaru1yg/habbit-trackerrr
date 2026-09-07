@@ -13,6 +13,8 @@ import SearchPalette from '../components/layout/SearchPalette.jsx'
 import AdaptiveCommandCenter from '../components/today/AdaptiveCommandCenter.jsx'
 import PlanningPanel from '../components/today/PlanningPanel.jsx'
 import FocusMode from '../components/today/FocusMode.jsx'
+import { AdaptiveEmphasis, AdaptiveQuickActions, emphasisVars } from '../components/today/AdaptiveHome.jsx'
+import { homeEmphasis, preferencesOf } from '../lib/personalization.js'
 import { recoveryPlan } from '../lib/planning.js'
 import AiCoach from '../components/today/AiCoach.jsx'
 
@@ -101,9 +103,15 @@ export default function TodayScreen({ onFire }) {
     }
   }, [state, today])
   const recovery = useMemo(() => recoveryPlan(state, { now: new Date() }), [state])
+
+  /* §1 Adaptive Home — emphasis only. The section list and its order never
+     change; only how strongly each area reads, and why, is derived here. */
+  const emphasis = useMemo(() => homeEmphasis(state, { now: new Date() }), [state])
+  const [focusTick, setFocusTick] = useState(0)
+  const [planTick, setPlanTick] = useState(0)
   const adaptive = useMemo(() => {
     const now = new Date()
-    const capacityMin = Number.isFinite(state.profile?.dailyCapacityMin) ? state.profile.dailyCapacityMin : null
+    const capacityMin = preferencesOf(state).dailyCapacityMin
     const priorities = getTodayPriorities(state, { now, limit: 5, capacityMin })
     const next = getNextBestAction(state, { now, capacityMin })
     const workload = workloadCapacity({ availableMin: capacityMin, items: priorities.map((p) => p.item) })
@@ -178,7 +186,7 @@ export default function TodayScreen({ onFire }) {
         </div>
       </header>
 
-      <SpatialStage className="today-stage" focus={1700} parallax={10}>
+      <SpatialStage className="today-stage" focus={1700} parallax={10} style={emphasisVars(emphasis)} data-emphasis={emphasis.id}>
       <div className="stack">
         {/* The immersive command center: one composition, three depths. */}
         <TodayHero
@@ -190,9 +198,11 @@ export default function TodayScreen({ onFire }) {
           week={week}
         />
 
+        <AdaptiveQuickActions now={new Date()} onFocus={() => setFocusTick((t) => t + 1)} onPlan={() => setPlanTick((t) => t + 1)} />
+        <AdaptiveEmphasis emphasis={emphasis} />
         <AdaptiveCommandCenter data={adaptive} onComplete={completeAdaptive} />
-        <PlanningPanel state={state} now={new Date()} />
-        <FocusMode state={state} dispatch={dispatch} now={new Date()} />
+        <PlanningPanel state={state} now={new Date()} openTick={planTick} />
+        <FocusMode state={state} dispatch={dispatch} now={new Date()} openTick={focusTick} />
         {adaptive.next && <AiCoach state={state} facts={{ title: adaptive.next.item.label || adaptive.next.item.name, progress: adaptive.next.progress, expectedProgress: adaptive.next.risk?.id === 'AT RISK' ? 100 : undefined, risk: adaptive.next.risk?.id, summary: adaptive.next.reason, evidence: adaptive.next.reasons }} />}
         {recovery.keep.length > 0 && <section className="card pad recovery-panel"><CardHead title="Recovery plan"><span className="tiny muted">suggestion only</span></CardHead><p className="card-blurb">{recovery.explanation}</p><div className="recovery-groups"><div><strong>KEEP</strong>{recovery.keep.map(x=><span key={x.item.id}>{x.item.label||x.item.name}<small>{x.reasons?.join(' · ')||'Highest current risk'}</small></span>)}</div><div><strong>MOVE / DEFER</strong>{[...(recovery.move||[]),...(recovery.defer||[])].map(x=><span key={x.item.id}>{x.item.label||x.item.name}<small>Consider moving; it is less urgent than the keep group.</small></span>)}</div></div><p className="tiny muted">{recovery.validation.reason}</p></section>}
 

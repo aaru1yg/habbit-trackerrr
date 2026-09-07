@@ -56,8 +56,6 @@ export const SIGNAL_TYPES = {
   'focus-complete': 'Finished a focus session',
   'plan-build': 'Built a plan',
   'capture': 'Used quick capture',
-  'insight-open': 'Opened insights',
-  'workload-open': 'Reviewed workload',
   'item-defer': 'Moved work to another day',
 }
 
@@ -421,20 +419,22 @@ export const QUICK_ACTIONS = [
   { id: 'add-assignment', label: 'Add assignment', signal: 'work-add', target: 'assignment' },
   { id: 'start-focus', label: 'Start focus', signal: 'focus-start' },
   { id: 'plan-day', label: 'Plan my day', signal: 'plan-build' },
-  { id: 'review-workload', label: 'Review workload', signal: 'workload-open' },
-  { id: 'view-insights', label: 'View insights', signal: 'insight-open' },
+  { id: 'review-workload', label: 'Review workload', signal: 'screen-visit', target: 'workload' },
+  { id: 'view-insights', label: 'View insights', signal: 'screen-visit', target: 'insights' },
 ]
 
-/** Count real observations of one action inside the window. */
+/**
+ * Count real observations of one action inside the window. One signal type
+ * can serve several actions through its target — 'work-add' feeds both
+ * "Add project" and "Add assignment" — so they learn independently.
+ */
 function actionScore(action, log, days, now) {
   const cutoff = subDaysStr(dayStr(now), days - 1)
   let n = 0
   for (const s of Array.isArray(log) ? log : []) {
     if (!s || s.type !== action.signal) continue
     if (dayStr(toLocalDate(s.at) || now) < cutoff) continue
-    // 'work-add' is one signal with two targets; count only the matching one
-    // so "Add project" and "Add assignment" learn independently.
-    if (action.signal === 'work-add' && s.target !== action.target) continue
+    if (action.target && s.target !== action.target) continue
     n++
   }
   return n

@@ -10,8 +10,12 @@ import { notificationState } from '../lib/reminders.js'
 import { projectStatus, assignmentStatus } from '../lib/work.js'
 import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
 import { todayStr, daysBetween } from '../lib/dates.js'
+import {
+  BREAK_STYLES, DEFAULT_PREFERENCES, preferencesOf, preferencesSet,
+  productivityProfile, workingWindow,
+} from '../lib/personalization.js'
 
-import { IconUser,  IconBell, IconBellOff, IconDownload, IconUpload, IconTrash, IconClock } from '../lib/icons.jsx'
+import { IconUser,  IconBell, IconBellOff, IconDownload, IconUpload, IconTrash, IconClock, IconSparkle } from '../lib/icons.jsx'
 import { BUILD_ID, BUILD_TIME } from '../lib/buildInfo.js'
 
 const THEMES = [
@@ -45,6 +49,14 @@ export default function SettingsScreen() {
   const workReminders = state.profile.workReminders !== false
   const hours = [12, 24, 48, 72].includes(Number(state.profile.workReminderHours)) ? Number(state.profile.workReminderHours) : 24
   const setWork = (patch) => dispatch({ type: 'SET_PROFILE', patch })
+
+  /* ---- How you work (§4) — explicit preferences, never assumed ---- */
+  const prefs = preferencesOf(state)
+  const setPref = (patch) => dispatch({ type: 'SET_PREFERENCE', patch })
+  const setCount = preferencesSet(state).length
+  const profile = useMemo(() => productivityProfile(state, { now: new Date() }), [state])
+  const observed = useMemo(() => workingWindow(state, { now: new Date() }), [state])
+  const [reminderFrom = '', reminderTo = ''] = (prefs.reminderWindow || '').split('-')
 
   const upcoming = useMemo(() => {
     const now = new Date()
@@ -170,6 +182,115 @@ export default function SettingsScreen() {
                 <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>{t.hint}</span>
               </button>
             ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard className="pad">
+          <CardHead title="How you work">
+            <span className="tiny muted">{setCount === 0 ? 'nothing set' : `${setCount} set`}</span>
+          </CardHead>
+          <p className="card-blurb">
+            Nothing here is guessed. Habit OS adapts to what it can observe on its own; these are the
+            things only you can say. Every field starts empty and stays optional.
+          </p>
+
+          <div className="pref-grid">
+            <PrefSelect
+              id="pref-capacity" label="Daily capacity"
+              hint="How much focused work a realistic day holds."
+              value={prefs.dailyCapacityMin}
+              onChange={(v) => setPref({ dailyCapacityMin: v })}
+              options={[60, 90, 120, 180, 240, 300, 360, 480].map((m) => ({ value: m, label: m < 60 ? `${m} min` : `${m / 60} h${m % 60 ? ` ${m % 60}m` : ''}` }))}
+            />
+            <PrefSelect
+              id="pref-buffer" label="Planning buffer"
+              hint="Kept free in every generated plan."
+              value={prefs.planningBufferPct}
+              onChange={(v) => setPref({ planningBufferPct: v })}
+              options={[0, 10, 15, 20, 25, 30].map((n) => ({ value: n, label: `${n}%` }))}
+            />
+            <PrefSelect
+              id="pref-focus-start" label="Focus hours start"
+              hint="When you do your best work."
+              value={prefs.focusStartHour}
+              onChange={(v) => setPref({ focusStartHour: v })}
+              options={HOURS}
+            />
+            <PrefSelect
+              id="pref-focus-end" label="Focus hours end"
+              hint="Leave empty to assume two hours."
+              value={prefs.focusEndHour}
+              onChange={(v) => setPref({ focusEndHour: v })}
+              options={HOURS}
+            />
+            <PrefTime
+              id="pref-planning-time" label="When you plan"
+              hint="When you like to look at the day or week."
+              value={prefs.planningTime}
+              onChange={(v) => setPref({ planningTime: v })}
+            />
+            <PrefSelect
+              id="pref-break" label="Break style"
+              hint="Used to pace focus sessions."
+              value={prefs.breakStyle}
+              onChange={(v) => setPref({ breakStyle: v })}
+              options={BREAK_STYLES.map((b) => ({ value: b.id, label: b.label }))}
+            />
+            <PrefSelect
+              id="pref-week-start" label="Week starts on"
+              value={prefs.weekStartsOn}
+              onChange={(v) => setPref({ weekStartsOn: v })}
+              options={WEEK_STARTS}
+            />
+            <PrefWindow
+              label="Habit reminder window"
+              hint="Only suggest habits inside these hours."
+              from={reminderFrom}
+              to={reminderTo}
+              onChange={(from, to) => setPref({ reminderWindow: from && to ? `${from}-${to}` : null })}
+            />
+          </div>
+
+          {setCount > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <button type="button" className="btn ghost sm" onClick={() => setPref({ ...DEFAULT_PREFERENCES })}>
+                Clear all preferences
+              </button>
+            </div>
+          )}
+
+          {/* §6 — the transparent profile. Evidence first, no score anywhere. */}
+          <div className="pref-observed" style={{ marginTop: 18 }}>
+            <p className="eyebrow"><IconSparkle size={13} /> What Habit OS has observed</p>
+            {!profile.enough && (
+              <p className="tiny muted" style={{ marginTop: 8, lineHeight: 1.6 }}>{profile.reason}</p>
+            )}
+            {profile.enough && (
+              <>
+                <ul className="pref-profile">
+                  {profile.sections.filter((s) => s.enough).map((s) => (
+                    <li key={s.id}>
+                      <span className="pref-profile-label">{s.label}</span>
+                      <strong>{s.value}</strong>
+                      <span className="tiny muted">{s.reason}</span>
+                      {s.evidence.length > 0 && (
+                        <span className="pref-evidence">
+                          {s.evidence.map((e) => <span key={e.label}>{e.label}: <b>{e.value}</b></span>)}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
+                  {observed.source === 'preference'
+                    ? 'The working window above comes from the focus hours you set.'
+                    : observed.enough
+                      ? 'The working window is inferred from your own logged actions — set focus hours above to override it.'
+                      : 'No working window yet: not enough logged actions to infer one honestly.'}
+                  {' '}There is no score here on purpose; every line names the data behind it.
+                </p>
+              </>
+            )}
           </div>
         </SectionCard>
 
@@ -321,6 +442,76 @@ export default function SettingsScreen() {
         </SectionCard>
       </div>
     </div>
+  )
+}
+
+/* ------------------------------------------------------------
+   Preference controls (§4). Every one of these can be left unset —
+   "Not set" is a real value, not a placeholder for a guess.
+   ------------------------------------------------------------ */
+
+const HOURS = Array.from({ length: 24 }, (_, h) => ({ value: h, label: `${String(h).padStart(2, '0')}:00` }))
+const WEEK_STARTS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  .map((label, value) => ({ value, label }))
+
+/** An empty string means "unset"; numbers come back as numbers. */
+const parsePref = (v) => (v === '' || v == null ? null : Number(v))
+
+function PrefField({ id, label, hint, children }) {
+  return (
+    <div className="pref-field">
+      <label className="field-label" htmlFor={id}>{label}</label>
+      {children}
+      {hint && <p className="tiny muted pref-hint">{hint}</p>}
+    </div>
+  )
+}
+
+function PrefSelect({ id, label, hint, value, onChange, options, unsetLabel = 'Not set' }) {
+  return (
+    <PrefField id={id} label={label} hint={hint}>
+      <select
+        id={id}
+        className="status-select"
+        value={value == null ? '' : String(value)}
+        onChange={(e) => onChange(parsePref(e.target.value))}
+      >
+        <option value="">{unsetLabel}</option>
+        {options.map((o) => <option key={o.value} value={String(o.value)}>{o.label}</option>)}
+      </select>
+    </PrefField>
+  )
+}
+
+function PrefTime({ id, label, hint, value, onChange }) {
+  return (
+    <PrefField id={id} label={label} hint={hint}>
+      <input
+        id={id}
+        type="time"
+        className="status-select"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value || null)}
+      />
+    </PrefField>
+  )
+}
+
+function PrefWindow({ label, hint, from, to, onChange }) {
+  return (
+    <fieldset className="pref-field pref-window">
+      <legend className="field-label">{label}</legend>
+      <div className="pref-window-inputs">
+        <label className="sr-only" htmlFor="pref-window-from">Reminder window start</label>
+        <input id="pref-window-from" type="time" className="status-select" value={from || ''}
+          onChange={(e) => onChange(e.target.value || '', to)} />
+        <span aria-hidden="true">–</span>
+        <label className="sr-only" htmlFor="pref-window-to">Reminder window end</label>
+        <input id="pref-window-to" type="time" className="status-select" value={to || ''}
+          onChange={(e) => onChange(from, e.target.value || '')} />
+      </div>
+      {hint && <p className="tiny muted pref-hint">{hint}</p>}
+    </fieldset>
   )
 }
 

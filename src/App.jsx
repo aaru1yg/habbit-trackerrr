@@ -55,7 +55,7 @@ function ScreenFallback() {
 }
 
 export default function App() {
-  const { state } = useStore()
+  const { state, dispatch } = useStore()
   const { route, param } = useRoute()
   const [fire, setFire] = useState(0)
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine !== false)
@@ -96,6 +96,20 @@ export default function App() {
 
   // Close the More sheet when the route changes.
   useEffect(() => { setMoreOpen(false) }, [route, param])
+
+  /* Adaptive layer: one honest record per screen the user actually opens.
+     Guarded by a ref so a re-render (or a StrictMode double-invoke) never
+     inflates the count, and restricted to real routes so a stray hash is
+     not recorded as behaviour. */
+  const lastVisited = useRef(null)
+  useEffect(() => {
+    if (!ROUTES.includes(route) || lastVisited.current === route) return
+    lastVisited.current = route
+    dispatch({ type: 'RECORD_SIGNAL', signal: 'screen-visit', target: route })
+  }, [route, dispatch])
+
+  // Keep the log bounded: drop behaviour older than the window, once a session.
+  useEffect(() => { dispatch({ type: 'PRUNE_SIGNALS', days: 180 }) }, [dispatch])
 
   const onFire = () => setFire((f) => f + 1)
 

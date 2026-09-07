@@ -360,7 +360,11 @@ function reducer(state, action) {
         order: state.habits.length,
         ...action.habit,
       }
-      return { ...state, habits: [...state.habits, habit] }
+      return {
+        ...state,
+        habits: [...state.habits, habit],
+        signals: recordSignal(state.signals, 'habit-add', { target: habit.id }),
+      }
     }
     case 'UPDATE_HABIT':
       return { ...state, habits: state.habits.map((h) => (h.id === action.id ? { ...h, ...action.patch } : h)) }
@@ -409,7 +413,13 @@ function reducer(state, action) {
       if (!done) delete next.at
       if (!next.done && !next.note) delete days[action.date]
       else days[action.date] = next
-      return { ...state, checkins: { ...state.checkins, [action.habitId]: days } }
+      // A completion is behaviour the adaptive layer is allowed to learn from;
+      // un-completing is not, so only the forward direction is recorded.
+      return {
+        ...state,
+        checkins: { ...state.checkins, [action.habitId]: days },
+        signals: done ? recordSignal(state.signals, 'habit-complete', { target: action.habitId }) : state.signals,
+      }
     }
     case 'SET_CHECKIN_NOTE': {
       const days = { ...(state.checkins[action.habitId] || {}) }
@@ -438,7 +448,11 @@ function reducer(state, action) {
     /* ---- projects ---- */
     case 'ADD_PROJECT': {
       const project = baseProject({ order: state.projects.length, ...action.project })
-      return { ...state, projects: [...state.projects, settleProject(project)] }
+      return {
+        ...state,
+        projects: [...state.projects, settleProject(project)],
+        signals: recordSignal(state.signals, 'work-add', { target: 'project' }),
+      }
     }
     case 'UPDATE_PROJECT':
       return mapProject(state, action.id, (p) => settleProject({ ...p, ...action.patch }))
@@ -542,7 +556,11 @@ function reducer(state, action) {
     /* ---- assignments ---- */
     case 'ADD_ASSIGNMENT': {
       const assignment = baseAssignment({ order: state.assignments.length, ...action.assignment })
-      return { ...state, assignments: [...state.assignments, settleAssignment(assignment)] }
+      return {
+        ...state,
+        assignments: [...state.assignments, settleAssignment(assignment)],
+        signals: recordSignal(state.signals, 'work-add', { target: 'assignment' }),
+      }
     }
     case 'UPDATE_ASSIGNMENT':
       return mapAssignment(state, action.id, (a) => settleAssignment({ ...a, ...action.patch }))

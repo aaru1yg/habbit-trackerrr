@@ -496,3 +496,31 @@ export function habitPerformance(state, from, to) {
     }
   })
 }
+
+/**
+ * Per-habit momentum over an explicit date window: each point is the
+ * 7-day rolling completion percentage ending on that date. A point is
+ * only emitted when at least 3 of the trailing 7 days were scheduled
+ * for the habit (else null — never estimated). Shared by the Today
+ * master trend and Insights momentum charts.
+ */
+export function rollingSeries(state, habit, dates) {
+  return dates.map((date) => {
+    let eligible = 0
+    let done = 0
+    for (let k = 0; k < 7; k++) {
+      const d = subDaysStr(date, k)
+      if (!eligibleOn(habit, d)) continue
+      eligible++
+      if (isDone(state, habit.id, d)) done++
+    }
+    return { date, value: eligible >= 3 ? Math.round((done / eligible) * 100) : null }
+  })
+}
+
+/** Scheduled days inside a window for a habit (honest denominator). */
+export function scheduledIn(state, habit, dates) {
+  let n = 0
+  for (const d of dates) if (eligibleOn(habit, d)) n++
+  return n
+}

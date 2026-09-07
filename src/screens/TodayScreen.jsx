@@ -10,6 +10,7 @@ import { SpatialStage } from '../components/spatial/Depth.jsx'
 import { CardHead } from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import SearchPalette from '../components/layout/SearchPalette.jsx'
+import MasterTrend from '../components/charts/MasterTrend.jsx'
 
 import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween, weekdayShort } from '../lib/dates.js'
 import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak,  routineStats, activeRoutines, trendSeries } from '../lib/stats.js'
@@ -174,6 +175,9 @@ export default function TodayScreen({ onFire }) {
           copy={heroCopy}
           week={week}
         />
+
+        {/* Signature master graph: every habit's momentum, one canvas */}
+        {activeHabits(state).length > 0 && <MasterTrend state={state} />}
 
         {/* Today's priorities — what actually needs doing, in order */}
         {plan.rows.length > 0 && (

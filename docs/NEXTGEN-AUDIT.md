@@ -316,3 +316,64 @@ The engine is wired into the store, persistence, import/export and sync — but 
 calls it yet**. No screen reads `homeEmphasis`, no action dispatches `RECORD_SIGNAL`, and there is
 still no Preferences editor. That is Phase C. Until then the user-visible product is unchanged,
 which is the point: the foundation was verified before anything was built on it.
+
+---
+
+## 9. Phase C — delivered
+
+Commit `074dabd` · `feat: add adaptive home, preferences editor and the learning record`
+
+| Surface | Where | Notes |
+|---|---|---|
+| Preferences editor | `SettingsScreen.jsx` → "How you work" | 7 fields + clear-all; "Not set" is a real value |
+| Transparent profile | same card, lower half | evidence-backed, no score, names its sources |
+| Adaptive emphasis | `components/today/AdaptiveHome.jsx` | publishes 4 weights as CSS vars; states why |
+| Quick actions | same file | ranked from observations; unbuilt actions not rendered |
+| Behaviour signals | `store.jsx` reducer + `App.jsx` | reducer-side so a new UI path cannot forget |
+| Focus session record | `components/today/FocusMode.jsx` | real start/end/duration, persisted |
+| Adaptive estimate hint | same | "Your recent similar sessions average ~N min" |
+
+### The defect §4.1 was only half fixed by Phase B
+
+Phase B made `dailyCapacityMin` *storable*. It was still **unread**, because five call sites read
+`state.profile.dailyCapacityMin` while the preference lives in `state.preferences`. `Plan My Day`
+would have kept reporting `INSUFFICIENT DATA` in front of a user who had just set a capacity.
+
+Caught by the new test *"feeds Plan My Day, which was dead before capacity could be set"*, which
+failed until `planning.js`, `TodayScreen.jsx:114` and `WorkloadScreen.jsx:41` were repointed.
+`test/planning.test.js` moved its fixture to `preferences`; **all eight assertions are unchanged**.
+
+### Structural safety
+
+`emphasisVars()` publishes the weights and `data-emphasis` names the lean, but the section list,
+its order and the hierarchy are untouched. A test reads the real DOM and asserts every published
+weight sits inside `0.85–1.35`, and that *Plan my day* and *Focus mode* are still on the page.
+
+### Budget pressure — this is now the binding constraint
+
+| Phase | Initial JS gz | Headroom of 236 kB |
+|---|---|---|
+| baseline | 225.8 | 10.2 kB |
+| Phase B | 226.7 | 9.3 kB |
+| Phase C | **232.3** | **3.7 kB** |
+
+The jump is structural, not careless: `personalization.js` is reachable from `store.jsx`, so it sits
+in the initial chunk, and once any chunk uses more of its exports Rollup can no longer tree-shake
+the rest out of that single module instance.
+
+**Consequence for Phase D:** the analytics engine must be its own lazy module that **no eager file
+imports**. Anything Phase D adds to `personalization.js`, `store.jsx` or `TodayScreen.jsx` costs
+initial bundle directly.
+
+### Verification
+
+| Command | Phase B | Phase C |
+|---|---|---|
+| `npm test` | 432 / 29 | **452 / 30** |
+| `npm run lint` | clean | clean |
+| `npm run test:schema` | 28 / 28 | 28 / 28 |
+| `npm run build` | 226.7 kB gz | 232.3 kB gz |
+| `git diff --check` | clean | clean |
+
+`npm run preview` was started and checked by hand — index 200, both hashed assets 200,
+`release.json` 200. Puppeteer E2E is still unavailable in this sandbox (§6).

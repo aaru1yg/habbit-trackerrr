@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { Link } from '../../lib/router.jsx'
 import Sheet from '../ui/Sheet.jsx'
 import { useStore } from '../../store.jsx'
@@ -6,7 +6,7 @@ import { achievementSummary } from '../../lib/achievements.js'
 import {
   IconToday, IconCalendar, IconWeek, IconInsights, IconMind, IconGoals, IconSettings,
   IconProjects, IconAssignment, IconWorkload, IconTimeline, IconSearch, IconStack, IconX,
-  IconHabits, IconTrophy, IconRecord,
+  IconHabits, IconTrophy, IconRecord, IconSparkle,
 } from '../../lib/icons.jsx'
 
 /* ============================================================
@@ -100,17 +100,28 @@ const MORE_FLAT = MORE_GROUPS.flatMap((g) => g.items)
 
 const isActive = (route, item) => (item.group ? item.group.includes(route) : route === item.to)
 
-export function BottomNav({ route, onMore }) {
+export function BottomNav({ route, onMore, onCapture }) {
   const moreActive = MORE_FLAT.some((m) => m.to === route)
   return (
     <nav className="bottom-nav" aria-label="Main">
-      {MOBILE_TABS.map(({ to, label, Icon, group }) => {
+      {MOBILE_TABS.map(({ to, label, Icon, group }, i) => {
         const active = isActive(route, { to, group })
         return (
-          <Link key={to} to={to} aria-current={active ? 'page' : undefined}>
-            <span className="nav-pill"><Icon size={21} /></span>
-            {label}
-          </Link>
+          <Fragment key={to}>
+            {/* Phase E: quick capture sits in the middle of the mobile nav so
+                it is one thumb-reach away on every screen. Nothing existing
+                is removed or reordered. */}
+            {i === 2 && onCapture && (
+              <button type="button" className="nav-capture" onClick={onCapture} aria-label="Quick capture">
+                <span className="nav-pill nav-pill-accent"><IconSparkle size={21} /></span>
+                Capture
+              </button>
+            )}
+            <Link to={to} aria-current={active ? 'page' : undefined}>
+              <span className="nav-pill"><Icon size={21} /></span>
+              {label}
+            </Link>
+          </Fragment>
         )
       })}
       <button type="button" onClick={onMore} aria-current={moreActive ? 'page' : undefined} aria-label="More sections">

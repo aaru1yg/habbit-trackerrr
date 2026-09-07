@@ -12,6 +12,9 @@ import BootSequence from './components/spatial/BootSequence.jsx'
 import { applySpatialMode } from './lib/spatial.js'
 import { BottomNav, Sidebar, MoreSheet } from './components/layout/Navigation.jsx'
 import SearchPalette from './components/layout/SearchPalette.jsx'
+/* Phase E: the Command Center carries the capture parser and the command
+   registry, so it is loaded on first ⌘K rather than on first paint. */
+const CommandCenter = lazy(() => import('./components/layout/CommandCenter.jsx'))
 import Onboarding from './components/Onboarding.jsx'
 import Confetti from './components/ui/Confetti.jsx'
 import MigrationDialog from './components/auth/MigrationDialog.jsx'
@@ -19,7 +22,7 @@ import { isSheetOpen } from './components/ui/Sheet.jsx'
 import TodayScreen from './screens/TodayScreen.jsx'
 import { checkReminders, notify, checkWorkReminders, notifyWork } from './lib/reminders.js'
 import { nowHHMM, todayStr } from './lib/dates.js'
-import { IconPlus, IconOffline, IconProjects, IconAssignment, IconStack } from './lib/icons.jsx'
+import { IconPlus, IconOffline, IconProjects, IconAssignment, IconStack, IconSparkle } from './lib/icons.jsx'
 
 /* Heavy screens are code-split; Today stays eager (it IS the product). */
 const CalendarScreen = lazy(() => import('./screens/CalendarScreen.jsx'))
@@ -61,6 +64,7 @@ export default function App() {
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine !== false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
 
   // V4: publish the device's spatial tier once, keep it honest on change.
   useEffect(() => applySpatialMode(), [])
@@ -76,19 +80,28 @@ export default function App() {
     }
   }, [])
 
-  // '/' opens search anywhere except inside a field or dialog.
+  /* '/' opens search and ⌘K / Ctrl+K opens the command center, anywhere
+     except inside a field or an open dialog. Both share one guard so the
+     two shortcuts can never fight over the same keystroke. */
   useEffect(() => {
+    const inAField = () => {
+      const el = document.activeElement
+      if (!el) return true
+      const isField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable
+      // a field left focused inside a sheet that is animating out does not count
+      const lingering = el.closest?.('[role="dialog"]') && !isSheetOpen()
+      return isField && el.isConnected && !lingering
+    }
     const onKey = (e) => {
-      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        const el = document.activeElement
-        if (!el || isSheetOpen()) return
-        const isField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable
-        // a field left focused inside a sheet that is animating out does not count
-        const lingering = el.closest?.('[role="dialog"]') && !isSheetOpen()
-        if (isField && el.isConnected && !lingering) return
-        e.preventDefault()
-        setSearchOpen(true)
-      }
+      const wantsCommand = (e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k'
+      const wantsSearch = e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey
+      if (!wantsCommand && !wantsSearch) return
+      if (isSheetOpen()) return
+      // ⌘K is a chord, so it works from inside a field; '/' does not.
+      if (wantsSearch && inAField()) return
+      e.preventDefault()
+      if (wantsCommand) setCommandOpen(true)
+      else setSearchOpen(true)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -152,7 +165,7 @@ export default function App() {
                   change re-plays it; reduced motion disables it in CSS. */}
               <div key={`${active}${param ? `/${param}` : ''}`} className="route-cam">
                 <Suspense fallback={<ScreenFallback />}>
-                  {active === 'today' && <TodayScreen onFire={onFire} />}
+                  {active === 'today' && <TodayScreen onFire={onFire} onCapture={() => setCommandOpen(true)} />}
                   {active === 'calendar' && <CalendarScreen key={param || 'current'} ymParam={param} />}
                   {active === 'week' && <WeekScreen />}
                   {active === 'insights' && <InsightsScreen />}
@@ -171,8 +184,11 @@ export default function App() {
               </div>
             </main>
 
-            <Fab route={active} />
+            <Fab route={active} onCapture={() => setCommandOpen(true)} />
             <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+            <Suspense fallback={null}>
+              <CommandCenter open={commandOpen} onClose={() => setCommandOpen(false)} />
+            </Suspense>
           </HabitUIProvider>
         </WorkUIProvider>
 
@@ -183,7 +199,7 @@ export default function App() {
         <ReminderScheduler />
       </ToastProvider>
 
-      <BottomNav route={active} onMore={() => setMoreOpen(true)} onSearch={() => setSearchOpen(true)} />
+      <BottomNav route={active} onMore={() => setMoreOpen(true)} onSearch={() => setSearchOpen(true)} onCapture={() => setCommandOpen(true)} />
       <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} route={active} onSearch={() => setSearchOpen(true)} />
     </>
   )
@@ -194,7 +210,7 @@ export default function App() {
    the habit screens (§11). It sits above the bottom nav, inside
    the safe area, and screens reserve bottom padding for it.
    ------------------------------------------------------------ */
-function Fab({ route }) {
+function Fab({ route, onCapture }) {
   const habitUI = useHabitUI()
   const workUI = useWorkUI()
   const [open, setOpen] = useState(false)
@@ -224,6 +240,9 @@ function Fab({ route }) {
       <div className="fab-stack">
         {open && (
           <div className="fab-menu" role="menu" aria-label="Add">
+            <button className="fab-choice" role="menuitem" onClick={() => { setOpen(false); onCapture() }}>
+              <IconSparkle size={17} /> Quick capture
+            </button>
             <button className="fab-choice" role="menuitem" onClick={() => { setOpen(false); habitUI.openAdd() }}>
               <IconPlus size={17} /> Habit
             </button>

@@ -35,9 +35,9 @@ const EMPHASIS_HEADING = {
 }
 
 /* Actions we can actually perform right now. Anything without a handler is
-   not rendered — a button that does nothing would be a lie. Quick capture
-   arrives in Phase E and joins this map then. */
+   not rendered — a button that does nothing would be a lie. */
 const ACTION_ICON = {
+  capture: IconSparkle,
   'add-habit': IconPlus,
   'add-project': IconProjects,
   'add-assignment': IconAssignment,
@@ -100,7 +100,7 @@ export function AdaptiveEmphasis({ emphasis }) {
   )
 }
 
-export function AdaptiveQuickActions({ now, onFocus, onPlan }) {
+export function AdaptiveQuickActions({ now, onFocus, onPlan, onCapture }) {
   const { state } = useStore()
   const habitUI = useHabitUI()
   const workUI = useWorkUI()
@@ -109,6 +109,7 @@ export function AdaptiveQuickActions({ now, onFocus, onPlan }) {
 
   const run = (id) => {
     switch (id) {
+      case 'capture': return onCapture?.()
       case 'add-habit': return habitUI.openAdd()
       case 'add-project': return workUI.newProject()
       case 'add-assignment': return workUI.newAssignment()
@@ -121,7 +122,7 @@ export function AdaptiveQuickActions({ now, onFocus, onPlan }) {
   }
 
   // Only render actions this build can actually carry out.
-  const actions = result.actions.filter((a) => ACTION_ICON[a.id] && (a.id !== 'start-focus' || onFocus) && (a.id !== 'plan-day' || onPlan))
+  const actions = result.actions.filter((a) => ACTION_ICON[a.id] && (a.id !== 'start-focus' || onFocus) && (a.id !== 'plan-day' || onPlan) && (a.id !== 'capture' || onCapture))
   if (!actions.length) return null
 
   return (

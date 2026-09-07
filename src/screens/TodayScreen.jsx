@@ -13,6 +13,7 @@ import SearchPalette from '../components/layout/SearchPalette.jsx'
 import AdaptiveCommandCenter from '../components/today/AdaptiveCommandCenter.jsx'
 import PlanningPanel from '../components/today/PlanningPanel.jsx'
 import FocusMode from '../components/today/FocusMode.jsx'
+import { takeIntent, onIntent, INTENTS } from '../lib/intents.js'
 import { AdaptiveEmphasis, AdaptiveQuickActions, emphasisVars } from '../components/today/AdaptiveHome.jsx'
 import { homeEmphasis, preferencesOf } from '../lib/personalization.js'
 import { recoveryPlan } from '../lib/planning.js'
@@ -30,7 +31,7 @@ import {
   IconSearch,
 } from '../lib/icons.jsx'
 
-export default function TodayScreen({ onFire }) {
+export default function TodayScreen({ onFire, onCapture }) {
   const { state, dispatch } = useStore()
   const habitUI = useHabitUI()
   const today = todayStr()
@@ -109,6 +110,21 @@ export default function TodayScreen({ onFire }) {
   const emphasis = useMemo(() => homeEmphasis(state, { now: new Date() }), [state])
   const [focusTick, setFocusTick] = useState(0)
   const [planTick, setPlanTick] = useState(0)
+
+  /* The Command Center can be opened from any route, but the panels that
+     perform "Plan my day" and "Start focus" live here. It queues an intent;
+     we consume it once on arrival. Nothing is scheduled silently — the
+     panel still shows the plan and waits for approval. */
+  useEffect(() => {
+    const consume = (intent) => {
+      if (!intent) return
+      takeIntent()
+      if (intent === INTENTS.PLAN_DAY || intent === INTENTS.PLAN_WEEK) setPlanTick((n) => n + 1)
+      else if (intent === INTENTS.START_FOCUS) setFocusTick((n) => n + 1)
+    }
+    consume(takeIntent()) // anything queued before this screen mounted
+    return onIntent(consume) // and anything queued while it is already open
+  }, [])
   const adaptive = useMemo(() => {
     const now = new Date()
     const capacityMin = preferencesOf(state).dailyCapacityMin
@@ -198,7 +214,7 @@ export default function TodayScreen({ onFire }) {
           week={week}
         />
 
-        <AdaptiveQuickActions now={new Date()} onFocus={() => setFocusTick((t) => t + 1)} onPlan={() => setPlanTick((t) => t + 1)} />
+        <AdaptiveQuickActions now={new Date()} onFocus={() => setFocusTick((t) => t + 1)} onPlan={() => setPlanTick((t) => t + 1)} onCapture={onCapture} />
         <AdaptiveEmphasis emphasis={emphasis} />
         <AdaptiveCommandCenter data={adaptive} onComplete={completeAdaptive} />
         <PlanningPanel state={state} now={new Date()} openTick={planTick} />

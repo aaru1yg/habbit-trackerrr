@@ -377,3 +377,101 @@ initial bundle directly.
 
 `npm run preview` was started and checked by hand — index 200, both hashed assets 200,
 `release.json` 200. Puppeteer E2E is still unavailable in this sandbox (§6).
+
+## 10. Phase D — delivered
+
+Analytics and storytelling (requirement areas 7–16). Full reuse inventory and gap analysis in
+`docs/ANALYTICS-AUDIT.md`; this section records what shipped and what it cost.
+
+### The engine
+
+One new file, `src/lib/advancedAnalytics.js`, pure and deterministic. It owns no forecast, no risk
+model and no chart primitive — `goalProjection`, `projectForecast`, `assignmentPace`,
+`goalContributors`, `workloadSeries`, `progressSeries`, `smartInsights`, `weekdayPerformance`,
+`consistencyRanking` and `habitMatrix` are all called rather than reimplemented.
+
+| Export | Purpose |
+|---|---|
+| `completionEvents` | the one dated list of every completion kind |
+| `timelineSeries` | 7D/30D/90D/6M/1Y/ALL with kind filters |
+| `trajectorySeries` | past / current / projected for goal, project, assignment, habit |
+| `workloadLandscape` | per-day load framed against user-set capacity |
+| `consistencyMatrix` / `matrixCellDetail` | habit × day grid, and what one cell really holds |
+| `goalContribution` | goal → milestones → projects/assignments → habits |
+| `productivityVelocity` | velocity, acceleration and trend from real weeks |
+| `deadlinePressureMap` | exclusive horizons with existing status labels |
+| `comparisonSeries` | deltas only where both windows hold data |
+| `insightDrilldown` / `explorableInsights` | observation → evidence → underlying items |
+| `storySteps` | the five-step guided tour |
+
+Two honesty decisions worth naming, because both were bugs before they were written down:
+
+- **A habit is never projected.** `trajectorySeries` returns `projectionState: 'not-applicable'`
+  and the sentence *"A habit measures cadence, not completion."* Inventing a completion percentage
+  for a cadence would have been the easiest fake in the whole phase.
+- **`0` versus `0` is not a comparison.** `comparisonSeries` withholds a metric when both windows
+  are zero; two zeros say nothing about change. Likewise velocity needs at least one completion in
+  the two measured weeks, otherwise the answer is `INSUFFICIENT DATA` rather than `STEADY`.
+
+### The screen
+
+`src/screens/AnalyticsLab.jsx` — seven views (Story, Timeline, Trajectory, Workload, Habits, Goals,
+Trends) behind one contract: **headline → key finding → evidence → detail**. Drill-down opens the
+existing `Sheet`; no new modal, no new chart component.
+
+The one chart change is an optional `onCellTap` on `HabitMatrix`. When a caller passes it, each cell
+becomes a real 22px focusable button with a visible focus ring; when it does not, the markup is
+byte-identical to before, so `InsightsScreen`'s existing read-only matrix is untouched.
+
+### Lazy strategy, and proof it held
+
+`InsightsScreen` gained a third view that loads the lab through `React.lazy`. Three checks:
+
+1. A test asserts `advancedAnalytics.js` has exactly one importer in `src/` — `AnalyticsLab.jsx` —
+   and that `store.jsx`, `App.jsx`, `main.jsx` and `SyncProvider.jsx` do not mention it.
+2. A test asserts the import in `InsightsScreen.jsx` is the `lazy(() => import(...))` form and that
+   there is no static import line for it.
+3. The build output was grepped for string literals that survive minification
+   (`no drill-down yet`, `cadence, not completion`, `8–30 days`, `Heaviest day`). Each appears
+   **once, in `AnalyticsLab-*.js`, and zero times in the initial `index` chunk and zero times in
+   the `InsightsScreen` chunk.**
+
+That third check matters: grepping for *function names* finds nothing, because production builds
+mangle them. The Phase C lesson (a module that Rollup cannot tree-shake out of the initial chunk)
+only shows up in the emitted bundle, not in the source graph.
+
+### Bundle impact
+
+| Phase | Initial JS gz | Headroom of 236 kB | New chunk |
+|---|---|---|---|
+| Phase C | 232.3 | 3.7 kB | — |
+| Phase D | **232.5** | **3.5 kB** | `AnalyticsLab` 46.41 kB / **14.30 kB gz** |
+
+Initial JS moved 0.2 kB (the `HabitMatrix` cell button, which lives in the eager `chartKit.jsx`)
+and CSS moved 0.6 kB. The whole analytics engine and screen — 14.30 kB gzipped — is paid for only
+by the user who opens the Lab tab. Headroom is still the binding constraint for Phase E.
+
+### Verification
+
+| Command | Phase C | Phase D |
+|---|---|---|
+| `npm test` | 452 / 30 | **513 / 32** |
+| `npm run lint` | clean | clean |
+| `npm run test:schema` | 28 / 28 | 28 / 28 |
+| `npm run build` | 232.3 kB gz | **232.5 kB gz JS / 37.4 kB gz CSS** |
+| `git diff --check` | clean | clean |
+
+61 new tests: 46 engine (`test/advancedAnalytics.test.js`) and 15 UI
+(`test/analyticsLab.test.jsx`, which mounts the real app and drives the lazy load, all seven views,
+the matrix-cell sheet and the workload day sheet).
+
+`npm run preview` was started and checked by hand: `/` 200, `index-*.js` 200,
+`AnalyticsLab-*.js` 200 (46 480 bytes), `InsightsScreen-*.js` 200, CSS 200, `release.json` 200.
+Puppeteer E2E remains unavailable in this sandbox (§6).
+
+### Not done, deliberately
+
+Story mode reuses the existing card and motion language rather than the spatial/3D system. The
+brief permits it as *optional* ("reuse the existing spatial system if useful"), and the Lab is dense
+tabular data where 2D is the correct default. Wiring the five steps into `SpatialStage` would add
+depth cues to numbers that need none.

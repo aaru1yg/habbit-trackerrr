@@ -27,6 +27,9 @@ const ROUTES = [
 
 const findings = []
 const note = (v, r, kind, msg) => findings.push({ v, r, kind, msg })
+/* One ancestor chain per route: the chain embeds per-viewport widths, so
+   noting it for every viewport would bury the finding in near-duplicates. */
+const chainSeen = new Set()
 
 const browser = await launch()
 try {
@@ -119,7 +122,10 @@ try {
       })
       if (res.docOverflow > 1) note(vname, route, 'overflow-x', `document overflows by ${res.docOverflow}px`)
       for (const o of [...new Set(res.overflow)].slice(0, 12)) note(vname, route, 'overflow-el', o)
-      if (res.worst) note(vname, route, 'widest-chain', res.worst.chain.join(' < '))
+      if (res.worst && !chainSeen.has(route)) {
+        chainSeen.add(route)
+        note(vname, route, 'widest-chain', res.worst.chain.join(' < '))
+      }
       for (const t of [...new Set(res.tiny)].slice(0, 8)) note(vname, route, 'tap-target', t)
       const errs = [...page._qa.pageErrors, ...page._qa.consoleErrors]
       for (const e of errs.slice(0, 3)) note(vname, route, 'console', e.slice(0, 160))

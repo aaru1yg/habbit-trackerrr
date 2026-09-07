@@ -104,11 +104,19 @@ jobs:
             # ✗/Error/FAIL, so a layout or contrast failure was invisible here.
             # The "no page errors" / "0 failing" lines are passes; drop them so
             # the annotation list shows only real findings.
-            grep -aE '✗|Error|error|FAIL|^## |vp: |\(need |failing text nodes' "$log" \
+            # One annotation per log, not one per line. GitHub truncates the
+            # annotation list, and a per-line fan-out silently dropped the
+            # "widest-chain" line that names the element establishing the bad
+            # width. %0A is the workflow-command newline escape; % must be
+            # escaped first.
+            body=$(grep -aE '✗|Error|error|FAIL|^## |vp: |\(need |failing text nodes' "$log" \
               | grep -avE 'no (page|console) errors|— 0 failing' \
-              | while IFS= read -r line; do
-                  echo "::error file=$log::$line"
-                done
+              | head -40 \
+              | sed -e 's/%/%25/g' -e 's/\r/%0D/g' -e 's/$/%0A/' \
+              | tr -d '\n')
+            if [ -n "$body" ]; then
+              echo "::error file=$log::${body}"
+            fi
           done
 
       - name: Upload browser evidence

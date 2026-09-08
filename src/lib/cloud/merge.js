@@ -10,6 +10,7 @@
  *    signals and focus sessions are unioned chronologically.
  */
 import { DEFAULT_PREFERENCES } from '../personalization.js'
+import { canonicalJson } from './migrationState.js'
 
 const time = (v) => {
   const t = Date.parse(v || '')
@@ -35,6 +36,21 @@ export function comparableDoc(doc) {
     signals: Array.isArray(doc.signals) ? doc.signals : [],
     focusLog: Array.isArray(doc.focusLog) ? doc.focusLog : [],
   }
+}
+
+/**
+ * Canonical key of the user-data portion of a document: everything except the
+ * auto-recorded event logs (screen-visit/interaction signals and focus
+ * sessions). Those logs union losslessly (mergeEventLog) — they carry no
+ * decision a human needs to make — so "differs only in telemetry" must never
+ * read as "the documents differ" for the migration prompt. A device that
+ * pulled the cloud and merely browsed (every navigation records a
+ * screen-visit signal) would otherwise be asked how to "combine" data it
+ * already shares with the account on its next sign-in.
+ */
+export function userDocKey(doc) {
+  const { signals: _signals, focusLog: _focusLog, ...userDoc } = comparableDoc(doc)
+  return canonicalJson(userDoc)
 }
 
 /** Newer of two records, cloud winning ties. */

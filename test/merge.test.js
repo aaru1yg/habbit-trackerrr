@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mergeById, mergeMap, mergeDocs, summarise, hasData } from '../src/lib/cloud/merge.js'
+import { mergeById, mergeMap, mergeDocs, summarise, hasData, comparableDoc, userDocKey } from '../src/lib/cloud/merge.js'
 import { friendlyError } from '../src/lib/cloud/errors.js'
 
 const T0 = '2026-01-01T00:00:00.000Z'
@@ -129,5 +129,47 @@ describe('friendlyError', () => {
 
   it('falls back to a safe generic message for unknown errors', () => {
     expect(friendlyError(new Error('kaboom 0x9f'))).toBe('Something went wrong. Please try again.')
+  })
+})
+
+describe('userDocKey (the migration prompt asks only about user data)', () => {
+  const signal = (id, at) => ({ id, type: 'screen-visit', at, target: 'today', note: null })
+  const focus = (id, startedAt) => ({ id, startedAt, endedAt: startedAt, habitId: 'h1', minutes: 25 })
+  const baseDoc = () => ({
+    version: 4,
+    profile: { name: 'Aaru', onboarded: true, theme: 'midnight' },
+    habits: [{ id: 'h-run', name: 'Morning run', createdAt: '2026-08-01T00:00:00.000Z' }],
+    checkins: {}, routines: [], projects: [], assignments: [], goals: [], moods: {},
+  })
+
+  it('treats docs that differ only in signals as the same user data', () => {
+    const a = baseDoc()
+    const b = { ...baseDoc(), signals: [signal('s1', T1), signal('s2', T1)] }
+    expect(userDocKey(a)).toBe(userDocKey(b))
+  })
+
+  it('treats docs that differ only in focus sessions as the same user data', () => {
+    const a = baseDoc()
+    const b = { ...baseDoc(), focusLog: [focus('f1', T1)] }
+    expect(userDocKey(a)).toBe(userDocKey(b))
+  })
+
+  it('still differs when real user data differs', () => {
+    const a = baseDoc()
+    const b = { ...baseDoc(), habits: [...a.habits, { id: 'h-new', name: 'Read', createdAt: T1 }] }
+    expect(userDocKey(a)).not.toBe(userDocKey(b))
+  })
+
+  it('still differs when a preference or profile field differs', () => {
+    const a = baseDoc()
+    const b = { ...baseDoc(), profile: { ...a.profile, name: 'Someone else' } }
+    expect(userDocKey(a)).not.toBe(userDocKey(b))
+  })
+
+  it('keeps the absent-vs-default normalisation from comparableDoc', () => {
+    const legacy = baseDoc() // written before the adaptive layer: no preferences key
+    const current = { ...baseDoc(), preferences: {} } // present, all defaults
+    expect(userDocKey(legacy)).toBe(userDocKey(current))
+    expect(comparableDoc(legacy).preferences).toEqual(comparableDoc(current).preferences)
   })
 })

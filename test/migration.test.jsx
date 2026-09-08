@@ -316,6 +316,56 @@ describe('migration prompt (refresh / re-login stability)', () => {
     expect(window.__probe.state.habits.some((h) => h.id === 'h1')).toBe(true)
     u.unmount()
   })
+
+  it('a second device that diverged only by telemetry is never prompted (Phase A regression)', async () => {
+    cloud.session = { user: USER_A }
+    // Device B adopted this cloud doc earlier; browsing since then recorded
+    // nothing but screen-visit signals (one per navigation — store.jsx).
+    const adopted = cloudDoc([habit('h1', 'Meditate')])
+    cloud.doc = adopted
+    seedLocal({
+      ...adopted,
+      signals: [
+        { id: 's-local-1', type: 'screen-visit', at: '2026-09-08T04:00:00.000Z', target: 'today', note: null },
+        { id: 's-local-2', type: 'screen-visit', at: '2026-09-08T04:01:00.000Z', target: 'settings', note: null },
+      ],
+    })
+
+    let u = mount()
+    await synced()
+    dialogGone() // telemetry is not a choice a human can make
+    // the union reaches the server via the debounced push
+    await settleDebounce()
+    const pushed = cloud.pushes.at(-1)
+    expect(pushed.signals.map((s) => s.id).sort()).toEqual(['s-local-1', 's-local-2'])
+    expect(pushed.habits.map((h) => h.id)).toEqual(['h1']) // user data untouched
+    u.unmount()
+
+    // and the next sign-in on this device stays silent too
+    u = mount()
+    await synced()
+    dialogGone()
+    u.unmount()
+  })
+
+  it('cloud-side telemetry alone never prompts either — the union is adopted locally', async () => {
+    cloud.session = { user: USER_A }
+    const adopted = cloudDoc([habit('h1', 'Meditate')])
+    cloud.doc = {
+      ...adopted,
+      signals: [{ id: 's-cloud-1', type: 'screen-visit', at: '2026-09-08T03:00:00.000Z', target: 'today', note: null }],
+    }
+    seedLocal(adopted)
+
+    const u = mount()
+    await synced()
+    dialogGone()
+    await waitFor(() => {
+      expect(window.__probe.state.signals.map((s) => s.id)).toEqual(['s-cloud-1'])
+    })
+    expect(window.__probe.state.habits.map((h) => h.id)).toEqual(['h1'])
+    u.unmount()
+  })
 })
 
 /* ---------------- migrationState unit tests ---------------- */

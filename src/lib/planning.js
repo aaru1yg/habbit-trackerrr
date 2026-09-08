@@ -1,5 +1,12 @@
 /* Pure planning layer. Suggestions only: no persistence or state mutation. */
 import { getTodayPriorities, getNextBestAction } from './adaptive.js'
+import { preferencesOf } from './personalization.js'
+
+/* Capacity and buffer live in preferences now (§4). They used to be read
+   from state.profile, where nothing could ever set them — which is why
+   every real plan reported INSUFFICIENT DATA (docs/NEXTGEN-AUDIT.md §4.1). */
+const capacityOf = (state) => preferencesOf(state).dailyCapacityMin
+const bufferOf = (state) => preferencesOf(state).planningBufferPct
 
 const MIN = 60000
 const isoDay = (d) => d.toISOString().slice(0, 10)
@@ -14,7 +21,7 @@ export function validatePlan(blocks, { capacityMin = null } = {}) {
   return { valid: !collisions.length && !impossible.length, collisions, impossible, totalMin: total, overCapacity: capacityMin != null && total > capacityMin, reason: collisions.length ? 'The plan contains overlapping blocks.' : impossible.length ? 'A block has no valid duration.' : capacityMin != null && total > capacityMin ? `The plan exceeds capacity by ${total - capacityMin} minutes.` : 'No collisions detected.' }
 }
 
-export function buildDayPlan(state, { now = new Date(), capacityMin = state.profile?.dailyCapacityMin ?? null, startHour = 9, bufferPct = state.profile?.planningBufferPct ?? 15 } = {}) {
+export function buildDayPlan(state, { now = new Date(), capacityMin = capacityOf(state), startHour = 9, bufferPct = bufferOf(state) } = {}) {
   const priorities = getTodayPriorities(state, { now, limit: 50, capacityMin })
   const next = getNextBestAction(state, { now, capacityMin })
   const ranked = next ? [{ ...next, item: next.item }, ...priorities.filter((x) => x.item.id !== next.item.id)] : priorities
@@ -35,7 +42,7 @@ export function buildDayPlan(state, { now = new Date(), capacityMin = state.prof
   return { blocks, mustDo: blocks.filter((b) => b.fits), canMove: blocks.filter((b) => !b.fits), capacityMin, usableCapacityMin: available, requiredMin: used, bufferMin: capacityMin == null ? null : capacityMin - available, fit: available == null ? 'INSUFFICIENT DATA' : validation.overCapacity ? 'OVERLOADED' : used > available * .85 ? 'TIGHT' : 'GOOD FIT', next, validation }
 }
 
-export function buildWeekPlan(state, { now = new Date(), days = 7, capacityMin = state.profile?.dailyCapacityMin ?? null } = {}) {
+export function buildWeekPlan(state, { now = new Date(), days = 7, capacityMin = capacityOf(state) } = {}) {
   const all = getTodayPriorities(state, { now, limit: 100, capacityMin: capacityMin == null ? null : capacityMin * days })
   const rows = Array.from({ length: days }, (_, i) => ({ date: isoDay(new Date(now.getTime() + i * 86400000)), blocks: [], availableMin: capacityMin, committedMin: 0 }))
   let index = 0
@@ -48,7 +55,7 @@ export function validateRecovery(plan, { capacityMin = null } = {}) {
   const kept = plan.keep || []; const minutes = kept.reduce((n, x) => n + (estimate(x.item) || 0), 0)
   return { valid: capacityMin == null || minutes <= capacityMin, keptMin: minutes, capacityMin, overBy: capacityMin == null ? null : Math.max(0, minutes - capacityMin), reason: capacityMin != null && minutes > capacityMin ? `The recovery path exceeds today's capacity by ${minutes - capacityMin} minutes.` : 'Recovery path fits the available capacity.' }
 }
-export function recoveryPlan(state, { now = new Date(), capacityMin = state.profile?.dailyCapacityMin ?? null } = {}) {
+export function recoveryPlan(state, { now = new Date(), capacityMin = capacityOf(state) } = {}) {
   const priorities = getTodayPriorities(state, { now, limit: 100, capacityMin }); const overdue = priorities.filter((x) => ['OVERDUE','CRITICAL'].includes(x.risk?.id)); const risky = priorities.filter((x) => x.risk?.id === 'AT RISK');
   const keep = [...overdue, ...risky].slice(0, 4); const move = priorities.filter((x) => !keep.includes(x)).filter((x) => x.item.priority !== 'low').slice(0, 3); const optional = priorities.filter((x) => !keep.includes(x) && !move.includes(x)); const plan = { keep, move, defer: optional.slice(0, 3), optional: optional.slice(3), missed: overdue, explanation: keep.length ? `Here is the highest-impact recovery path for ${keep.length} item${keep.length === 1 ? '' : 's'}.` : 'No urgent recovery items detected.' }; return { ...plan, validation: validateRecovery(plan, { capacityMin }) }
 }

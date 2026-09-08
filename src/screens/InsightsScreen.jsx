@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { SpatialStage } from '../components/spatial/Depth.jsx'
 import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
@@ -25,6 +25,14 @@ const RANGES = [
   { id: '1y', label: '1Y', days: 365 },
 ]
 
+/* Phase D: the Lab carries the heavy analytics engine, so it is loaded
+   only when the tab is opened — it never enters the Insights chunk. */
+const AnalyticsLab = lazy(() => import('./AnalyticsLab.jsx'))
+
+/* The switch is a two-way choice between two renderings of the same history.
+   The Lab is not a third rendering — it is a separate, lazy-loaded analytics
+   surface with its own views — so it gets its own control next to the switch
+   rather than joining this group. */
 const INSIGHT_VIEWS = [
   { id: 'overview', label: 'Overview' },
   { id: 'deep', label: 'Deep dive' },
@@ -139,21 +147,39 @@ export default function InsightsScreen() {
 
       <SpatialStage className="insights-stage" focus={1800} parallax={7}>
       <div className="stack insights-layout">
-        <div className="seg seg-wide insights-switch" role="group" aria-label="Insights view">
-          {INSIGHT_VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              className={`seg-btn${view === v.id ? ' active' : ''}`}
-              aria-pressed={view === v.id}
-              onClick={() => setView(v.id)}
-            >
-              {v.label}
-            </button>
-          ))}
+        <div className="insights-view-row">
+          <div className="seg seg-wide insights-switch" role="group" aria-label="Insights view">
+            {INSIGHT_VIEWS.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className={`seg-btn${view === v.id ? ' active' : ''}`}
+                aria-pressed={view === v.id}
+                onClick={() => setView(v.id)}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+          {/* Outside the switch group on purpose: the Lab is a separate
+              analytics surface, not a third rendering of the same history. */}
+          <button
+            type="button"
+            className={`btn sm insights-lab-btn${view === 'lab' ? ' primary' : ''}`}
+            aria-pressed={view === 'lab'}
+            onClick={() => setView(view === 'lab' ? 'overview' : 'lab')}
+          >
+            Lab
+          </button>
         </div>
 
         {view === 'deep' && <InsightsDeepDive state={state} />}
+
+        {view === 'lab' && (
+          <Suspense fallback={<p className="empty-note">Loading the lab…</p>}>
+            <AnalyticsLab />
+          </Suspense>
+        )}
 
         {view === 'overview' && (
         <>

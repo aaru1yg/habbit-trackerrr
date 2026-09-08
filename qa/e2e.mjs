@@ -6,6 +6,10 @@
    persistence, navigation, overflow, tap targets, contrast.
    ============================================================ */
 import { launch, newPage, VIEWPORTS, check, shot, clickByText, clickByLabel, sleep,  seedAndGoto,   seededStateV4,   report } from './helpers.mjs'
+/* The app's own scheduling rule, so the expected row count is derived from
+   the seed instead of guessed from the weekday. */
+import { isScheduled } from '../src/lib/schedule.js'
+import { dayStr } from '../src/lib/dates.js'
 import { mkdirSync } from 'fs'
 import fs from 'fs'
 
@@ -220,12 +224,17 @@ console.log('\n— Habit management (mobile) —')
   await overflowCheck(page, 'today-seeded')
   await tapTargetCheck(page, 'today-seeded')
 
-  // the seed has 3 daily habits + 2 weekday-gated ones, so the expected row
-  // count depends on today's weekday — a missed unscheduled day is not a failure
+  // The seed mixes daily habits with weekday-gated ones, so the row count
+  // depends on today's date. Derive it from the seed with the app's own
+  // scheduling rule rather than assuming "any weekday = all 5": h-med runs
+  // Mon–Fri but h-guitar only Mon/Wed/Fri, so Tuesday and Thursday legitimately
+  // show 4. The old dow===0||dow===6 ? 3 : 5 was wrong two days a week.
   const rows = await page.evaluate(() => document.querySelectorAll('.habit-row').length)
-  const dow = new Date().getDay()
-  const expectedRows = dow === 0 || dow === 6 ? 3 : 5
-  check('seeded habits render (schedule-aware)', rows === expectedRows, `rows=${rows} expected=${expectedRows} (dow=${dow})`)
+  const today = dayStr(new Date())
+  const expectedRows = seededStateV4().habits.filter((h) =>
+    !h.archived && (!h.createdAt || today >= h.createdAt) && isScheduled(h, today)).length
+  check('seeded habits render (schedule-aware)', rows === expectedRows,
+    `rows=${rows} expected=${expectedRows} (${today}, dow=${new Date().getDay()})`)
 
   // complete + uncomplete via row tap
   const before = await page.evaluate(() => document.querySelectorAll('.habit-row.done').length)

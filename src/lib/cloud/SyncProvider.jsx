@@ -19,11 +19,19 @@ import { useAuth } from './AuthProvider.jsx'
 import {  cloudConfigured } from './supabase.js'
 import { pull, push, SYNC } from './syncEngine.js'
 import { friendlyError } from './errors.js'
-import { mergeDocs, summarise, hasData } from './merge.js'
+import { mergeDocs, summarise, hasData, comparableDoc } from './merge.js'
 import { readMigrationChoice, writeMigrationChoice, canonicalJson } from './migrationState.js'
 
 const SyncContext = createContext(null)
 export const useSync = () => useContext(SyncContext)
+
+/**
+ * Canonical form used for every "is this the same document?" decision.
+ * `comparableDoc` first fills the adaptive-layer keys a document written
+ * before this release will not have, so "absent" and "default" compare
+ * equal instead of looking like a conflict to resolve.
+ */
+const canonicalDoc = (doc) => canonicalJson(comparableDoc(doc))
 
 const DEBOUNCE_MS = 1200
 
@@ -68,8 +76,8 @@ export default function SyncProvider({ children }) {
     const next = choice === 'merge' ? mergeDocs(localDoc, cloudDoc)
       : choice === 'local' ? localDoc
       : cloudDoc // 'cloud'
-    const nextC = canonicalJson(next)
-    const cloudC = canonicalJson(cloudDoc)
+    const nextC = canonicalDoc(next)
+    const cloudC = canonicalDoc(cloudDoc)
 
     setStatus(SYNC.SYNCING)
     try {
@@ -83,7 +91,7 @@ export default function SyncProvider({ children }) {
         serverCanonical.current = cloudC
         if (pulledUpdatedAt) setLastSyncedAt(pulledUpdatedAt)
       }
-      if (nextC !== canonicalJson(localDoc)) {
+      if (nextC !== canonicalDoc(localDoc)) {
         dispatch({ type: 'IMPORT_DATA', data: next })
       }
       setStatus(SYNC.SYNCED)
@@ -115,8 +123,8 @@ export default function SyncProvider({ children }) {
         // Both sides hold data → never silently overwrite. Ask the user —
         // but only when there is something to decide.
         if (cloudDoc && hasData(cloudDoc) && hasData(localDoc)) {
-          const localC = canonicalJson(localDoc)
-          const cloudC = canonicalJson(cloudDoc)
+          const localC = canonicalDoc(localDoc)
+          const cloudC = canonicalDoc(cloudDoc)
 
           if (localC === cloudC) {
             // Documents are identical: already reconciled (e.g. this device
@@ -149,7 +157,7 @@ export default function SyncProvider({ children }) {
         if (cloudDoc && hasData(cloudDoc)) {
           // Cloud is the only source of truth → adopt it.
           dispatch({ type: 'IMPORT_DATA', data: cloudDoc })
-          serverCanonical.current = canonicalJson(cloudDoc)
+          serverCanonical.current = canonicalDoc(cloudDoc)
           setLastSyncedAt(updatedAt)
           setStatus(SYNC.SYNCED)
           ready.current = true
@@ -160,7 +168,7 @@ export default function SyncProvider({ children }) {
         const res = await push(user.id, localDoc, revision.current + 1)
         if (!alive) return
         revision.current = res.revision
-        serverCanonical.current = canonicalJson(localDoc)
+        serverCanonical.current = canonicalDoc(localDoc)
         setLastSyncedAt(res.updatedAt)
         setStatus(SYNC.SYNCED)
         ready.current = true
@@ -201,7 +209,7 @@ export default function SyncProvider({ children }) {
         setStatus(SYNC.OFFLINE)
         return
       }
-      const docC = canonicalJson(stateRef.current)
+      const docC = canonicalDoc(stateRef.current)
       if (serverCanonical.current && docC === serverCanonical.current) {
         // Local state matches what the server already holds — no write.
         setStatus(SYNC.SYNCED)
@@ -238,7 +246,7 @@ export default function SyncProvider({ children }) {
       const res = await push(user.id, stateRef.current, revision.current + 1)
       revision.current = res.revision
       setLastSyncedAt(res.updatedAt)
-      serverCanonical.current = canonicalJson(stateRef.current)
+      serverCanonical.current = canonicalDoc(stateRef.current)
       setStatus(SYNC.SYNCED)
       setError(null)
       ready.current = true

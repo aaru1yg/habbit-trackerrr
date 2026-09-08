@@ -163,6 +163,25 @@ const WD_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 export function Heatmap({ weeks, onDayTap, ariaLabel = 'Completion heatmap' }) {
   const [tip, setTip] = useState(null) // { date, pct, x, y }
   const innerRef = useRef(null)
+  const descId = useId()
+
+  /* role="img" flattens the whole subtree for assistive tech, so the
+     per-day titles below are decorative. Without a text alternative a
+     screen reader would announce the label and nothing else. This
+     summarises the same data the grid shows, and it sits outside the
+     img so it is actually read. */
+  const summary = useMemo(() => {
+    const days = weeks.flat().filter((c) => !c.future)
+    const withData = days.filter((c) => c.pct != null)
+    if (!withData.length) return 'No days with recorded activity in this range yet.'
+    const avg = Math.round(withData.reduce((n, c) => n + c.pct, 0) / withData.length)
+    const perfect = withData.filter((c) => c.pct >= 100).length
+    const empty = withData.filter((c) => c.pct === 0).length
+    const from = withData[0].date
+    const to = withData[withData.length - 1].date
+    return `${withData.length} days with data from ${from} to ${to}, averaging ${avg}% complete. ` +
+      `${perfect} day${perfect === 1 ? '' : 's'} at 100%, ${empty} day${empty === 1 ? '' : 's'} at 0%.`
+  }, [weeks])
 
   const months = useMemo(() => {
     const out = []
@@ -201,7 +220,7 @@ export function Heatmap({ weeks, onDayTap, ariaLabel = 'Completion heatmap' }) {
   }
 
   return (
-    <div className="heatmap" role="img" aria-label={ariaLabel}>
+    <div className="heatmap" role="img" aria-label={ariaLabel} aria-describedby={descId}>
       <div className="heatmap-inner" ref={innerRef} onClick={onGridClick}>
         {/* weekday gutter */}
         <div className="hm-gutter" aria-hidden="true">
@@ -239,6 +258,7 @@ export function Heatmap({ weeks, onDayTap, ariaLabel = 'Completion heatmap' }) {
           </div>
         )}
       </div>
+      <p id={descId} className="sr-only">{summary}</p>
       <div className="hm-legend" aria-hidden="true">
         <span>Less</span>
         {[0, 1, 2, 3, 4].map((l) => <i key={l} className={`hm-day l${l}`} />)}
@@ -250,9 +270,9 @@ export function Heatmap({ weeks, onDayTap, ariaLabel = 'Completion heatmap' }) {
 
 /* ---------------- Habit × day matrix (sticky names) ---------------- */
 
-export function HabitMatrix({ rows, days, weekLabels }) {
+export function HabitMatrix({ rows, days, weekLabels, onCellTap }) {
   return (
-    <div className="habit-matrix" role="img" aria-label="Habit by day matrix">
+    <div className="habit-matrix" role={onCellTap ? 'table' : 'img'} aria-label="Habit by day matrix">
       <div className="hmx-scroll">
         <div className="hmx-grid" style={{ gridTemplateColumns: `132px repeat(${days.length}, 22px)` }}>
           <div className="hmx-corner" />
@@ -264,14 +284,22 @@ export function HabitMatrix({ rows, days, weekLabels }) {
               <div className="hmx-name" title={row.habit.name}>
                 <span className="hmx-name-text">{row.habit.name}</span>
               </div>
-              {row.cells.map((c) => (
-                <span
-                  key={c.date}
-                  className={`hmx-cell ${c.done ? 'done' : ''} ${c.scheduled ? 'sched' : ''} ${c.future ? 'future' : ''}`}
-                  title={`${row.habit.name} · ${c.date}${c.done ? ' · done' : c.scheduled ? ' · not done' : ' · not scheduled'}`}
-                  aria-hidden="true"
-                />
-              ))}
+              {row.cells.map((c) => {
+                const desc = `${row.habit.name} · ${c.date}${c.done ? ' · done' : c.scheduled ? ' · not done' : ' · not scheduled'}`
+                /* Read-only unless the caller asks for drill-down; then the cell
+                   becomes a real 22px focusable control rather than decoration. */
+                if (!onCellTap) return <span key={c.date} className={`hmx-cell ${c.done ? 'done' : ''} ${c.scheduled ? 'sched' : ''} ${c.future ? 'future' : ''}`} title={desc} aria-hidden="true" />
+                return (
+                  <button
+                    key={c.date}
+                    type="button"
+                    className={`hmx-cell hmx-tap ${c.done ? 'done' : ''} ${c.scheduled ? 'sched' : ''} ${c.future ? 'future' : ''}`}
+                    title={desc}
+                    aria-label={desc}
+                    onClick={() => onCellTap(row.habit, c)}
+                  />
+                )
+              })}
             </Fragment>
           ))}
         </div>

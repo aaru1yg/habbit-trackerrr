@@ -10,6 +10,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import { todayStr, isoLocal, dayOf, isValidDayStr } from './lib/dates.js'
 import { normalizeImport } from './lib/importExport.js'
 import { projectProgress, assignmentProgress, allTasks } from './lib/work.js'
+import { DEFAULT_PREFERENCES, coercePreferences, recordSignal, pruneSignals, recordFocusSession } from './lib/personalization.js'
 
 export const STORAGE_KEY = 'aaru.habits.v4'
 const LEGACY_KEYS = ['aaru.habits.v3', 'aaru.habit-tracker.v2']
@@ -36,6 +37,12 @@ export const emptyState = () => ({
   assignments: [],
   goals: [],
   moods: {},
+  /* Next Gen — the adaptive layer. All three are opt-in and empty by
+     default: preferences are only ever what the user chose, and the
+     two logs hold nothing but events that really happened. */
+  preferences: { ...DEFAULT_PREFERENCES },
+  signals: [],
+  focusLog: [],
 })
 
 /* ---------------- Migrations ---------------- */
@@ -353,7 +360,11 @@ function reducer(state, action) {
         order: state.habits.length,
         ...action.habit,
       }
-      return { ...state, habits: [...state.habits, habit] }
+      return {
+        ...state,
+        habits: [...state.habits, habit],
+        signals: recordSignal(state.signals, 'habit-add', { target: habit.id }),
+      }
     }
     case 'UPDATE_HABIT':
       return { ...state, habits: state.habits.map((h) => (h.id === action.id ? { ...h, ...action.patch } : h)) }
@@ -402,7 +413,13 @@ function reducer(state, action) {
       if (!done) delete next.at
       if (!next.done && !next.note) delete days[action.date]
       else days[action.date] = next
-      return { ...state, checkins: { ...state.checkins, [action.habitId]: days } }
+      // A completion is behaviour the adaptive layer is allowed to learn from;
+      // un-completing is not, so only the forward direction is recorded.
+      return {
+        ...state,
+        checkins: { ...state.checkins, [action.habitId]: days },
+        signals: done ? recordSignal(state.signals, 'habit-complete', { target: action.habitId }) : state.signals,
+      }
     }
     case 'SET_CHECKIN_NOTE': {
       const days = { ...(state.checkins[action.habitId] || {}) }
@@ -431,7 +448,11 @@ function reducer(state, action) {
     /* ---- projects ---- */
     case 'ADD_PROJECT': {
       const project = baseProject({ order: state.projects.length, ...action.project })
-      return { ...state, projects: [...state.projects, settleProject(project)] }
+      return {
+        ...state,
+        projects: [...state.projects, settleProject(project)],
+        signals: recordSignal(state.signals, 'work-add', { target: 'project' }),
+      }
     }
     case 'UPDATE_PROJECT':
       return mapProject(state, action.id, (p) => settleProject({ ...p, ...action.patch }))
@@ -535,7 +556,11 @@ function reducer(state, action) {
     /* ---- assignments ---- */
     case 'ADD_ASSIGNMENT': {
       const assignment = baseAssignment({ order: state.assignments.length, ...action.assignment })
-      return { ...state, assignments: [...state.assignments, settleAssignment(assignment)] }
+      return {
+        ...state,
+        assignments: [...state.assignments, settleAssignment(assignment)],
+        signals: recordSignal(state.signals, 'work-add', { target: 'assignment' }),
+      }
     }
     case 'UPDATE_ASSIGNMENT':
       return mapAssignment(state, action.id, (a) => settleAssignment({ ...a, ...action.patch }))
@@ -687,8 +712,23 @@ function reducer(state, action) {
     }
 
     /* ---- profile / data ---- */
+    /* Stamping updatedAt is what lets mergeDocs resolve a profile conflict
+       correctly; without it local always wins (docs/NEXTGEN-AUDIT.md §4.2). */
     case 'SET_PROFILE':
-      return { ...state, profile: { ...state.profile, ...action.patch } }
+      return { ...state, profile: { ...state.profile, ...action.patch, updatedAt: isoLocal() } }
+    case 'SET_PREFERENCE': {
+      const next = coercePreferences({ ...(state.preferences || {}), ...action.patch })
+      return { ...state, preferences: next, profile: { ...state.profile, updatedAt: isoLocal() } }
+    }
+
+    /* ---- adaptive layer: observable behaviour, never invention ---- */
+    case 'RECORD_SIGNAL':
+      return { ...state, signals: recordSignal(state.signals, action.signal, { at: action.at, target: action.target, note: action.note }) }
+    case 'PRUNE_SIGNALS':
+      return { ...state, signals: pruneSignals(state.signals, { days: action.days, now: action.now }) }
+    case 'ADD_FOCUS_SESSION':
+      return { ...state, focusLog: recordFocusSession(state.focusLog, action.session) }
+
     case 'IMPORT_DATA': {
       const incoming = action.data
       const profile = {

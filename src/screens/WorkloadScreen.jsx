@@ -19,6 +19,7 @@ import { todayStr,  weekDays, shortDate,  minutesLabel, prettyDate } from '../li
 import { IconWorkload, IconPlus, IconAlert } from '../lib/icons.jsx'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { workloadByDay, rescheduleSuggestions } from '../lib/adaptive.js'
+import { preferencesOf } from '../lib/personalization.js'
 
 export default function WorkloadScreen({ route = 'workload' }) {
   const { state } = useStore()
@@ -37,7 +38,7 @@ export default function WorkloadScreen({ route = 'workload' }) {
 
   const week = useMemo(() => weekDays(today), [today])
   const weekLoad = useMemo(() => workloadSeries(state, { from: week[0], days: 7, now }), [state, week, now])
-  const intelligentDays = useMemo(() => workloadByDay(state, { from: today, days: 7, now, capacityMin: Number.isFinite(state.profile?.dailyCapacityMin) ? state.profile.dailyCapacityMin : null }), [state, today, now])
+  const intelligentDays = useMemo(() => workloadByDay(state, { from: today, days: 7, now, capacityMin: preferencesOf(state).dailyCapacityMin }), [state, today, now])
   const pressure = useMemo(() => intelligentDays.map((d) => ({ ...d, suggestions: rescheduleSuggestions(d) })), [intelligentDays])
 
   const selectedRow = series.rows.find((r) => r.date === selected) || series.rows[0]

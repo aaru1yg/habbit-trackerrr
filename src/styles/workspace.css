@@ -100,3 +100,15 @@
   #project-detail .project-detail-hero { padding: 16px; }
   #assignment-detail .assignment-detail-hero { padding: 16px; }
 }
+
+/* Final Chromium QA: preserve the appearance but give these existing Work
+   controls a full touch hit area. Scoped away from other destinations. */
+#assignment-detail .kv a,
+[aria-labelledby="work-focus-title"] summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+[aria-labelledby="assignment-form-title"] input[type="range"] {
+  min-height: 44px;
+}

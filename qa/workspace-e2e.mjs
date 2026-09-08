@@ -88,6 +88,10 @@ try {
       await capture(name)
     }
     const seed = async (state = workspaceFixture(), route = 'work') => {
+      // A hash-only page.goto is same-document navigation: the init script
+      // never runs, and dialogs/state can leak from the previous scenario.
+      // Leave the origin first so seedAndGoto always creates a fresh document.
+      await page.goto('about:blank')
       await seedAndGoto(page, state, route, base)
       await page.waitForSelector('#work-screen')
       await settle()

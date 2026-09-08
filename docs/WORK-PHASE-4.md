@@ -1,5 +1,7 @@
 # Phase 4 — Unified Work workspace
 
+> **Final QA update:** The original local Chromium limitation below is historical. Real GitHub CI Chromium validation now passes all three required viewports. See [the final browser QA report](WORK-PHASE-4-FINAL-QA.md) for findings, fixes, screenshots and exact test results.
+
 ## Audit of the checkout
 
 Audited `9fd085dc81af613f8b59c44c5519861dc99966d4` before implementing.

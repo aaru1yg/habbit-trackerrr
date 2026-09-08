@@ -1,15 +1,17 @@
 /* Tiny hash router — back-button friendly, zero dependencies. */
 import { useEffect, useState, useCallback } from 'react'
 
-const parse = () => {
-  const h = window.location.hash.replace(/^#\/?/, '').split('?')[0]
-  return h || 'today'
-}
-
-/** '#/calendar/2026-03' → { route: 'calendar', param: '2026-03' } */
+/** Parse the hash without losing query state. */
 const parseFull = () => {
-  const parts = parse().split('/')
-  return { route: parts[0] || 'today', param: parts.slice(1).join('/') || null, query: window.location.hash.split('?')[1] || '' }
+  const raw = window.location.hash.replace(/^#\/?/, '') || 'today'
+  const [path, queryString = ''] = raw.split('?')
+  const parts = path.split('/').filter(Boolean)
+  const params = new URLSearchParams(queryString)
+  return {
+    route: parts[0] || 'today',
+    param: parts.slice(1).join('/') || null,
+    query: Object.fromEntries(params.entries()),
+  }
 }
 
 export function useRoute() {
@@ -22,9 +24,9 @@ export function useRoute() {
   return full
 }
 
+/** Navigate while preserving the app's single hash-router contract. */
 export const navigate = (to) => {
   window.location.hash = `#/${to}`
-  // ensure scroll reset for the new screen
   window.scrollTo({ top: 0 })
 }
 
@@ -39,7 +41,6 @@ export function Link({ to, children, className, onClick, ...rest }) {
       className={className}
       onClick={(e) => {
         onClick?.(e)
-        // let the browser handle hash change; just scroll up
         window.scrollTo({ top: 0 })
       }}
       {...rest}
@@ -48,3 +49,21 @@ export function Link({ to, children, className, onClick, ...rest }) {
     </a>
   )
 }
+
+/** Canonical IA parent for active-state and coverage checks. */
+export const canonicalParent = (route) => {
+  if (['projects', 'assignments', 'workload', 'timeline', 'work'].includes(route)) return 'work'
+  if (['library', 'calendar', 'week', 'habits'].includes(route)) return 'habits'
+  if (['mind', 'record', 'achievements', 'insights'].includes(route)) return 'insights'
+  return route
+}
+
+/** Legacy routes intentionally remain valid; these are their canonical destinations. */
+export const legacyRoute = (route) => ({
+  library: 'habits',
+  timeline: 'work?view=deadlines',
+  week: 'habits?view=week',
+  mind: 'insights?view=mind',
+  record: 'insights?view=record',
+  achievements: 'insights?view=achievements',
+}[route] || null)

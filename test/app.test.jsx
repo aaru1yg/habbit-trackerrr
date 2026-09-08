@@ -282,7 +282,7 @@ describe('core flows', () => {
     await screen.findByText(/Start with one habit/i)
   })
 
-  it('mobile nav shows the five primary destinations and More reveals the rest (§78)', async () => {
+  it('mobile nav shows the five primary destinations and More reveals secondary tools (§78)', async () => {
     await onboard()
     const nav = document.querySelector('.bottom-nav')
     expect(nav).toBeTruthy()
@@ -291,6 +291,8 @@ describe('core flows', () => {
     }
     expect(within(nav).getAllByRole('link')).toHaveLength(5)
 
+    fireEvent.click(within(nav).getByText('Habits'))
+    await screen.findByText('No habits yet')
     fireEvent.click(within(nav).getByText('Work'))
     await screen.findByText('Your work starts here.')
     fireEvent.click(within(nav).getByText('Insights'))
@@ -299,17 +301,17 @@ describe('core flows', () => {
     // More sheet carries the secondary routes
     fireEvent.click(within(nav).getByRole('button', { name: 'More sections' }))
     const sheet = await screen.findByRole('dialog')
-    for (const label of ['Calendar', 'Week', 'Achievements', 'Mind', 'Record']) {
+    for (const label of ['Deliverables', 'Projects', 'Workload', 'Deadlines', 'Calendar', 'Week review', 'Achievements', 'Mind', 'Record']) {
       expect(within(sheet).getByText(label)).toBeTruthy()
     }
-    fireEvent.click(within(sheet).getByText('Week'))
+    fireEvent.click(within(sheet).getByText('Week review'))
     await screen.findByText(/No habits scheduled this week/i)
   })
 
   it('desktop sidebar exposes every route and the search shortcut (§78, §30)', async () => {
     await onboard()
     const links = [...document.querySelectorAll('.sidebar-nav a, .sidebar-settings')].map((a) => a.getAttribute('href'))
-    for (const to of ['#/today', '#/calendar', '#/habits', '#/goals', '#/work', '#/week', '#/insights', '#/achievements', '#/mind', '#/record', '#/settings']) {
+    for (const to of ['#/today', '#/work', '#/habits', '#/goals', '#/insights', '#/settings']) {
       expect(links).toContain(to)
     }
     expect(document.querySelector('.sidebar-search')).toBeTruthy()

@@ -58,7 +58,7 @@ const RUNNABLE = {
   'view-workload': { kind: 'navigate', route: 'work?view=workload' },
   'open-analytics': { kind: 'navigate', route: 'insights', view: 'lab' },
   'view-insights': { kind: 'navigate', route: 'insights' },
-  'open-achievements': { kind: 'navigate', route: 'achievements' },
+  'open-achievements': { kind: 'navigate', route: 'insights?view=achievements' },
   search: { kind: 'open', target: 'search' },
 }
 

@@ -26,6 +26,18 @@ for (const failure of failures) {
   const detail = String(failure.detail || 'no detail recorded').slice(0, 1500)
   console.log(`::error title=Failed release check: ${failure.name}::${detail}`)
 }
+// An abort that never reached a check verdict — a waitForFunction/selector
+// timeout, an unreachable control, a closed target — is recorded as
+// `report.error` while every completed check passed (e.g. "failed: 39/39").
+// The failures loop above cannot name it, so surface the error plus the last
+// check that did complete to make the abort point attributable from the
+// annotations alone.
+if (report.error && failures.length === 0) {
+  const last = report.checks[report.checks.length - 1]
+  const oneLine = String(report.error).replace(/\r?\n/g, ' ').slice(0, 1500)
+  console.log(`::error title=Release verification error::${oneLine}`)
+  console.log(`::error title=Last completed release check::${last ? last.name : 'none — aborted before the first check'}`)
+}
 if (process.env.GITHUB_STEP_SUMMARY) {
   appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Public V2 release proof\n\n${summary}\n\nScreenshots and full checksums: **public-release-proof** artifact.\n`)
 }

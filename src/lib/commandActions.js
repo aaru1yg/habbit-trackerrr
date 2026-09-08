@@ -54,11 +54,11 @@ const RUNNABLE = {
   'start-focus': { kind: 'open', target: 'focus' },
   'plan-day': { kind: 'open', target: 'plan-day' },
   'plan-week': { kind: 'open', target: 'plan-week' },
-  'view-at-risk': { kind: 'navigate', route: 'workload', filter: 'at-risk' },
+  'view-at-risk': { kind: 'navigate', route: 'timeline', filter: 'at-risk' },
   'view-workload': { kind: 'navigate', route: 'workload' },
-  'open-analytics': { kind: 'navigate', route: 'insights', view: 'lab' },
+  'open-analytics': { kind: 'navigate', route: 'insights?view=lab', view: 'lab' },
   'view-insights': { kind: 'navigate', route: 'insights' },
-  'open-achievements': { kind: 'navigate', route: 'achievements' },
+  'open-achievements': { kind: 'navigate', route: 'insights?view=achievements' },
   search: { kind: 'open', target: 'search' },
 }
 

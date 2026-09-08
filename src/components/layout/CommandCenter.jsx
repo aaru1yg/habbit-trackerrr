@@ -22,6 +22,7 @@ import { matchQuery, runQuery, QUERY_FILTERS } from '../../lib/queryParser.js'
 import { navigate } from '../../lib/router.jsx'
 import { setIntent, INTENTS } from '../../lib/intents.js'
 import { shortDate } from '../../lib/dates.js'
+import { routeCoachQuestion, LOCAL_COACH_STATUS } from '../../lib/localCoach.js'
 import { CaptureBody } from './QuickCapture.jsx'
 import {
   IconSearch, IconSparkle, IconPlus, IconTarget, IconProjects, IconAssignment,
@@ -41,11 +42,11 @@ const MODES = [
 ]
 
 const TYPE_META = {
-  habit: 'Habit', project: 'Project', assignment: 'Assignment', routine: 'Routine',
-  note: 'Note', date: 'Date', achievement: 'Achievement',
+  habit: 'Habit', project: 'Project', 'project-task': 'Project task', assignment: 'Assignment', subtask: 'Subtask',
+  goal: 'Goal', milestone: 'Milestone', routine: 'Routine', note: 'Note', date: 'Date', achievement: 'Achievement',
 }
 
-export default function CommandCenter({ open, onClose }) {
+export default function CommandCenter({ open, onClose, initialMode = 'command', route = 'today' }) {
   const { state } = useStore()
   const [query, setQuery] = useState('')
   const [mode, setMode] = useState('command')
@@ -59,14 +60,14 @@ export default function CommandCenter({ open, onClose }) {
     if (!open) return
     setQuery('')
     setCursor(0)
-    setMode('command')
+    setMode(initialMode === 'create' ? 'create' : initialMode === 'search' ? 'search' : 'command')
     setNba(null)
     setPreset(null)
     setCaptureKey((k) => k + 1)
     // Focus after the sheet's own focus pass so the field is reliably ready.
     const t = setTimeout(() => inputRef.current?.focus(), 30)
     return () => clearTimeout(t)
-  }, [open])
+  }, [open, initialMode])
 
   /* ---- personalisation: real observations, or the default order ---- */
   const ranked = useMemo(() => quickActions(state, { limit: 4 }), [state])
@@ -80,16 +81,24 @@ export default function CommandCenter({ open, onClose }) {
     return query.trim() ? [] : availableCommands()
   }, [query])
 
-  const search = useMemo(() => (mode === 'search' ? searchAll(state, query, 30) : { groups: [], count: 0 }), [state, query, mode])
+  const candidateSearch = useMemo(() => searchAll(state, query, 30), [state, query])
+  const likelyCapture = /\b(finish|complete|add|create|by|today|tomorrow|assignment|project|habit|goal|task|routine)\b/i.test(query)
+  const autoSearch = query.trim().length >= 2 && commands.length === 0 && !filterMatch && !likelyCapture && candidateSearch.groups.length > 0
+  const showSearch = mode === 'search' || autoSearch
+  const search = useMemo(() => (showSearch ? candidateSearch : { groups: [], count: 0 }), [showSearch, candidateSearch])
+  const coach = useMemo(() => {
+    if (!query.trim() || !(/why is .*risk|how did .*week|how was .*week|what should i focus/i.test(query))) return null
+    return routeCoachQuestion(query, state)
+  }, [query, state])
 
   /* The flat list the keyboard walks. Commands and search results are
      never interleaved — the mode decides which one is live. */
   const flat = useMemo(() => {
-    if (mode === 'search') {
+    if (showSearch) {
       return search.groups.flatMap((g) => g.items.map((item) => ({ kind: 'result', item, group: g.label })))
     }
     return commands.map((c) => ({ kind: 'command', command: c }))
-  }, [mode, commands, search])
+  }, [showSearch, commands, search])
 
   useEffect(() => { setCursor(0) }, [query, mode])
   useEffect(() => { if (cursor >= flat.length) setCursor(0) }, [flat.length, cursor])
@@ -100,37 +109,42 @@ export default function CommandCenter({ open, onClose }) {
     const res = executeCommand(commandId, state)
     if (!res.ok) return
     const d = res.descriptor
-    onClose()
+    if (d.kind === 'result') { onClose(); setNba(res.result); return }
     if (d.kind === 'navigate') {
+      onClose()
       navigate(d.route)
       if (d.view === 'lab') setIntent('insights-lab')
       return
     }
-    if (d.kind === 'result') { setNba(res.result); return }
     if (d.kind === 'open') {
       if (d.target === 'capture') {
         /* Capture is already the field at the top: focus it and carry any
            preset type, rather than stacking a second sheet on top. */
         setPreset(d.preset || null)
-        setMode('command')
+        setMode('create')
         inputRef.current?.focus()
         return
       }
       if (d.target === 'search') { setMode('search'); return }
-      if (d.target === 'focus') { setIntent(INTENTS.START_FOCUS); navigate('today'); return }
-      if (d.target === 'plan-day') { setIntent(INTENTS.PLAN_DAY); navigate('today'); return }
-      if (d.target === 'plan-week') { setIntent(INTENTS.PLAN_WEEK); navigate('today'); return }
+      if (d.target === 'focus') { onClose(); setIntent(INTENTS.START_FOCUS); navigate('today'); return }
+      if (d.target === 'plan-day') { onClose(); setIntent(INTENTS.PLAN_DAY); navigate('today'); return }
+      if (d.target === 'plan-week') { onClose(); setIntent(INTENTS.PLAN_WEEK); navigate('today'); return }
     }
   }
 
   const pickResult = (item) => {
     onClose()
     if (item.type === 'project') return navigate(`projects/${item.id}`)
+    if (item.type === 'project-task') return navigate(`projects/${item.projectId}`)
     if (item.type === 'assignment') return navigate(`assignments/${item.id}`)
-    if (item.type === 'habit') return navigate('library')
-    if (item.type === 'achievement') return navigate('insights')
-    if (item.date) return navigate(`calendar/${String(item.date).slice(0, 7)}`)
-    return navigate('record')
+    if (item.type === 'subtask') return navigate(`assignments/${item.assignmentId}`)
+    if (item.type === 'habit') return navigate(`habits/${item.id}`)
+    if (item.type === 'goal') return navigate(`goals/${item.id}`)
+    if (item.type === 'milestone') return navigate(`goals/${item.goalId}`)
+    if (item.type === 'routine') return navigate('habits')
+    if (item.type === 'achievement') return navigate('insights?view=achievements')
+    if (item.date) return navigate('habits?view=calendar')
+    return navigate('insights?view=record')
   }
 
   const activate = (row) => {
@@ -148,12 +162,12 @@ export default function CommandCenter({ open, onClose }) {
   let index = -1
 
   return (
-      <Sheet open={open} onClose={onClose} title="Command center" labelledBy="command-title">
+      <Sheet open={open} onClose={onClose} title={initialMode === 'search' ? 'Search' : initialMode === 'create' ? 'Omni capture' : 'Command center'} labelledBy="command-title">
         <div className="stack command-center" style={{ gap: 14 }}>
 
           {/* ---- E1/E2: one field, and it is the capture field ---- */}
           <div className="capture-field">
-            <label htmlFor="command-input" className="eyebrow">What do you need to do?</label>
+            <label htmlFor="command-input" className="eyebrow">{initialMode === 'search' ? 'Search everything' : 'What do you need to do?'}</label>
             <input
               id="command-input"
               ref={inputRef}
@@ -172,7 +186,7 @@ export default function CommandCenter({ open, onClose }) {
 
           {/* The capture read-out, the ambiguity question and the confirmation
               preview — the same component the standalone sheet uses. */}
-          <CaptureBody
+          {!showSearch && <CaptureBody
             key={captureKey}
             bare
             text={query}
@@ -180,7 +194,7 @@ export default function CommandCenter({ open, onClose }) {
             preset={preset}
             onClose={onClose}
             resetKey={captureKey}
-          />
+          />}
 
           {/* ---- natural-language filter answered inline (E13) ---- */}
           {filterMatch && filterResult && (
@@ -219,8 +233,9 @@ export default function CommandCenter({ open, onClose }) {
             </div>
           )}
 
-          {/* ---- E12: command and search are separate, on purpose ---- */}
-          <div className="seg seg-wide" role="tablist" aria-label="Command center mode">
+          {/* These are views of one Omni input, not separate systems. Typing
+              still auto-switches to the most useful result type. */}
+          <div className="seg seg-wide" role="tablist" aria-label="Omni view">
             {MODES.map((m) => (
               <button key={m.id} type="button" role="tab" aria-selected={mode === m.id}
                 className={`seg-btn${mode === m.id ? ' active' : ''}`} onClick={() => setMode(m.id)}>
@@ -229,8 +244,23 @@ export default function CommandCenter({ open, onClose }) {
             ))}
           </div>
 
+          {/* Search, capture and commands share this one input. The result
+              sections adapt as the text becomes more specific. */}
+          <p className="tiny muted" data-context={route} aria-live="polite">
+            {showSearch ? 'Results' : mode === 'create' ? 'Create preview' : 'Commands'} · Recent and suggested actions use only real activity.
+          </p>
+
+          {coach && (
+            <section className="cc-nba" role="status" aria-label="Habit OS Coach">
+              <p className="eyebrow">Habit OS Coach · {LOCAL_COACH_STATUS.provider}</p>
+              <p>{coach.summary}</p>
+              <p className="tiny muted">Provider: {LOCAL_COACH_STATUS.provider} · External AI: {LOCAL_COACH_STATUS.externalAI} · Cost: {LOCAL_COACH_STATUS.apiCost}</p>
+              {coach.evidence?.length > 0 && <ul>{coach.evidence.map((e) => <li key={e}>{e}</li>)}</ul>}
+            </section>
+          )}
+
           {/* ---- Commands ---- */}
-          {mode === 'command' && (
+          {!showSearch && mode !== 'create' && (
             <div className="cc-list" role="listbox" aria-label="Commands">
               {!query.trim() && ranked.actions.length > 0 && (
                 <div className="cc-suggested">
@@ -293,7 +323,7 @@ export default function CommandCenter({ open, onClose }) {
           )}
 
           {/* ---- Search ---- */}
-          {mode === 'search' && (
+          {showSearch && (
             <div className="cc-list" role="listbox" aria-label="Search results">
               {query.trim().length < 2 && (
                 <p className="tiny muted" style={{ lineHeight: 1.6 }}>

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from './store.jsx'
 import { useRoute, navigate, canonicalParent } from './lib/router.jsx'
 import { ToastProvider, useToast } from './components/ui/Toaster.jsx'
@@ -11,10 +11,9 @@ import WorldLayer from './components/spatial/WorldLayer.jsx'
 import BootSequence from './components/spatial/BootSequence.jsx'
 import { applySpatialMode } from './lib/spatial.js'
 import { BottomNav, Sidebar, MoreSheet } from './components/layout/Navigation.jsx'
-import SearchPalette from './components/layout/SearchPalette.jsx'
-/* Phase E: the Command Center carries the capture parser and the command
-   registry, so it is loaded on first ⌘K rather than on first paint. */
-const CommandCenter = lazy(() => import('./components/layout/CommandCenter.jsx'))
+/* The Omni Panel carries search, capture, commands and coach routing. It is
+   lazy-loaded so the global interaction does not inflate the initial shell. */
+const OmniPanel = lazy(() => import('./components/shell/OmniPanel.jsx'))
 import Onboarding from './components/Onboarding.jsx'
 import Confetti from './components/ui/Confetti.jsx'
 import MigrationDialog from './components/auth/MigrationDialog.jsx'
@@ -62,8 +61,8 @@ export default function App() {
   const [fire, setFire] = useState(0)
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine !== false)
   const [moreOpen, setMoreOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [commandOpen, setCommandOpen] = useState(false)
+  const [omniOpen, setOmniOpen] = useState(false)
+  const [omniMode, setOmniMode] = useState('command')
 
   // V4: publish the device's spatial tier once, keep it honest on change.
   useEffect(() => applySpatialMode(), [])
@@ -99,8 +98,8 @@ export default function App() {
       // ⌘K is a chord, so it works from inside a field; '/' does not.
       if (wantsSearch && inAField()) return
       e.preventDefault()
-      if (wantsCommand) setCommandOpen(true)
-      else setSearchOpen(true)
+      setOmniMode(wantsCommand ? 'command' : 'search')
+      setOmniOpen(true)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -123,7 +122,8 @@ export default function App() {
   // Keep the log bounded: drop behaviour older than the window, once a session.
   useEffect(() => { dispatch({ type: 'PRUNE_SIGNALS', days: 180 }) }, [dispatch])
 
-  const onFire = () => setFire((f) => f + 1)
+  const onFire = useCallback(() => setFire((f) => f + 1), [])
+  const closeOmni = useCallback(() => setOmniOpen(false), [])
 
   if (!state.profile.onboarded) {
     return (
@@ -148,7 +148,7 @@ export default function App() {
       <WorldLayer />
       <BootSequence />
       <PointerLight />
-      <Sidebar route={active} name={state.profile.name} onSearch={() => setSearchOpen(true)} />
+      <Sidebar route={active} name={state.profile.name} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} />
       {!online && (
         <div className="offline-pill" role="status">
           <IconOffline size={14} /> Offline — changes still save on this device
@@ -165,7 +165,7 @@ export default function App() {
                   change re-plays it; reduced motion disables it in CSS. */}
               <div key={`${active}${param ? `/${param}` : ''}`} className="route-cam">
                 <Suspense fallback={<ScreenFallback />}>
-                  {active === 'today' && <TodayScreen onFire={onFire} onCapture={() => setCommandOpen(true)} />}
+                  {active === 'today' && <TodayScreen onFire={onFire} onCapture={() => { setOmniMode('create'); setOmniOpen(true) }} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} />}
                   {route === 'work' && (view === 'deliverables' || view === 'assignments' ? <AssignmentsScreen route="assignments" /> : view === 'workload' ? <WorkloadScreen route="workload" /> : view === 'deadlines' ? <TimelineScreen route="timeline" /> : <ProjectsScreen route="projects" />)}
                   {route === 'calendar' && <CalendarScreen key={param || 'current'} ymParam={param} />}
                   {route === 'week' && <WeekScreen />}
@@ -185,10 +185,9 @@ export default function App() {
               </div>
             </main>
 
-            <Fab route={active} onCapture={() => setCommandOpen(true)} />
-            <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+            <Fab route={active} onCapture={() => { setOmniMode('create'); setOmniOpen(true) }} />
             <Suspense fallback={null}>
-              <CommandCenter open={commandOpen} onClose={() => setCommandOpen(false)} />
+              <OmniPanel open={omniOpen} onClose={closeOmni} initialMode={omniMode} route={active} />
             </Suspense>
           </HabitUIProvider>
         </WorkUIProvider>
@@ -200,8 +199,8 @@ export default function App() {
         <ReminderScheduler />
       </ToastProvider>
 
-      <BottomNav route={active} onMore={() => setMoreOpen(true)} onSearch={() => setSearchOpen(true)} onCapture={() => setCommandOpen(true)} />
-      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} route={active} onSearch={() => setSearchOpen(true)} />
+      <BottomNav route={active} onMore={() => setMoreOpen(true)} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} onCapture={() => { setOmniMode('create'); setOmniOpen(true) }} />
+      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} route={active} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} />
     </>
   )
 }

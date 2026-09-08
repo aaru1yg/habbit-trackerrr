@@ -63,7 +63,24 @@ export default function Sheet({ open, onClose, title, children, labelledBy, foot
   const panelRef = useRef(null)
   const bodyRef = useRef(null)
   const restoreRef = useRef(null)
+  const wasOpen = useRef(false)
   const reduced = useReducedMotion()
+
+  /* Remember the opener on the render that opens the sheet — not in the
+     effect below. React commits a child's `autoFocus` before effects run, so
+     by then `document.activeElement` is already the sheet's own field, and
+     "restoring" to it on close (once unmounted) drops focus to <body>. When
+     the opener itself lives in another sheet that is closing at the same
+     moment (Omni → "Add habit"), fall back to that sheet's own opener, which
+     it publishes below, so focus still lands on something real. */
+  if (open && !wasOpen.current && typeof document !== 'undefined') {
+    const el = document.activeElement
+    const inSheet = el?.closest?.('.sheet-panel')
+    restoreRef.current = !el || el === document.body ? restoreRef.current
+      : inSheet ? (inSheet.__restoreTo || restoreRef.current)
+      : el
+  }
+  wasOpen.current = open
 
   useViewportSync(open)
 
@@ -91,8 +108,8 @@ export default function Sheet({ open, onClose, title, children, labelledBy, foot
   useEffect(() => {
     if (!open) return
     markSheet(true)
-    restoreRef.current = document.activeElement
     const panel = panelRef.current
+    if (panel) panel.__restoreTo = restoreRef.current
     const focusables = () => Array.from(panel?.querySelectorAll(FOCUSABLE) || [])
     // focus first sensible element (after close button)
     const focusList = focusables()

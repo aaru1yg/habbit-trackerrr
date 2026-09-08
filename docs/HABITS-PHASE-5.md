@@ -242,6 +242,38 @@ Real-Chromium walk of every way a habit can be created, at 390 and 1440:
   they stay on the capture path, which is their only form. A test in
   `test/habits.test.jsx` pins the command → HabitForm route.
 
+### 16.3 Touch long-press and dialog focus return (§12, §37)
+
+Driving the calendar with a real touchscreen (CDP touch events, 390×844)
+and tracing `focusin`/`focusout` across every habit dialog found two
+defects, both pre-existing on `main` but squarely inside the Phase 5
+surface:
+
+- **Long-press to add a note never worked on touch.** The hold opened the
+  note sheet at 480 ms, but lifting the finger still synthesises a click,
+  which landed on the sheet's scrim and closed it ~10 ms later (mouse
+  pointers never fire that trailing click, so it passed on desktop).
+  `CalendarScreen` now swallows exactly one click after a completed hold
+  (capture phase; disarmed by the next `pointerdown`), so the sheet stays,
+  the cell does not toggle, and the next ordinary tap still logs the day.
+  Verified: hold → type → Save note persists the note and the cell label
+  reads "…, note: Felt great"; N on a focused cell opens the same sheet.
+- **Focus fell to `<body>` after closing any auto-focusing sheet** (New
+  habit, New routine, calendar note): `Sheet` captured the element to
+  restore inside its open effect, but React commits a child's `autoFocus`
+  before effects run, so it remembered the sheet's own first field. The
+  opener is now captured on the opening render; when the opener itself is
+  inside another sheet that is closing at the same moment (Omni → Add
+  habit), it falls back to that sheet's opener. Verified: Escape returns
+  focus to New habit / New routine / the calendar cell / Edit on the detail
+  page / the "More actions" button, and Omni → Add habit → Escape lands on
+  the button that opened the Omni.
+
+Both have jsdom regression tests (`test/habits.test.jsx`,
+`test/accessibility.test.jsx`) that fail against the previous code. The
+touch pass also confirmed: cells and range controls ≥ 44 px, the habit
+column stays put while the date region scrolls, page overflow 0.
+
 ## 17. What remains
 
 Phase 6 was not started. The GitHub Actions run for draft PR #27 (CI gate

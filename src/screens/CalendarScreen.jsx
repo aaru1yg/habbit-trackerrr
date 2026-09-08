@@ -46,7 +46,30 @@ export default function CalendarScreen({ ymParam }) {
   const [noteFor, setNoteFor] = useState(null)
   const [noteDraft, setNoteDraft] = useState('')
   const longPressRef = useRef(0)
+  const heldRef = useRef(false)
   const today = todayStr()
+
+  /* A touch long-press opens the note sheet at 480 ms, but lifting the finger
+     can still emit a click — which lands on the sheet's scrim and closes it
+     again. Swallow that one trailing click (capture phase, so it reaches
+     neither the scrim nor the cell). The arm is cleared by the next
+     pointerdown too: when a platform fires no click after a long press, the
+     user's next real tap must not be eaten. */
+  useEffect(() => {
+    const swallow = (e) => {
+      if (!heldRef.current) return
+      heldRef.current = false
+      e.stopPropagation()
+      e.preventDefault()
+    }
+    const disarm = () => { heldRef.current = false }
+    document.addEventListener('click', swallow, true)
+    document.addEventListener('pointerdown', disarm, true)
+    return () => {
+      document.removeEventListener('click', swallow, true)
+      document.removeEventListener('pointerdown', disarm, true)
+    }
+  }, [])
 
   // navigating from the year overview (e.g. #/calendar/2026-03) → month mode at that month
   useEffect(() => {
@@ -163,6 +186,7 @@ export default function CalendarScreen({ ymParam }) {
   const startLongPress = (habit, date) => {
     longPressRef.current = setTimeout(() => {
       longPressRef.current = 0
+      heldRef.current = true
       setNoteFor({ habit, date })
       setNoteDraft(checkinOf(state, habit.id, date)?.note || '')
     }, 480)

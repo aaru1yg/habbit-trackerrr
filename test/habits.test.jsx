@@ -343,6 +343,43 @@ describe('calendar and week review', () => {
     expect(screen.getByRole('button', { name: 'Previous range' })).toBeTruthy()
   })
 
+  it('a touch long-press opens the note sheet and survives the trailing click; N does the same from the keyboard', async () => {
+    /* Real Chromium at 390×844: lifting the finger after a long press still
+       fires a click, which used to land on the scrim and close the sheet the
+       hold had just opened. The one trailing click is swallowed; an ordinary
+       tap and the next tap after a hold still toggle. */
+    mount(seed(), '#/habits?view=calendar')
+    await screen.findByRole('heading', { level: 1, name: 'Calendar' })
+    const d = new Date(); d.setDate(d.getDate() - 1)
+    const pretty = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    const cell = await screen.findByRole('button', { name: `Mark done: Morning run, ${pretty}` })
+
+    fireEvent.pointerDown(cell, { pointerType: 'touch' })
+    await new Promise((r) => setTimeout(r, 560))
+    fireEvent.pointerUp(cell, { pointerType: 'touch' })
+    const sheet = await screen.findByRole('dialog', { name: 'Note — Morning run' })
+    // the browser's synthesized click after the hold hits the scrim…
+    fireEvent.click(document.querySelector('.scrim'))
+    // …and the sheet is still there, with the cell untouched
+    expect(screen.getByRole('dialog', { name: 'Note — Morning run' })).toBe(sheet)
+    expect(cell.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.change(within(sheet).getByPlaceholderText(/How did it go/), { target: { value: 'Felt great' } })
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Save note' }))
+    await waitFor(() => expect(stored().checkins['h-run'][ago(1)]?.note).toBe('Felt great'))
+    expect(screen.getByRole('button', { name: `Mark done: Morning run, ${pretty}, note: Felt great` })).toBe(cell)
+
+    // only ONE click is swallowed: a following ordinary tap still logs the day
+    fireEvent.pointerDown(cell, { pointerType: 'touch' })
+    fireEvent.pointerUp(cell, { pointerType: 'touch' })
+    fireEvent.click(cell)
+    await waitFor(() => expect(stored().checkins['h-run'][ago(1)]?.done).toBe(true))
+
+    // keyboard: N opens the same sheet for the focused cell
+    cell.focus()
+    fireEvent.keyDown(cell, { key: 'n' })
+    expect(await screen.findByRole('dialog', { name: 'Note — Morning run' })).toBeTruthy()
+  })
+
   it('week review shows completion, delta, strongest/weakest and logs a missed day', async () => {
     mount(seed(), '#/habits?view=week')
     await screen.findByText(/By habit/)

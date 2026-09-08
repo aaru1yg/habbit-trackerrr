@@ -190,7 +190,37 @@ for Phase 6:
 
 No Work layout, engine or data model was changed.
 
+### 16.1 Keyboard / reduced-motion probe and one visual defect
+
+A second real-Chromium pass exercised the new screens keyboard-only and
+under `prefers-reduced-motion: reduce`:
+
+- Tab order on `#/habits` is New habit → the four section tabs → the six
+  filters → Open <habit> → Mark <habit> complete; every stop shows a focus
+  ring. Space completes (aria-pressed flips, label becomes "Mark … not
+  done"), Enter undoes. "More actions" opens the sheet with focus inside a
+  labelled dialog, Tab stays trapped, Escape closes it (≈300 ms fade) and
+  focus returns to the trigger. Section tabs are links, so Enter navigates.
+  Calendar cells take focus and Space logs a missed day. The detail page's
+  outline is H1 → Today → Consistency → History → Patterns → Schedule →
+  Manage, each a labelled section.
+- Under reduced motion nothing on `#habits-screen` animates or transitions
+  (> 50 ms); completing still flips state and label, with no particle burst.
+- Defect found and fixed: `work.css` (loaded globally by Phase 4) already
+  styles `.routine-step` as a timeline node with a `::before` dot painted
+  25 px left of the row. The Routines subview reused the same class name, so
+  each habit row grew a stray dot outside its card at every viewport. The
+  rows are now `.routine-habit`/`.routine-habits`/`-name`/`-meta` (a pure
+  rename — no markup, behaviour or Work change). `test/cssIsolation.test.js`
+  now fails if the two stylesheets ever share a `routine*` class again. The
+  remaining habit classes that also appear in shared sheets (`.cal-cell`,
+  `.cal-legend`, `.week-habit`, `.status-pill`, `.calendar-matrix-card`) are
+  the pre-existing Calendar/Week base that `habits.css` intentionally layers
+  on (missed state, hint, `info` tone).
+
 ## 17. What remains
 
-Phase 6 was not started. Outstanding: a GitHub-runner Chromium pass on the
-pushed branch (CI status is not readable from the sandbox).
+Phase 6 was not started. The GitHub Actions run for draft PR #27 (CI gate
+only, not for merging) completed green on every step; runner logs could
+not be downloaded from the sandbox, so per-suite runner counts are not
+recorded here.

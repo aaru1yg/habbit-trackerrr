@@ -90,12 +90,12 @@ export function RoutineCard({ routine, index = 0, count = 1, onEdit, onMove, dat
       {members.length === 0 ? (
         <p className="empty-note">This routine has no habits yet — edit it to add some.</p>
       ) : (
-        <ol className="routine-steps" aria-label={`${routine.name} habits`}>
+        <ol className="routine-habits" aria-label={`${routine.name} habits`}>
           {members.map((h) => {
             const scheduled = scheduledIds.has(h.id)
             const done = scheduled && isDone(state, h.id, date)
             return (
-              <li key={h.id} className="routine-step" data-done={done} data-off={!scheduled}>
+              <li key={h.id} className="routine-habit" data-done={done} data-off={!scheduled}>
                 <button
                   type="button"
                   className="routine-tick"
@@ -105,8 +105,8 @@ export function RoutineCard({ routine, index = 0, count = 1, onEdit, onMove, dat
                   onClick={() => toggleStep(h, done)}
                 >
                   <span className="routine-ring" aria-hidden="true">{done && <IconCheck size={12} />}</span>
-                  <span className="routine-step-name">{h.name}</span>
-                  <span className="routine-step-meta">{scheduled ? categoryOf(h.category).label : 'Not scheduled today'}</span>
+                  <span className="routine-habit-name">{h.name}</span>
+                  <span className="routine-habit-meta">{scheduled ? categoryOf(h.category).label : 'Not scheduled today'}</span>
                 </button>
               </li>
             )

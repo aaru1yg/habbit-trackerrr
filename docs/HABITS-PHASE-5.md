@@ -146,27 +146,38 @@ targets on every habit route (qa/audit.mjs), reduced-motion rules in
 
 ## 13. Performance (§38, §43)
 
-`npm run build` → **initial JS 230.2 kB gzip, CSS 38.3 kB gzip** (budget
-236 / 42), three.js still lazy-only. Lazy chunks: `HabitsScreen` 16.0 kB,
-`HabitDetailScreen` 15.1 kB, `CalendarScreen`, `WeekScreen`, `habits.css`
-(15.7 kB raw, route-loaded). Rows are derived once per render with `useMemo`.
+`npm run build` → **initial JS 230.3 kB gzip, CSS 38.3 kB gzip** (budget
+236 / 42), three.js still lazy-only. Lazy chunks (gzip): `HabitsScreen`
+5.4 kB, `HabitDetailScreen` 4.7 kB, `CalendarScreen` 4.0 kB, `WeekScreen`
+3.2 kB, `habits.css` 3.5 kB (route-loaded). Rows are derived once per
+render with `useMemo`.
 
 ## 14. Tests (§39)
 
-`test/habits.test.jsx` — 26 cases: canonical/legacy routes, active/routine/
+`test/habits.test.jsx` — 31 cases: canonical/legacy routes, active/routine/
 calendar/week/detail views, completion, editing, pause/resume, archive,
 deletion (+undo), missed logging, filters, empty state, mobile structure,
-accessible calendar cells, pattern display + insufficient data, Omni habit
-creation, and the pure row model. Existing suites preserved and green.
+accessible calendar cells, touch long-press note + keyboard N, pattern
+display + insufficient data, Omni habit creation (typed text and the
+Add habit command), Insights pattern line, and the pure row model.
+Follow-up regressions live where they belong: `test/cssIsolation.test.js`
+(habits/work class collision) and `test/accessibility.test.jsx` (sheet focus
+return). Existing suites preserved; whole suite 870/870 at `0b493d6`.
 
 ## 15. Browser QA (§44)
 
 Real Chromium (the `@sparticuz/chromium` binary with its bundled libraries)
 against `vite preview`: `qa/release.mjs`, `qa/e2e.mjs`, `qa/audit.mjs`,
-`qa/contrast.mjs`. Screenshots in `qa/shots/phase5-after/` at 390×844,
-430×932 and 1440×900. QA scripts fixed for the Phase 1/2 IA (calendar and
-achievements now live under `habits?view=` / `insights?view=`; Omni input
-id; lazy project-detail tabs).
+`qa/contrast.mjs`, `qa/workspace-e2e.mjs`. Screenshots in
+`qa/shots/phase5-after/` at 390×844, 430×932 and 1440×900. QA scripts fixed
+for the Phase 1/2 IA (calendar and achievements now live under
+`habits?view=` / `insights?view=`; Omni input id; lazy project-detail tabs).
+
+Final numbers at `0b493d6`: e2e 375 / 0 · release 100 checks · workspace-e2e
+356 / 0 · audit 0 findings (10 viewports × 27 routes) · contrast 0 failing
+text nodes on all five themes · horizontal overflow 0 on every habit route at
+390 / 430 / 1440. The same gate ran green on the GitHub runner for every
+commit on the branch via draft PR #27 (opened only to trigger `ci.yml`).
 
 ## 16. Follow-up commit — CI gate green locally
 

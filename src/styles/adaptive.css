@@ -98,8 +98,16 @@
 .plain-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 11px;background:var(--surface-2);border-radius:9px;font-size:var(--fs-sm);min-width:0}
 .plain-row .strong{font-weight:600;overflow-wrap:anywhere}
 .plain-row .muted{color:var(--text-2);font-size:var(--fs-xs);text-align:right;flex:none}
-.tl-group{display:grid;gap:5px}
-.tl-day{margin:0;font-size:var(--fs-micro);letter-spacing:var(--tr-caps);text-transform:uppercase;color:var(--text-2)}
+/* The Lab's grouped list. These were originally written as .tl-group/.tl-day,
+   which silently restyled RecordScreen, TimelineScreen and ProjectDetailScreen
+   as well: adaptive.css loads last, and display:grid on a list whose rows hold
+   nowrap text sizes the implicit track to max-content, blowing the timeline out
+   to 1069px inside a 320px viewport. Lab-only names, and a flex column so the
+   rows stretch to the container instead of sizing it. The day label carries
+   its own display/weight/rule because it no longer inherits work.css's .tl-day. */
+.lab-tl{display:flex;flex-direction:column;gap:5px;min-width:0}
+.lab-tl-day{margin:0;display:flex;align-items:center;gap:var(--sp-3);font-size:var(--fs-micro);font-weight:700;letter-spacing:var(--tr-caps);text-transform:uppercase;color:var(--text-2)}
+.lab-tl-day::after{content:'';flex:1;height:1px;background:var(--border)}
 .linkish{background:none;border:0;padding:0;font:inherit;font-size:inherit;font-weight:600;color:var(--accent-2);text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:2px;min-height:0}
 .linkish:hover{color:var(--accent-1)}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}

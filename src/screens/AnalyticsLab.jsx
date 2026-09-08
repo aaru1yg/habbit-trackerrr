@@ -175,8 +175,8 @@ function TimelineView({ state, now }) {
             <CardHead title="Events"></CardHead>
             <ol className="plain-list">
               {data.groups.map((g) => (
-                <li key={g.day} className="tl-group">
-                  <p className="tl-day">{g.weekday} · {shortDate(g.day)}</p>
+                <li key={g.day} className="lab-tl">
+                  <p className="lab-tl-day">{g.weekday} · {shortDate(g.day)}</p>
                   <ul className="plain-list">
                     {g.events.map((e, i) => (
                       <li key={`${g.day}-${i}`} className="plain-row">
@@ -306,8 +306,8 @@ function WorkloadView({ state, now }) {
           {pressure.enough ? (
             <ul className="plain-list">
               {pressure.rows.filter((r) => r.count).map((r) => (
-                <li key={r.id} className="tl-group">
-                  <p className="tl-day">{r.label} · {r.count} item{r.count === 1 ? '' : 's'}</p>
+                <li key={r.id} className="lab-tl">
+                  <p className="lab-tl-day">{r.label} · {r.count} item{r.count === 1 ? '' : 's'}</p>
                   <ul className="plain-list">
                     {r.items.slice(0, 4).map((i) => (
                       <li key={`${i.kind}-${i.id}`} className="plain-row">

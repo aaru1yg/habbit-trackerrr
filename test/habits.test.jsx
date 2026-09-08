@@ -434,6 +434,24 @@ describe('mobile structure and Omni', () => {
     await waitFor(() => expect(stored().habits.length).toBe(before + 1))
     expect(stored().habits.at(-1).name).toBe('Run every morning')
   })
+
+  it('Omni "Add habit" command opens the same HabitForm as the header and FAB', async () => {
+    /* §6-7: one authoritative form. The command used to drop the user into
+       the flat capture preview (title/deadline/estimate — no schedule), a
+       second, poorer way to create a habit. */
+    mount(seed(), '#/today')
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+    await screen.findByLabelText('What do you need to do?')
+    fireEvent.click(screen.getByRole('option', { name: /^Add habit/ }))
+    const form = await screen.findByRole('dialog', { name: 'New habit' })
+    expect(within(form).getByRole('group', { name: 'Schedule type' })).toBeTruthy()
+    expect(within(form).getByRole('button', { name: /Add habit/i })).toBeTruthy()
+    // the Omni closed (after its exit animation) rather than stacking under the form
+    await waitFor(() => expect(screen.queryByLabelText('What do you need to do?')).toBeNull())
+    expect(screen.queryByText(/Detected: Habit/)).toBeNull()
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
+    expect(screen.getByRole('dialog', { name: 'New habit' })).toBeTruthy()
+  })
 })
 
 /* ============================================================

@@ -218,6 +218,30 @@ under `prefers-reduced-motion: reduce`:
   the pre-existing Calendar/Week base that `habits.css` intentionally layers
   on (missed state, hint, `info` tone).
 
+### 16.2 Creation entry points (§6-7, §26) checked end to end
+
+Real-Chromium walk of every way a habit can be created, at 390 and 1440:
+
+- **Header "New habit"**, **mobile FAB "Add a habit"** and the empty state's
+  **Create habit** all open the one `HabitForm` ("New habit" · Name ·
+  Schedule type · Reminder · Notes · **Add habit**).
+- **Omni free text** "Run every morning": *Detected: Habit* → Review shows
+  Type / Title / Deadline / Estimated time with nothing saved → Create adds
+  exactly one habit (`schedule: {type: 'daily'}`) which appears in the
+  Active list as TODAY and in the count line. "Stretch" (no recurrence, no
+  type word) is *Not recognised*: the panel asks which type it is or offers
+  Save as note; no Create button, nothing created.
+- Defect found and fixed: the Omni **"Add habit" command** (⌘K → Create →
+  Add habit, or typing "add habit" + Enter) dropped the user into that flat
+  capture preview instead — a second, poorer habit form with no schedule
+  control. `CommandCenter` now closes itself and calls `habitUI.openAdd()`
+  for the habit preset, so the command lands in the same `HabitForm` with
+  focus in Name (verified: one dialog, `#habit-name` focused, schedule group
+  present, saving closes the form and stores the habit). Other Create
+  presets (project, assignment, goal milestone, project task) are unchanged:
+  they stay on the capture path, which is their only form. A test in
+  `test/habits.test.jsx` pins the command → HabitForm route.
+
 ## 17. What remains
 
 Phase 6 was not started. The GitHub Actions run for draft PR #27 (CI gate

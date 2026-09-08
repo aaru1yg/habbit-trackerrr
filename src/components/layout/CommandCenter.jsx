@@ -24,6 +24,7 @@ import { setIntent, INTENTS } from '../../lib/intents.js'
 import { shortDate } from '../../lib/dates.js'
 import { routeCoachQuestion, LOCAL_COACH_STATUS } from '../../lib/localCoach.js'
 import { CaptureBody } from './QuickCapture.jsx'
+import { useHabitUI } from '../habits/HabitUIProvider.jsx'
 import {
   IconSearch, IconSparkle, IconPlus, IconTarget, IconProjects, IconAssignment,
   IconLayers, IconTrendUp, IconClock, IconWeek, IconAlert, IconWorkload,
@@ -48,6 +49,7 @@ const TYPE_META = {
 
 export default function CommandCenter({ open, onClose, initialMode = 'command', route = 'today' }) {
   const { state } = useStore()
+  const habitUI = useHabitUI()
   const [query, setQuery] = useState('')
   const [mode, setMode] = useState('command')
   const [cursor, setCursor] = useState(0)
@@ -118,6 +120,16 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
     }
     if (d.kind === 'open') {
       if (d.target === 'capture') {
+        /* "Add habit" is the one Create command with a dedicated, richer
+           form (schedule, reminder, notes): open the same HabitForm the
+           Habits header and the mobile FAB use, so every entry point edits
+           one habit shape. Typed text like "Run every morning" still goes
+           through the capture parser + confirm step below. */
+        if (d.preset?.type === 'habit' && habitUI?.openAdd) {
+          onClose()
+          habitUI.openAdd()
+          return
+        }
         /* Capture is already the field at the top: focus it and carry any
            preset type, rather than stacking a second sheet on top. */
         setPreset(d.preset || null)

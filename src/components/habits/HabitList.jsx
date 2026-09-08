@@ -19,7 +19,7 @@ import { todayStr } from '../../lib/dates.js'
 import { describeHabit, HABIT_FILTERS, matchesFilter, filterCounts } from './habitRowModel.js'
 import { IconCheck, IconFlame, IconMore, IconClock, IconPlus } from '../../lib/icons.jsx'
 
-export function HabitRowLine({ row, onMore, onFire }) {
+function HabitRowLine({ row, onMore, onFire }) {
   const actions = useHabitActions()
   const [burst, setBurst] = useState(0)
   const { habit, status, done, scheduledToday, paused, archived, streak, miss } = row

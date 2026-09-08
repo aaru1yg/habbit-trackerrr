@@ -20,13 +20,13 @@ import { todayStr, subDaysStr } from '../../lib/dates.js'
 import { interactionFeedback } from '../../lib/motion.js'
 import { IconCheck, IconX, IconPencil, IconTrash, IconChevronRight, IconStack } from '../../lib/icons.jsx'
 
-export const routineKindLabel = (routine) =>
+const routineKindLabel = (routine) =>
   (ROUTINE_KINDS.find((k) => k.id === routine?.kind) || ROUTINE_KINDS[4]).label
 
 /* ------------------------------------------------------------
    ROUTINE CARD — identity, progress, the grouped ○ rows, actions
    ------------------------------------------------------------ */
-export function RoutineCard({ routine, index = 0, count = 1, onEdit, onMove, date = todayStr(), compact = false }) {
+function RoutineCard({ routine, index = 0, count = 1, onEdit, onMove, date = todayStr() }) {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const stats = routineStats(state, routine, date)
@@ -35,7 +35,7 @@ export function RoutineCard({ routine, index = 0, count = 1, onEdit, onMove, dat
     .map((id) => (state.habits || []).find((h) => h.id === id))
     .filter((h) => h && !h.archived)
   const scheduledIds = new Set(stats.habits.map((h) => h.id))
-  const rate = compact ? null : routineRate(state, routine, subDaysStr(date, 27), date)
+  const rate = routineRate(state, routine, subDaysStr(date, 27), date)
 
   const remove = () => {
     dispatch({ type: 'DELETE_ROUTINE', id: routine.id })
@@ -114,23 +114,21 @@ export function RoutineCard({ routine, index = 0, count = 1, onEdit, onMove, dat
         </ol>
       )}
 
-      {!compact && (
-        <footer className="routine-foot">
-          {rate && rate.days > 0 && (
-            <span className="tiny muted tnum">Fully done {rate.full} of the last {rate.days} day{rate.days === 1 ? '' : 's'}</span>
-          )}
-          <span className="routine-spacer" />
-          {onMove && count > 1 && (
-            <>
-              <button type="button" className="btn ghost sm" onClick={() => onMove(routine, -1)} disabled={index === 0} aria-label={`Move ${routine.name} up`}>↑</button>
-              <button type="button" className="btn ghost sm" onClick={() => onMove(routine, 1)} disabled={index === count - 1} aria-label={`Move ${routine.name} down`}>↓</button>
-            </>
-          )}
-          <button type="button" className="btn ghost sm" onClick={() => onEdit(routine)} aria-label={`Edit routine ${routine.name}`}><IconPencil size={14} /> Edit</button>
-          <button type="button" className="btn ghost sm" onClick={toggleActive}>{inactive ? 'Activate' : 'Archive'}</button>
-          <button type="button" className="btn ghost sm danger-text" onClick={remove} aria-label={`Delete routine ${routine.name}`}><IconTrash size={14} /></button>
-        </footer>
-      )}
+      <footer className="routine-foot">
+        {rate && rate.days > 0 && (
+          <span className="tiny muted tnum">Fully done {rate.full} of the last {rate.days} day{rate.days === 1 ? '' : 's'}</span>
+        )}
+        <span className="routine-spacer" />
+        {onMove && count > 1 && (
+          <>
+            <button type="button" className="btn ghost sm" onClick={() => onMove(routine, -1)} disabled={index === 0} aria-label={`Move ${routine.name} up`}>↑</button>
+            <button type="button" className="btn ghost sm" onClick={() => onMove(routine, 1)} disabled={index === count - 1} aria-label={`Move ${routine.name} down`}>↓</button>
+          </>
+        )}
+        <button type="button" className="btn ghost sm" onClick={() => onEdit(routine)} aria-label={`Edit routine ${routine.name}`}><IconPencil size={14} /> Edit</button>
+        <button type="button" className="btn ghost sm" onClick={toggleActive}>{inactive ? 'Activate' : 'Archive'}</button>
+        <button type="button" className="btn ghost sm danger-text" onClick={remove} aria-label={`Delete routine ${routine.name}`}><IconTrash size={14} /></button>
+      </footer>
     </article>
   )
 }

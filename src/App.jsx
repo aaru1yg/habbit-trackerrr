@@ -33,8 +33,6 @@ const SettingsScreen = lazy(() => import('./screens/SettingsScreen.jsx'))
 const WorkScreen = lazy(() => import('./screens/WorkScreen.jsx'))
 const ProjectDetailScreen = lazy(() => import('./screens/ProjectDetailScreen.jsx'))
 const AssignmentDetailScreen = lazy(() => import('./screens/AssignmentDetailScreen.jsx'))
-const CalendarScreen = lazy(() => import('./screens/CalendarScreen.jsx'))
-const WeekScreen = lazy(() => import('./screens/WeekScreen.jsx'))
 const HabitsScreen = lazy(() => import('./screens/HabitsScreen.jsx'))
 const HabitDetailScreen = lazy(() => import('./screens/HabitDetailScreen.jsx'))
 const AchievementsScreen = lazy(() => import('./screens/AchievementsScreen.jsx'))
@@ -164,12 +162,14 @@ export default function App() {
                 <Suspense fallback={<ScreenFallback />}>
                   {active === 'today' && <TodayScreen onFire={onFire} onCapture={() => { setOmniMode('create'); setOmniOpen(true) }} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} />}
                   {route === 'work' && <WorkScreen />}
-                  {route === 'calendar' && <CalendarScreen key={param || 'current'} ymParam={param} />}
-                  {route === 'week' && <WeekScreen />}
+                  {/* Legacy habit routes keep working and render the same
+                      workspace views as their canonical habits?view= form. */}
+                  {route === 'calendar' && <HabitsScreen view="calendar" ymParam={param} />}
+                  {route === 'week' && <HabitsScreen view="week" />}
                   {route === 'insights' && (view === 'mind' ? <MindScreen /> : view === 'record' ? <RecordScreen /> : view === 'achievements' ? <AchievementsScreen route="achievements" /> : <InsightsScreen />)}
                   {route === 'mind' && <MindScreen />}
                   {route === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
-                  {route === 'library' && <HabitsScreen route="habits" />}
+                  {route === 'library' && <HabitsScreen view="active" />}
                   {route === 'record' && <RecordScreen />}
                   {route === 'settings' && <SettingsScreen />}
                   {route === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <WorkScreen route="projects" />)}
@@ -177,7 +177,7 @@ export default function App() {
                   {route === 'workload' && <WorkScreen route="workload" />}
                   {route === 'timeline' && <WorkScreen route="timeline" />}
                   {route === 'achievements' && <AchievementsScreen route="achievements" />}
-                  {route === 'habits' && (view === 'calendar' ? <CalendarScreen /> : view === 'week' ? <WeekScreen /> : param ? <HabitDetailScreen id={param} /> : <HabitsScreen route="habits" />)}
+                  {route === 'habits' && (param ? <HabitDetailScreen id={param} /> : <HabitsScreen view={view || 'active'} />)}
                 </Suspense>
               </div>
             </main>

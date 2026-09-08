@@ -708,6 +708,8 @@ console.log('\n— Projects & celebration (mobile) —')
   await tapTargetCheck(page, 'projects')
 
   await page.goto(`${BASE}/#/projects/p1`, { waitUntil: 'networkidle0' })
+  // the detail tabs come from a lazy chunk — wait for them before clicking
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Analytics'), { timeout: 15000 })
   await clickByText(page, 'Analytics')
   await sleep(1000)
   const atxt = await page.evaluate(() => document.body.textContent)
@@ -736,6 +738,7 @@ console.log('\n— Projects & celebration (mobile) —')
     node.click()
     return (document.querySelector('.ptl-detail')?.textContent || '').length > 4
   }))
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Analytics'), { timeout: 15000 })
   await clickByText(page, 'Analytics')
   await sleep(800)
   check('[projects 2.0] analytics draw expected vs actual from the real log', await page.evaluate(() => (
@@ -770,7 +773,8 @@ console.log('\n— Projects & celebration (mobile) —')
   await sleep(600)
   await page.type('#project-name', 'Learn piano')
   await page.type('#project-milestones', 'Basics\nScales')
-  await clickByText(page, 'Create project')
+  // the Work header also has a "Create project" button — submit the dialog's
+  await clickByText(page, 'Create project', '[role="dialog"] button')
   await sleep(800)
   check('new project created with milestones', await page.evaluate(() => document.body.textContent.includes('Learn piano')))
   check('new project starts at an honest 0%', await page.evaluate(() => document.body.textContent.includes('0%')))
@@ -849,7 +853,11 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await overflowCheck(page, 'workload')
   await tapTargetCheck(page, 'workload')
 
-  await page.goto(`${BASE}/#/timeline`, { waitUntil: 'networkidle0' })
+  // the a1 completion above removed the only deadline due today — re-seed so
+  // the timeline check sees the fixture it was written against (a hash-only
+  // goto would not re-run the seeding init script, hence the blank hop)
+  await page.goto('about:blank')
+  await seedAndGoto(page, seededStateV4(), 'timeline', BASE)
   await sleep(800)
   check('deadline timeline groups by day', await page.evaluate(() => document.querySelectorAll('.workspace-deadline-group').length >= 2))
   check('deadline timeline marks today', await page.evaluate(() => [...document.querySelectorAll('.workspace-deadline-group h3')].some(el => el.textContent === 'Today')))
@@ -1103,7 +1111,8 @@ console.log('\n— Desktop 1440×900 —')
   await page.keyboard.press('/')
   await sleep(600)
   check('"/" opens the search palette', await page.evaluate(() => !!document.querySelector('[role="dialog"]')))
-  await page.type('#global-search', 'thesis')
+  // Phase 2: '/' opens the Omni panel in search mode (#command-input)
+  await page.type('#command-input, #global-search', 'thesis')
   await sleep(700)
   check('search finds a project by name', await page.evaluate(() => /Thesis/.test(document.body.textContent)))
   await shot(page, '20k-desktop-search')
@@ -1480,21 +1489,22 @@ console.log('\n— V4 spatial —')
     JSON.stringify(atlas))
   await shot(page, '25-v4-atlas')
 
-  // 6 · assignments pressure band
+  // 6 · deliverables pressure — Phase 4 folded the V4 pressure band into the
+  // unified Work → Deliverables rows: every assignment states its deadline,
+  // its source-derived progress (labelled meter) and its deadline risk.
   await page.goto(`${BASE}/#/assignments`, { waitUntil: 'networkidle0' })
   await sleep(700)
   const press = await page.evaluate(() => {
-    const band = document.querySelector('.press-band')
+    const rows = [...document.querySelectorAll('.workspace-row[data-kind="assignment"]')]
     return {
-      band: !!band,
-      headline: /TIME PRESSURE/.test(band?.textContent || ''),
-      days: /DAYS LEFT/i.test(band?.textContent || ''),
-      ribbons: document.querySelectorAll('.pace-ribbon-track').length,
-      labelled: [...document.querySelectorAll('.pace-ribbon-track')].every((r) => /Actual \d+%.*expected by now/i.test(r.getAttribute('aria-label') || 'Actual') || (r.getAttribute('aria-label') || '').includes('Progress')),
+      rows: rows.length,
+      deadlines: rows.every((r) => /Due .+|No deadline/.test(r.querySelector('.workspace-meta')?.textContent || '')),
+      risks: rows.every((r) => /OVERDUE|CRITICAL|AT RISK|DUE SOON|No deadline risk|ON TRACK|SAFE/i.test(r.querySelector('.workspace-risk')?.textContent || '')),
+      labelled: rows.every((r) => /\d+% complete/.test(r.querySelector('.workspace-progress [aria-label]')?.getAttribute('aria-label') || '')),
     }
   })
-  check('V4 pressure: band states time left + expected-vs-actual per plane',
-    press.band && press.headline && press.days && press.ribbons > 0 && press.labelled,
+  check('V4 pressure: every deliverable states deadline, progress and risk',
+    press.rows > 0 && press.deadlines && press.risks && press.labelled,
     JSON.stringify(press))
   await shot(page, '26-v4-pressure')
 

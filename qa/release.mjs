@@ -110,7 +110,7 @@ async function clickVisible(page, selector) {
 async function ready(page, route) {
   await page.waitForFunction((route) => {
     const h = document.querySelector('main .screen-title')
-    return location.hash === `#/${route}` && h && h.textContent.trim() && !document.querySelector('.auth-loading')
+    return location.hash === `#/${route}` && h && h.textContent.trim() && !document.querySelector('.auth-loading') && !document.querySelector('main [role="status"][aria-label="Loading"]')
   }, { timeout: 20000 }, route)
   await sleep(650)
   await page.evaluate(() => document.fonts.ready)
@@ -118,12 +118,30 @@ async function ready(page, route) {
 
 async function navigate(page, route, mobile) {
   const workViews = { projects: 'projects', assignments: 'deliverables', workload: 'workload' }
+  // Phase 1 IA: secondary screens live under their pillar as ?view= and are
+  // reached from the mobile More sheet or (desktop) from the pillar itself.
+  const pillarViews = { calendar: ['habits', 'calendar', '.habit-tabs'], achievements: ['insights', 'achievements', null] }
   let target = route
   if (workViews[route]) {
     await clickVisible(page, `${mobile ? '.bottom-nav' : '.sidebar'} a[href="#/work"]`)
     await ready(page, 'work')
     target = `work?view=${workViews[route]}`
     await clickVisible(page, `.workspace-tabs a[href="#/${target}"]`)
+  } else if (pillarViews[route]) {
+    const [pillar, view, tabs] = pillarViews[route]
+    target = `${pillar}?view=${view}`
+    if (mobile) {
+      await clickVisible(page, '.bottom-nav button[aria-label="More sections"]')
+      await page.waitForSelector('[role="dialog"]', { visible: true })
+      await sleep(400)
+      await dialogFits(page, 'mobile More sheet')
+      await clickVisible(page, `[role="dialog"] a[href="#/${target}"]`)
+    } else {
+      await clickVisible(page, `.sidebar a[href="#/${pillar}"]`)
+      await ready(page, pillar)
+      if (tabs) await clickVisible(page, `${tabs} a[href="#/${target}"]`)
+      else await page.evaluate((t) => { location.hash = `#/${t}` }, target)
+    }
   } else if (mobile) {
     if (['today', 'work', 'habits', 'goals', 'insights'].includes(route)) {
       await clickVisible(page, `.bottom-nav a[href="#/${route}"]`)
@@ -138,7 +156,14 @@ async function navigate(page, route, mobile) {
     await clickVisible(page, `.sidebar a[href="#/${route}"]`)
   }
   await ready(page, target)
-  check(`${mobile ? 'mobile' : 'desktop'} navigation → ${route}`, await page.$eval('main .screen-title', (el) => el.textContent).then((t) => titles[route].test(t)))
+  // Screens are lazy: the hash flips before React swaps the screen, so wait
+  // for the *expected* title rather than sampling whatever is mounted after a
+  // fixed pause (which lands on the Suspense fallback on a contended runner).
+  const titled = await page.waitForFunction((src) => {
+    const h = document.querySelector('main .screen-title')
+    return !!h && new RegExp(src).test(h.textContent)
+  }, { timeout: 20000 }, titles[route].source).then(() => true).catch(() => false)
+  check(`${mobile ? 'mobile' : 'desktop'} navigation → ${route}`, titled)
 }
 
 async function layout(page, name) {

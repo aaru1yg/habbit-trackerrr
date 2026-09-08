@@ -12,6 +12,7 @@ const ROUTES = [
   'work?view=workload', 'work?view=deadlines', 'projects', 'assignments',
   'workload', 'timeline', 'insights', 'mind', 'library', 'record', 'settings',
   'habits', 'achievements', 'habits/h-run', 'projects/p2', 'assignments/a1',
+  'habits?view=routines', 'habits?view=calendar', 'habits?view=week',
 ]
 
 const browser = await launch()

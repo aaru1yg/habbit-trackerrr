@@ -299,7 +299,7 @@ export default function ProjectDetailScreen({ id }) {
           {linkedHabits.length ? (
             <div className="wrap-gap" style={{ gap: 6 }}>
               {linkedHabits.map((h) => (
-                <Link key={h.id} to="library" className="chip">{h.name}</Link>
+                <Link key={h.id} to={`habits/${h.id}`} className="chip">{h.name}</Link>
               ))}
             </div>
           ) : (

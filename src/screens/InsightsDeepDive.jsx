@@ -85,7 +85,7 @@ export default function InsightsDeepDive({ state }) {
         {consistency.length ? (
           <div className="grid-3-tight">
             {consistency.map(({ habit, score, rate, bestRun }) => (
-              <Link key={habit.id} to="library" className="tile-btn">
+              <Link key={habit.id} to={`habits/${habit.id}`} className="tile-btn">
                 <DonutStat
                   pct={score ?? 0}
                   tone={score == null ? undefined : score >= 70 ? 'good' : score >= 40 ? 'warn' : 'bad'}

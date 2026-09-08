@@ -10,6 +10,11 @@ export function useToast() {
   return ctx
 }
 
+/** Same context, but null outside a ToastProvider — for screens that are
+ *  also mounted standalone (release regression tests render HabitDetail
+ *  with only the store). Callers must guard with `toast?.show`. */
+export const useOptionalToast = () => useContext(ToastContext)
+
 /**
  * Toast system with optional action (Undo). One visible at a time,
  * auto-dismisses, and pauses the timer when an action is used.

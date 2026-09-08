@@ -56,7 +56,7 @@ export default function ItemActionsSheet({ open, onClose, kind, id, onAction }) 
     if (r.kind === 'assignment') return `assignments/${r.entity.id}`
     if (r.kind === 'project') return `projects/${r.entity.id}`
     if (r.kind === 'goal') return `goals/${r.entity.id}`
-    if (r.kind === 'habit') return 'library'
+    if (r.kind === 'habit') return `habits/${r.entity.id}`
     return 'today'
   }
 

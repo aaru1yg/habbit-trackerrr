@@ -379,17 +379,25 @@ export default function TodayScreen({ onFire, onCapture, onSearch }) {
           </Reveal>
         )}
 
-        {/* Missed days you can still log */}
+        {/* Missed days you can still log — one tap logs it here (Phase 5 §20);
+            the calendar remains the place to browse the full history. */}
         {overdue.length > 0 && (
           <Reveal as="section" variant="up" delay={60} className="card pad today-missed">
             <CardHead title="Missed recently">
-              <Link to="calendar" className="btn ghost sm">Log in calendar</Link>
+              <Link to="habits?view=calendar" className="btn ghost sm">Open calendar</Link>
             </CardHead>
             <div className="wrap-gap" style={{ gap: 6 }}>
               {overdue.map(({ habit, date }) => (
-                <Link key={`${habit.id}-${date}`} to="calendar" className="btn sm" style={{ borderRadius: 999 }}>
-                  {habit.name} · {date.slice(5).replace('-', '/')}
-                </Link>
+                <button
+                  key={`${habit.id}-${date}`}
+                  type="button"
+                  className="btn sm"
+                  style={{ borderRadius: 999 }}
+                  aria-label={`Log ${habit.name} for ${prettyDate(date)}`}
+                  onClick={() => dispatch({ type: 'TOGGLE_CHECKIN', habitId: habit.id, date })}
+                >
+                  <IconPlus size={13} aria-hidden="true" /> {habit.name} · {date.slice(5).replace('-', '/')}
+                </button>
               ))}
             </div>
           </Reveal>
@@ -422,7 +430,7 @@ export default function TodayScreen({ onFire, onCapture, onSearch }) {
         {routinesToday.length > 0 && (
           <Reveal as="section" variant="up" delay={60} className="card pad">
             <CardHead title="Routines">
-              <Link to="library" className="btn ghost sm">Manage <IconChevronRight size={14} /></Link>
+              <Link to="habits?view=routines" className="btn ghost sm">Manage <IconChevronRight size={14} /></Link>
             </CardHead>
             <RoutineStrip date={today} />
           </Reveal>

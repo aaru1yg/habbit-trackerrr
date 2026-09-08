@@ -1,16 +1,22 @@
+/* ============================================================
+   CALENDAR — the habit history view of the Habits workspace
+   (Phase 5 §10-14). Rendered inside HabitsScreen for
+   #/habits?view=calendar and the legacy #/calendar.
+
+   Habit × day matrix: what happened. Work deadlines no longer
+   crowd the grid — they belong to Work → Deadlines.
+   ============================================================ */
 import { useMemo, useRef, useState, useEffect } from 'react'
 import useNow from '../lib/useNow.js'
 import { useStore } from '../store.jsx'
-import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
+import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { todayStr, monthDays, monthLabel, weekdayInitial, dayNum, isFuture, prettyDate, shortDate, addDaysStr, subDaysStr } from '../lib/dates.js'
 import { isScheduled, categoryOf } from '../lib/schedule.js'
 import { activeHabits, isDone, checkinOf, habitRate, dayDensity } from '../lib/stats.js'
-import { IconChevronLeft, IconChevronRight, IconCalendar, IconCheck } from '../lib/icons.jsx'
-import { calendarMarkers } from '../lib/work.js'
-import { WorkRow, workProgressOf } from '../components/work/WorkCards.jsx'
 import { Link } from '../lib/router.jsx'
+import { IconChevronLeft, IconChevronRight, IconCheck, IconPlus, IconCalendar } from '../lib/icons.jsx'
 
 const NAME_COL = 116
 const CELL = 44
@@ -31,6 +37,7 @@ const localDate = (s) => new Date(`${s}T12:00:00`)
 
 export default function CalendarScreen({ ymParam }) {
   const { state, dispatch } = useStore()
+  const habitUI = useHabitUI()
   const now = useNow()
   const [mode, setMode] = useState('month')
   const [ym, setYm] = useState({ y: now.getFullYear(), m: now.getMonth() })
@@ -184,45 +191,26 @@ export default function CalendarScreen({ ymParam }) {
     return habits.map((h) => ({ habit: h, ...habitRate(state, h, rangeStart, endCap) }))
   }, [state, habits, rangeStart, rangeEnd, today])
 
-  // ---- work deadlines in this range (§71) ----
-  const markers = useMemo(() => calendarMarkers(state, days.map((d) => d.date)), [state, days])
+  const openNote = (habit, date) => {
+    setNoteFor({ habit, date })
+    setNoteDraft(checkinOf(state, habit.id, date)?.note || '')
+  }
 
-  const deadlineList = useMemo(() => {
-    const out = []
-    for (const [day, list] of markers) {
-      for (const m of list) {
-        if (m.kind === 'project-deadline' || m.kind === 'assignment-deadline') {
-          out.push({ day, kind: m.kind === 'project-deadline' ? 'project' : 'assignment', item: m.item, status: m.status })
-        }
+  const missedInView = useMemo(() => {
+    let n = 0
+    for (const h of habits) {
+      for (const d of days) {
+        if (d.date >= today) break
+        if (isScheduled(h, d.date) && (!h.createdAt || d.date >= h.createdAt) && !isDone(state, h.id, d.date)) n++
       }
     }
-    out.sort((a, b) => a.day.localeCompare(b.day))
-    return out
-  }, [markers])
-
-  const markerLabel = (list) => list
-    .map((m) => {
-      if (m.kind === 'project-deadline') return `${m.item.name} due`
-      if (m.kind === 'assignment-deadline') return `${m.item.name} deadline`
-      if (m.kind === 'project-start') return `${m.item.name} starts`
-      if (m.kind === 'assignment-start') return `${m.item.name} assigned`
-      if (m.kind === 'milestone') return `Milestone: ${m.milestone.name}`
-      if (m.kind === 'task') return `Task: ${m.task.name}`
-      return m.item.name
-    })
-    .join(', ')
+    return n
+  }, [state, habits, days, today])
 
   return (
-    <div className="screen" id="calendar-screen">
-      <header className="screen-head">
-        <div>
-          <h1 className="screen-title">Calendar</h1>
-          <p className="screen-sub">Tap any past day to log it. Press and hold for a note.</p>
-        </div>
-      </header>
-
-      <div className="stack">
-        <div className="seg seg-wide" role="group" aria-label="Calendar range">
+    <div className="habits-view cal-view" id="calendar-screen">
+      <div className="cal-controls">
+        <div className="seg seg-wide cal-range" role="group" aria-label="Calendar range">
           {MODES.map((m) => (
             <button
               key={m.id}
@@ -235,197 +223,170 @@ export default function CalendarScreen({ ymParam }) {
             </button>
           ))}
         </div>
-
-        <SectionCard className="pad calendar-matrix-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: 'var(--sp-4) var(--sp-4) var(--sp-3)' }}>
-            <CardHead title={title}>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                {!isCurrentView && <button className="btn ghost sm" onClick={goToday}>Today</button>}
-                <button className="btn icon" onClick={prev} aria-label="Previous range"><IconChevronLeft size={18} /></button>
-                <button className="btn icon" onClick={next} aria-label="Next range"><IconChevronRight size={18} /></button>
-              </div>
-            </CardHead>
-          </div>
-
-          {habits.length === 0 ? (
-            <EmptyState art="art/empty-calendar.webp" icon={<IconCalendar size={40} />} title="No habits in this range">
-              Add a habit and its calendar will appear here.
-            </EmptyState>
-          ) : (
-            <div className="cal-wrap" data-testid="cal-scroll">
-              <div
-                className="cal-grid"
-                key={title}
-                style={{ gridTemplateColumns: `${NAME_COL}px repeat(${days.length}, var(--cal-cell, ${CELL}px))`, minWidth: 'max-content' }}
-              >
-                <div className="cal-corner">Habit</div>
-                {monthBands.map((b) => (
-                  <div
-                    key={b.key}
-                    className="cal-month-label"
-                    style={{ gridColumn: `span ${b.days.length}` }}
-                  >
-                    {b.label}
-                  </div>
-                ))}
-                <div className="cal-corner">Week</div>
-                {bands.map((b) => (
-                  <div
-                    key={b.index}
-                    className="cal-band-label"
-                    style={{ gridColumn: `span ${b.days.length}`, ...(b.index % 2 === 1 ? { background: 'var(--surface-2)' } : {}) }}
-                  >
-                    {b.label}
-                  </div>
-                ))}
-                <div className="cal-corner">Day</div>
-                {days.map((d) => (
-                  <div
-                    key={d.date}
-                    className="cal-head-cell"
-                    style={{
-                      ...(bandIdx.get(d.date) % 2 === 1 ? { background: 'var(--surface-2)' } : {}),
-                      ...(d.date === today ? { color: 'var(--accent-2)', fontWeight: 800 } : {}),
-                    }}
-                  >
-                    <span aria-hidden="true" style={{ fontSize: '0.5625rem', lineHeight: 1 }}>{weekdayInitial(d.date)}</span>
-                    <span className="tnum" style={{ fontSize: '0.8125rem', fontWeight: d.date === today ? 800 : 600 }}>{dayNum(d.date)}</span>
-                    <span className="sr-only">{prettyDate(d.date)}</span>
-                    {(markers.get(d.date) || []).length > 0 && (
-                      <span
-                        className="cal-marks"
-                        title={markerLabel(markers.get(d.date))}
-                        aria-label={`Work on ${prettyDate(d.date)}: ${markerLabel(markers.get(d.date))}`}
-                      >
-                        {(markers.get(d.date) || []).slice(0, 3).map((m, i) => {
-                          const deadline = m.kind.endsWith('deadline')
-                          const tone = m.kind.startsWith('project') ? 'var(--accent-1)' : 'var(--accent-2)'
-                          return (
-                            <span
-                              key={i}
-                              className="cal-mark"
-                              data-deadline={deadline ? 'true' : 'false'}
-                              style={{ background: deadline ? tone : 'transparent', borderColor: tone }}
-                            />
-                          )
-                        })}
-                      </span>
-                    )}
-                  </div>
-                ))}
-                <div className="cal-corner cal-dens-corner">Done</div>
-                {density.map((d, i) => (
-                  <div
-                    key={d.date}
-                    className={`cal-dens${d.pct == null ? ' is-null' : ''}${d.date === today ? ' is-today' : ''}`}
-                    style={{ '--i': i, ...(bandIdx.get(d.date) % 2 === 1 && d.pct == null ? { background: 'var(--surface-2)' } : {}) }}
-                    role="img"
-                    aria-label={`${prettyDate(d.date)}: ${d.pct == null ? 'nothing scheduled' : `${d.pct} percent of scheduled checks done`}`}
-                  >
-                    {d.pct != null && <i className="cal-dens-fill" style={{ '--v': d.pct / 100 }} />}
-                  </div>
-                ))}
-                {habits.map((h) => (
-                  <div key={h.id} style={{ display: 'contents' }}>
-                    <div className="cal-name">
-                      <span className="dot" style={{ width: 7, height: 7, borderRadius: 99, background: `var(${categoryOf(h.category).cssVar})`, flex: 'none' }} />
-                      <span className="cal-name-text">{h.name}</span>
-                    </div>
-                    {days.map((d) => {
-                      const scheduled = isScheduled(h, d.date) && (!h.createdAt || d.date >= h.createdAt)
-                      const future = isFuture(d.date)
-                      const done = isDone(state, h.id, d.date)
-                      const note = checkinOf(state, h.id, d.date)?.note
-                      const bandOdd = bandIdx.get(d.date) % 2 === 1
-                      if (!scheduled) {
-                        return (
-                          <div key={d.date} className="cal-cell off" style={{ ...(bandOdd ? { background: 'var(--surface-2)' } : {}) }}>
-                            <span className="cal-off-dot" aria-hidden="true" />
-                          </div>
-                        )
-                      }
-                      return (
-                        <button
-                          key={d.date}
-                          className={`cal-cell ${done ? 'done' : ''} ${d.date === today ? 'today' : ''} ${note ? 'has-note' : ''}`}
-                          style={{ ...(bandOdd && !done ? { background: 'var(--surface-2)' } : {}) }}
-                          disabled={future}
-                          aria-label={`${done ? 'Mark not done' : 'Mark done'}: ${h.name}, ${prettyDate(d.date)}${note ? `, note: ${note}` : ''}`}
-                          aria-pressed={done}
-                          onClick={() => toggle(h, d.date)}
-                          onPointerDown={() => startLongPress(h, d.date)}
-                          onPointerUp={cancelLongPress}
-                          onPointerLeave={cancelLongPress}
-                          onPointerMove={cancelLongPress}
-                          onContextMenu={(e) => e.preventDefault()}
-                        >
-                          <span className="cal-check">
-                            {done && <IconCheck size={16} />}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                ))}
-              </div>
-              <div className="cal-legend" aria-label="Calendar legend">
-                <span><i className="done" /> Completed</span>
-                <span><i /> Scheduled</span>
-                <span><i className="off" /> Not scheduled</span>
-                <span><i className="today" /> Today</span>
-              </div>
-            </div>
-          )}
-        </SectionCard>
-
-        {deadlineList.length > 0 && (
-          <SectionCard className="pad">
-            <CardHead title="Deadlines in this view">
-              <Link to="timeline" className="btn ghost sm">All deadlines</Link>
-            </CardHead>
-            <div className="tl" data-compact="true">
-              {deadlineList.map(({ day, kind, item, status }) => (
-                <div key={`${kind}-${item.id}-${day}`} className="di-row">
-                  <div className="di-date" aria-hidden="true">
-                    <span className="tnum">{dayNum(day)}</span>
-                    <span className="tiny">{weekdayInitial(day)}</span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <WorkRow kind={kind} item={item} status={status} progressPct={workProgressOf(kind, item)} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="tiny muted" style={{ marginTop: 10 }}>
-              <span className="sr-only">Calendar legend: </span>
-              Dots above the day numbers mark work — filled violet is a project deadline, filled cyan an assignment deadline,
-              hollow dots are starts, milestones and task due dates.
-            </p>
-          </SectionCard>
-        )}
-
-        {habits.length > 0 && (
-          <SectionCard className="pad">
-            <CardHead title="In this view" />
-            <div className="stack" style={{ gap: 12 }}>
-              {rates.map(({ habit, rate, done, eligible }) => (
-                <div key={habit.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-sm)', marginBottom: 5 }}>
-                    <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{habit.name}</span>
-                    <span className="tnum" style={{ color: 'var(--text-2)' }}>
-                      {rate == null ? '—' : `${Math.round(rate * 100)}%`}
-                      <span style={{ color: 'var(--text-3)' }}> ({done}/{eligible})</span>
-                    </span>
-                  </div>
-                  <div style={{ height: 6, borderRadius: 999, background: 'var(--track)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${rate == null ? 0 : Math.round(rate * 100)}%`, borderRadius: 999, background: 'linear-gradient(90deg, var(--accent-1), var(--accent-2))' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-        )}
+        <div className="cal-nav">
+          <button className="btn icon" onClick={prev} aria-label="Previous range"><IconChevronLeft size={18} /></button>
+          <h2 className="card-title cal-title" aria-live="polite">{title}</h2>
+          <button className="btn icon" onClick={next} aria-label="Next range"><IconChevronRight size={18} /></button>
+          {!isCurrentView && <button className="btn ghost sm cal-today-btn" onClick={goToday}>Today</button>}
+        </div>
       </div>
+
+      <section className="card calendar-matrix-card" aria-label={`Habit calendar, ${title}`}>
+        {habits.length === 0 ? (
+          <EmptyState
+            art="art/empty-calendar.webp"
+            icon={<IconCalendar size={40} />}
+            title="No habits in this range"
+            action={activeHabits(state).length === 0 && (
+              <div className="empty-actions">
+                <button type="button" className="btn primary" onClick={habitUI.openAdd}><IconPlus size={16} /> Create habit</button>
+              </div>
+            )}
+          >
+            {activeHabits(state).length === 0
+              ? "You don't have any habits yet. Create one and its calendar will appear here."
+              : 'Nothing was scheduled in this range. Move to a later range or check the schedule of your habits.'}
+          </EmptyState>
+        ) : (
+          <div className="cal-wrap" data-testid="cal-scroll">
+            <div
+              className="cal-grid"
+              key={title}
+              style={{ gridTemplateColumns: `${NAME_COL}px repeat(${days.length}, var(--cal-cell, ${CELL}px))`, minWidth: 'max-content' }}
+            >
+              <div className="cal-corner">Habit</div>
+              {monthBands.map((b) => (
+                <div
+                  key={b.key}
+                  className="cal-month-label"
+                  style={{ gridColumn: `span ${b.days.length}` }}
+                >
+                  {b.label}
+                </div>
+              ))}
+              <div className="cal-corner">Week</div>
+              {bands.map((b) => (
+                <div
+                  key={b.index}
+                  className="cal-band-label"
+                  style={{ gridColumn: `span ${b.days.length}`, ...(b.index % 2 === 1 ? { background: 'var(--surface-2)' } : {}) }}
+                >
+                  {b.label}
+                </div>
+              ))}
+              <div className="cal-corner">Day</div>
+              {days.map((d) => (
+                <div
+                  key={d.date}
+                  className={`cal-head-cell${d.date === today ? ' is-today' : ''}`}
+                  style={{
+                    ...(bandIdx.get(d.date) % 2 === 1 ? { background: 'var(--surface-2)' } : {}),
+                    ...(d.date === today ? { color: 'var(--accent-2)', fontWeight: 800 } : {}),
+                  }}
+                >
+                  <span aria-hidden="true" style={{ fontSize: '0.5625rem', lineHeight: 1 }}>{weekdayInitial(d.date)}</span>
+                  <span className="tnum" aria-hidden="true" style={{ fontSize: '0.8125rem', fontWeight: d.date === today ? 800 : 600 }}>{dayNum(d.date)}</span>
+                  <span className="sr-only">{prettyDate(d.date)}</span>
+                </div>
+              ))}
+              <div className="cal-corner cal-dens-corner">Done</div>
+              {density.map((d, i) => (
+                <div
+                  key={d.date}
+                  className={`cal-dens${d.pct == null ? ' is-null' : ''}${d.date === today ? ' is-today' : ''}`}
+                  style={{ '--i': i, ...(bandIdx.get(d.date) % 2 === 1 && d.pct == null ? { background: 'var(--surface-2)' } : {}) }}
+                  role="img"
+                  aria-label={`${prettyDate(d.date)}: ${d.pct == null ? 'nothing scheduled' : `${d.pct} percent of scheduled checks done`}`}
+                >
+                  {d.pct != null && <i className="cal-dens-fill" style={{ '--v': d.pct / 100 }} />}
+                </div>
+              ))}
+              {habits.map((h) => (
+                <div key={h.id} style={{ display: 'contents' }}>
+                  <div className="cal-name">
+                    <span className="dot" style={{ width: 7, height: 7, borderRadius: 99, background: `var(${categoryOf(h.category).cssVar})`, flex: 'none' }} />
+                    <Link to={`habits/${h.id}`} className="cal-name-text" aria-label={`Open ${h.name}`}>{h.name}</Link>
+                  </div>
+                  {days.map((d) => {
+                    const scheduled = isScheduled(h, d.date) && (!h.createdAt || d.date >= h.createdAt)
+                    const future = isFuture(d.date)
+                    const done = isDone(state, h.id, d.date)
+                    const note = checkinOf(state, h.id, d.date)?.note
+                    const bandOdd = bandIdx.get(d.date) % 2 === 1
+                    if (!scheduled) {
+                      return (
+                        <div key={d.date} className="cal-cell off" title={`${h.name}: not scheduled on ${prettyDate(d.date)}`} style={{ ...(bandOdd ? { background: 'var(--surface-2)' } : {}) }}>
+                          <span className="cal-off-dot" aria-hidden="true" />
+                        </div>
+                      )
+                    }
+                    const missed = !done && !future && d.date !== today
+                    return (
+                      <button
+                        key={d.date}
+                        type="button"
+                        className={`cal-cell ${done ? 'done' : ''} ${d.date === today ? 'today' : ''} ${note ? 'has-note' : ''} ${missed ? 'missed' : ''}`}
+                        data-state={done ? 'completed' : future ? 'upcoming' : missed ? 'missed' : 'today'}
+                        style={{ ...(bandOdd && !done ? { background: 'var(--surface-2)' } : {}) }}
+                        disabled={future}
+                        title={missed ? `Missed — tap to log ${h.name} for ${prettyDate(d.date)}` : undefined}
+                        aria-label={`${done ? 'Mark not done' : 'Mark done'}: ${h.name}, ${prettyDate(d.date)}${note ? `, note: ${note}` : ''}`}
+                        aria-pressed={done}
+                        onClick={() => toggle(h, d.date)}
+                        onKeyDown={(e) => { if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openNote(h, d.date) } }}
+                        onPointerDown={() => startLongPress(h, d.date)}
+                        onPointerUp={cancelLongPress}
+                        onPointerLeave={cancelLongPress}
+                        onPointerMove={cancelLongPress}
+                        onContextMenu={(e) => e.preventDefault()}
+                      >
+                        <span className="cal-check">
+                          {done && <IconCheck size={16} />}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="cal-legend" aria-label="Calendar legend">
+              <span><i className="done" /> Completed</span>
+              <span><i className="missed" /> Missed</span>
+              <span><i /> Scheduled</span>
+              <span><i className="off" /> Not scheduled</span>
+              <span><i className="today" /> Today</span>
+              <span className="cal-legend-hint">Hold a cell (or press N) for a note</span>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {habits.length > 0 && (
+        <section className="card pad cal-summary" aria-labelledby="cal-summary-title">
+          <div className="card-head">
+            <h2 id="cal-summary-title" className="card-title">In this view</h2>
+            <span className="tiny muted tnum">
+              {missedInView === 0 ? 'No missed days' : `${missedInView} missed day${missedInView === 1 ? '' : 's'} you can still log`}
+            </span>
+          </div>
+          <ul className="cal-rates" aria-label="Completion by habit in this range">
+            {rates.map(({ habit, rate, done, eligible }) => (
+              <li key={habit.id} className="cal-rate">
+                <div className="cal-rate-line">
+                  <Link to={`habits/${habit.id}`} className="cal-rate-name">{habit.name}</Link>
+                  <span className="tnum cal-rate-val">
+                    {rate == null ? '—' : `${Math.round(rate * 100)}%`}
+                    <span className="muted"> ({done}/{eligible})</span>
+                  </span>
+                </div>
+                <div className="cal-rate-track" aria-hidden="true">
+                  <div className="cal-rate-fill" style={{ width: `${rate == null ? 0 : Math.round(rate * 100)}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <Sheet
         open={!!noteFor}

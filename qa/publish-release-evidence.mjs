@@ -17,6 +17,15 @@ const report = JSON.parse(readFileSync(path, 'utf8'))
 const passed = report.checks.filter((c) => c.passed).length
 const summary = `${report.status}: ${passed}/${report.checks.length} checks; ${Object.keys(report.assets).length} matching assets; commit ${report.commit}; built ${report.builtAt}; ${report.url}`
 console.log(`::${report.status === 'passed' ? 'notice' : 'error'} title=Public release proof::${summary}`)
+
+// A count alone is not actionable: qa/release.mjs throws on the first failed
+// check, so name it — with the detail it captured — instead of leaving the
+// next reader to guess which of 60+ checks broke.
+const failures = report.checks.filter((c) => !c.passed)
+for (const failure of failures) {
+  const detail = String(failure.detail || 'no detail recorded').slice(0, 1500)
+  console.log(`::error title=Failed release check: ${failure.name}::${detail}`)
+}
 if (process.env.GITHUB_STEP_SUMMARY) {
   appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Public V2 release proof\n\n${summary}\n\nScreenshots and full checksums: **public-release-proof** artifact.\n`)
 }

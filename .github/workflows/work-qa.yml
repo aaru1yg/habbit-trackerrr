@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 jobs:
   browser:
@@ -46,6 +47,12 @@ jobs:
             process.exit(1);
           '
           npm run test:e2e:work 2>&1 | tee qa/shots/workspace/browser.log
+      - name: Publish API-readable Chromium diagnostics
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WORK_QA_VIEWPORT: ${{ matrix.viewport }}
+        run: node qa/publish-work-proof.mjs
       - name: Upload Chromium evidence
         if: always()
         uses: actions/upload-artifact@v4

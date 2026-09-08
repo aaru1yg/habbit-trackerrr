@@ -282,17 +282,17 @@ describe('core flows', () => {
     await screen.findByText(/Start with one habit/i)
   })
 
-  it('mobile nav shows the four primary tabs and More reveals the rest (§78)', async () => {
+  it('mobile nav shows the five primary destinations and More reveals secondary tools (§78)', async () => {
     await onboard()
     const nav = document.querySelector('.bottom-nav')
     expect(nav).toBeTruthy()
-    for (const label of ['Today', 'Calendar', 'Work', 'Insights']) {
+    for (const label of ['Today', 'Work', 'Habits', 'Goals', 'Insights']) {
       expect(within(nav).getByText(label)).toBeTruthy()
     }
-    expect(within(nav).getAllByRole('link')).toHaveLength(4)
+    expect(within(nav).getAllByRole('link')).toHaveLength(5)
 
-    fireEvent.click(within(nav).getByText('Calendar'))
-    await screen.findByText(/Tap any past day to log it/i)
+    fireEvent.click(within(nav).getByText('Habits'))
+    await screen.findByText('No habits yet')
     fireEvent.click(within(nav).getByText('Work'))
     await screen.findByText('No projects yet')
     fireEvent.click(within(nav).getByText('Insights'))
@@ -301,18 +301,17 @@ describe('core flows', () => {
     // More sheet carries the secondary routes
     fireEvent.click(within(nav).getByRole('button', { name: 'More sections' }))
     const sheet = await screen.findByRole('dialog')
-    for (const label of ['Habits', 'Goals', 'Workload', 'Deadlines', 'Week', 'Achievements', 'Mind', 'Record']) {
+    for (const label of ['Deliverables', 'Projects', 'Workload', 'Deadlines', 'Calendar', 'Week review', 'Achievements', 'Mind', 'Record']) {
       expect(within(sheet).getByText(label)).toBeTruthy()
     }
-    fireEvent.click(within(sheet).getByText('Week'))
+    fireEvent.click(within(sheet).getByText('Week review'))
     await screen.findByText(/No habits scheduled this week/i)
   })
 
   it('desktop sidebar exposes every route and the search shortcut (§78, §30)', async () => {
     await onboard()
     const links = [...document.querySelectorAll('.sidebar-nav a, .sidebar-settings')].map((a) => a.getAttribute('href'))
-    for (const to of ['#/today', '#/calendar', '#/habits', '#/goals', '#/projects', '#/assignments',
-      '#/workload', '#/timeline', '#/week', '#/insights', '#/achievements', '#/mind', '#/record', '#/settings']) {
+    for (const to of ['#/today', '#/work', '#/habits', '#/goals', '#/insights', '#/settings']) {
       expect(links).toContain(to)
     }
     expect(document.querySelector('.sidebar-search')).toBeTruthy()
@@ -367,15 +366,15 @@ describe('work layer', () => {
     await screen.findByText('Nothing recorded yet')
   })
 
-  it('Work tab segments between Projects and Assignments', async () => {
+  it('Work tab segments between Projects and Deliverables', async () => {
     await onboard()
     window.location.hash = '#/projects'
     await screen.findByText('No projects yet')
     const seg = document.querySelector('.tabbar')
     expect(seg).toBeTruthy()
-    fireEvent.click(within(seg).getByText('Assignments'))
+    fireEvent.click(within(seg).getByText('Deliverables'))
     await screen.findByText('Nothing due yet')
-    expect(window.location.hash).toBe('#/assignments')
+    expect(window.location.hash).toBe('#/work?view=deliverables')
   })
 
   it('creates a project from the Work FAB and shows it on the dashboard', async () => {

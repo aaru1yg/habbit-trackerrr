@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { useStore } from './store.jsx'
-import { useRoute, navigate } from './lib/router.jsx'
+import { useRoute, navigate, canonicalParent } from './lib/router.jsx'
 import { ToastProvider, useToast } from './components/ui/Toaster.jsx'
 import UnlockWatcher from './components/achievements/UnlockWatcher.jsx'
 import HabitUIProvider, { useHabitUI } from './components/habits/HabitUIProvider.jsx'
@@ -31,7 +31,6 @@ const InsightsScreen = lazy(() => import('./screens/InsightsScreen.jsx'))
 const MindScreen = lazy(() => import('./screens/MindScreen.jsx'))
 const GoalsScreen = lazy(() => import('./screens/GoalsScreen.jsx'))
 const GoalDetailScreen = lazy(() => import('./screens/GoalDetailScreen.jsx'))
-const LibraryScreen = lazy(() => import('./screens/LibraryScreen.jsx'))
 const RecordScreen = lazy(() => import('./screens/RecordScreen.jsx'))
 const SettingsScreen = lazy(() => import('./screens/SettingsScreen.jsx'))
 const ProjectsScreen = lazy(() => import('./screens/ProjectsScreen.jsx'))
@@ -45,7 +44,7 @@ const TimelineScreen = lazy(() => import('./screens/TimelineScreen.jsx'))
 const AchievementsScreen = lazy(() => import('./screens/AchievementsScreen.jsx'))
 
 const ROUTES = [
-  'today', 'calendar', 'week', 'insights', 'mind', 'goals', 'library', 'settings',
+  'today', 'work', 'calendar', 'week', 'insights', 'mind', 'goals', 'library', 'settings',
   'projects', 'assignments', 'workload', 'timeline', 'record', 'habits', 'achievements',
 ]
 
@@ -59,7 +58,7 @@ function ScreenFallback() {
 
 export default function App() {
   const { state, dispatch } = useStore()
-  const { route, param } = useRoute()
+  const { route, param, query } = useRoute()
   const [fire, setFire] = useState(0)
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine !== false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -137,7 +136,8 @@ export default function App() {
     )
   }
 
-  const active = ROUTES.includes(route) ? route : 'today'
+  const active = ROUTES.includes(route) ? canonicalParent(route) : 'today'
+  const view = query?.view || null
 
   return (
     <>
@@ -166,20 +166,21 @@ export default function App() {
               <div key={`${active}${param ? `/${param}` : ''}`} className="route-cam">
                 <Suspense fallback={<ScreenFallback />}>
                   {active === 'today' && <TodayScreen onFire={onFire} onCapture={() => setCommandOpen(true)} />}
-                  {active === 'calendar' && <CalendarScreen key={param || 'current'} ymParam={param} />}
-                  {active === 'week' && <WeekScreen />}
-                  {active === 'insights' && <InsightsScreen />}
-                  {active === 'mind' && <MindScreen />}
-                  {active === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
-                  {active === 'library' && <LibraryScreen />}
-                  {active === 'record' && <RecordScreen />}
-                  {active === 'settings' && <SettingsScreen />}
-                  {active === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <ProjectsScreen route={active} />)}
-                  {active === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <AssignmentsScreen route={active} />)}
-                  {active === 'workload' && <WorkloadScreen route={active} />}
-                  {active === 'timeline' && <TimelineScreen route={active} />}
-                  {active === 'achievements' && <AchievementsScreen route={active} />}
-                  {active === 'habits' && (param ? <HabitDetailScreen id={param} /> : <HabitsScreen route={active} />)}
+                  {route === 'work' && (view === 'deliverables' || view === 'assignments' ? <AssignmentsScreen route="assignments" /> : view === 'workload' ? <WorkloadScreen route="workload" /> : view === 'deadlines' ? <TimelineScreen route="timeline" /> : <ProjectsScreen route="projects" />)}
+                  {route === 'calendar' && <CalendarScreen key={param || 'current'} ymParam={param} />}
+                  {route === 'week' && <WeekScreen />}
+                  {route === 'insights' && (view === 'mind' ? <MindScreen /> : view === 'record' ? <RecordScreen /> : view === 'achievements' ? <AchievementsScreen route="achievements" /> : <InsightsScreen />)}
+                  {route === 'mind' && <MindScreen />}
+                  {route === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
+                  {route === 'library' && <HabitsScreen route="habits" />}
+                  {route === 'record' && <RecordScreen />}
+                  {route === 'settings' && <SettingsScreen />}
+                  {route === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <ProjectsScreen route="projects" />)}
+                  {route === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <AssignmentsScreen route="assignments" />)}
+                  {route === 'workload' && <WorkloadScreen route="workload" />}
+                  {route === 'timeline' && <TimelineScreen route="timeline" />}
+                  {route === 'achievements' && <AchievementsScreen route="achievements" />}
+                  {route === 'habits' && (view === 'calendar' ? <CalendarScreen /> : view === 'week' ? <WeekScreen /> : param ? <HabitDetailScreen id={param} /> : <HabitsScreen route="habits" />)}
                 </Suspense>
               </div>
             </main>
@@ -217,7 +218,7 @@ function Fab({ route, onCapture }) {
 
   useEffect(() => { setOpen(false) }, [route])
 
-  if (route === 'projects') {
+  if (route === 'projects' || route === 'work') {
     return (
       <div className="fab-stack">
         <button className="btn primary floating" style={{ position: 'static' }} onClick={workUI.newProject} aria-label="Add a project">

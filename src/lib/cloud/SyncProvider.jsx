@@ -19,7 +19,7 @@ import { useAuth } from './AuthProvider.jsx'
 import {  cloudConfigured } from './supabase.js'
 import { pull, push, SYNC } from './syncEngine.js'
 import { friendlyError } from './errors.js'
-import { mergeDocs, summarise, hasData, comparableDoc } from './merge.js'
+import { mergeDocs, summarise, hasData, comparableDoc, userDocKey } from './merge.js'
 import { readMigrationChoice, writeMigrationChoice, canonicalJson } from './migrationState.js'
 
 const SyncContext = createContext(null)
@@ -134,6 +134,24 @@ export default function SyncProvider({ children }) {
             setLastSyncedAt(updatedAt)
             setStatus(SYNC.SYNCED)
             ready.current = true
+            return
+          }
+
+          // Differ only by auto-recorded event logs (screen-visit signals,
+          // focus sessions)? That is telemetry, not a genuine choice — the
+          // logs union losslessly. Union them into the local doc and mark the
+          // cloud canonical, so the debounced push converges the account;
+          // never ask a human to reconcile data the device already shares.
+          if (userDocKey(localDoc) === userDocKey(cloudDoc)) {
+            const merged = mergeDocs(localDoc, cloudDoc)
+            serverCanonical.current = cloudC
+            setLastSyncedAt(updatedAt)
+            setStatus(SYNC.SYNCED)
+            ready.current = true
+            // Dispatch even when merged already equals the local doc: the
+            // debounced push fires on state changes, so this is what makes
+            // the union actually reach the server.
+            dispatch({ type: 'IMPORT_DATA', data: merged })
             return
           }
 

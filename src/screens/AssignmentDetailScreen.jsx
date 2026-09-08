@@ -2,7 +2,7 @@
    ASSIGNMENT DETAIL — countdown, progress control, subtasks and
    the assignment's own analytics (§69).
    ============================================================ */
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import useNow from '../lib/useNow.js'
 import { useStore } from '../store.jsx'
@@ -12,15 +12,18 @@ import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { StatusPill, KindTag, MeterRow, QuickProgress, DeadlineHero, WorkEmpty } from '../components/work/WorkKit.jsx'
 import DeadlinePressure from '../components/work/DeadlinePressure.jsx'
 import { AssignmentDeadlineField } from '../components/work/DeadlineField.jsx'
-import { LineSeries, DonutStat, BucketColumns, TimeVsWorkBars } from '../components/charts/workCharts.jsx'
+import WorkFocus from '../components/work/WorkFocus.jsx'
+import { assignmentPace } from '../lib/adaptive.js'
+import '../styles/workspace.css'
+const AssignmentAnalytics = lazy(() => import('../components/work/AssignmentAnalytics.jsx'))
 import {
-  assignmentStatus, assignmentProgress, progressSeries, entityVelocity, timeVsWork, itemHistory,
+  assignmentStatus, assignmentProgress, timeVsWork, itemHistory,
   PRIORITIES, assignmentPressure,
 } from '../lib/work.js'
-import { todayStr, subDaysStr, shortDate, prettyDateTime,  dayOf, minutesLabel } from '../lib/dates.js'
+import { shortDate, prettyDateTime,  dayOf, minutesLabel } from '../lib/dates.js'
 import {
   IconChevronLeft, IconPlus, IconTrash, IconPencil, IconAssignment, IconCheck, IconGrip,
-  IconClock, IconLink, IconX, IconHourglass,
+  IconClock, IconLink, IconX,
 } from '../lib/icons.jsx'
 
 export default function AssignmentDetailScreen({ id }) {
@@ -29,10 +32,10 @@ export default function AssignmentDetailScreen({ id }) {
   const toast = useToast()
   const reduced = useReducedMotion()
   const now = useNow()
-  const today = todayStr()
 
   const assignment = (state.assignments || []).find((a) => a.id === id) || null
-  const [range, setRange] = useState(14)
+  const [focus, setFocus] = useState(false)
+  const [analytics, setAnalytics] = useState(false)
   const [newSub, setNewSub] = useState('')
   const [editingDeadline, setEditingDeadline] = useState(false)
 
@@ -46,7 +49,7 @@ export default function AssignmentDetailScreen({ id }) {
           <WorkEmpty
             icon={<IconAssignment size={40} />}
             title="Assignment not found"
-            action={<a className="btn primary" href="#/assignments">Back to assignments</a>}
+            action={<a className="btn primary" href="#/work?view=deliverables">Back to deliverables</a>}
           >
             It may have been deleted on this device.
           </WorkEmpty>
@@ -58,9 +61,8 @@ export default function AssignmentDetailScreen({ id }) {
   const project = assignment.projectId ? (state.projects || []).find((p) => p.id === assignment.projectId) : null
   const subs = assignment.subtasks || []
   const subsDone = subs.filter((s) => s.done).length
-  const series = progressSeries(assignment, subDaysStr(today, range - 1), today)
-  const velocity = entityVelocity(assignment, Math.min(range, 30), now)
   const tvw = timeVsWork(assignment, 'assignment', now)
+  const pace = assignmentPace(assignment, { now })
   const history = itemHistory(assignment, 'assignment', now)
 
   const addSub = () => {
@@ -82,7 +84,7 @@ export default function AssignmentDetailScreen({ id }) {
 
   const remove = () => {
     work.deleteAssignment(assignment)
-    window.location.hash = '#/assignments'
+    window.location.hash = '#/work?view=deliverables'
   }
 
   const reorderSubs = (next) => dispatch({ type: 'REORDER_SUBTASKS', id: assignment.id, order: next.map((s) => s.id) })
@@ -91,8 +93,8 @@ export default function AssignmentDetailScreen({ id }) {
     <div className="screen" id="assignment-detail">
       <header className="screen-head">
         <div style={{ minWidth: 0 }}>
-          <a href="#/assignments" className="back-link" aria-label="Back to assignments">
-            <IconChevronLeft size={16} /> Assignments
+          <a href="#/work?view=deliverables" className="back-link" aria-label="Back to deliverables">
+            <IconChevronLeft size={16} /> Deliverables
           </a>
           <div className="wrap-gap" style={{ gap: 8, marginTop: 6 }}>
             <KindTag kind="assignment">Assignment</KindTag>
@@ -111,59 +113,17 @@ export default function AssignmentDetailScreen({ id }) {
       </header>
 
       <div className="stack">
-        {/* Countdown + progress hero */}
-        <SectionCard className="pad-lg assignment-detail-hero">
-          <div className="detail-hero">
-            <div style={{ minWidth: 150 }}>
-              <p className="eyebrow">Time left</p>
-              <div style={{ marginTop: 8 }}>
-                <DeadlineHero status={status} />
-              </div>
-              {status.hasDeadline && (
-                <p className="tiny muted" style={{ marginTop: 8 }}>
-                  {status.passed ? `Deadline passed ${shortDate(dayOf(assignment.deadline))}` : `Due ${prettyDateTime(assignment.deadline)}`}
-                </p>
-              )}
-              <div style={{ marginTop: 12 }}>
-                <DeadlinePressure pressure={assignmentPressure(assignment, now)} size="lg" />
-              </div>
-            </div>
-            <div style={{ flex: 1, minWidth: 220 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <DonutStat pct={status.pct} size={104} tone={status.tone}
-                  label={progress.mode === 'subtasks' ? `${subsDone}/${subs.length} subtasks` : 'Progress'}
-                  sub={status.complete ? 'Completed' : `${100 - status.pct}% left`} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <MeterRow pct={status.pct} tone={status.tone} pace={status.elapsedPct} />
-                  <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-                    {status.elapsedPct != null
-                      ? <><b className="tnum">{status.elapsedPct}%</b> of the time has elapsed and <b className="tnum">{status.pct}%</b> of the work is done.</>
-                      : 'Add an assigned date and deadline to compare the clock with the work.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {status.elapsedPct != null && !status.complete && (
-            <p className="pace-note" data-tone={tvw?.behind ? 'bad' : tvw?.ahead ? 'good' : undefined} style={{ marginTop: 16 }}>
-              <IconHourglass size={14} />
-              {tvw?.behind
-                ? `Behind schedule by ${tvw.gapPct} points — ${tvw.remainingWork}% of the work is still open with ${status.daysLeft ?? 0} days left.`
-                : tvw?.ahead
-                  ? `Ahead of schedule by ${Math.abs(tvw.gapPct)} points.`
-                  : 'On pace with the deadline.'}
-            </p>
-          )}
-
-          <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-            <QuickProgress
-              value={progress.mode === 'subtasks' ? progress.pct : assignment.progress}
-              onChange={(pct) => work.setAssignmentProgress(assignment, pct)}
-              label={progress.mode === 'subtasks' ? 'Progress (synced with subtasks)' : 'Progress'}
-            />
-          </div>
+        <SectionCard className="pad assignment-detail-hero">
+          <CardHead title="Deadline"><StatusPill status={status} /></CardHead>
+          <p>{status.hasDeadline ? prettyDateTime(assignment.deadline) : 'No deadline set'}</p>
+          <DeadlineHero status={status} />
+          <h2 className="assignment-progress-heading">Progress</h2>
+          <MeterRow pct={status.pct} tone={status.tone} pace={status.elapsedPct} />
+          <p className="tiny muted">{100 - status.pct}% remains{Number(assignment.estimateMin) > 0 ? ` · ~${minutesLabel(Math.round(assignment.estimateMin * (1 - status.pct / 100)))} estimated remaining` : ' · Effort not estimated'}{subs.length ? ` · ${subsDone}/${subs.length} subtasks complete` : ''}</p>
+          <details className="assignment-progress-controls"><summary>Update progress</summary><QuickProgress value={progress.mode === 'subtasks' ? progress.pct : assignment.progress} onChange={pct => work.setAssignmentProgress(assignment, pct)} label={progress.mode === 'subtasks' ? 'Progress (synced with subtasks)' : 'Progress'} /></details>
         </SectionCard>
+        <section className="assignment-next-action"><h2>Next action</h2><p>{status.complete ? 'Work complete.' : subs.find(s => !s.done)?.name || 'Make progress on this deliverable.'}</p>{!status.complete && <button className="btn primary" onClick={() => setFocus(true)}>Start Focus</button>}{project && <a className="btn ghost" href={`#/projects/${project.id}`}>Project: {project.name}</a>}</section>
+        {focus && <WorkFocus item={{ ...assignment, kind: 'assignment' }} onClose={() => setFocus(false)} />}
 
         <div className="detail-layout">
           <div className="stack">
@@ -208,45 +168,8 @@ export default function AssignmentDetailScreen({ id }) {
               </form>
             </SectionCard>
 
-            {/* Analytics */}
-            <SectionCard className="pad">
-              <CardHead title="Daily progress">
-                <div className="seg" role="group" aria-label="Range">
-                  {[7, 14, 30].map((d) => (
-                    <button key={d} type="button" className={`seg-btn${range === d ? ' active' : ''}`} aria-pressed={range === d} onClick={() => setRange(d)}>{d}D</button>
-                  ))}
-                </div>
-              </CardHead>
-              {(assignment.progressLog || []).length ? (
-                <LineSeries
-                  series={[{ id: 'pct', label: 'Progress', color: 'var(--accent-2)', points: series.map((r) => ({ date: r.date, value: r.pct })) }]}
-                  height={180}
-                  ariaLabel="Assignment progress over time"
-                />
-              ) : (
-                <p className="empty-note">Every progress change is logged with a timestamp — this line starts with your first update.</p>
-              )}
-            </SectionCard>
-
-            <div className="split">
-              <SectionCard className="pad">
-                <CardHead title="Time vs work" />
-                {tvw ? (
-                  <TimeVsWorkBars elapsedPct={tvw.elapsedPct} workPct={tvw.workPct} behind={tvw.behind} ahead={tvw.ahead} />
-                ) : (
-                  <p className="empty-note">Needs both an assigned date and a deadline.</p>
-                )}
-              </SectionCard>
-
-              <SectionCard className="pad">
-                <CardHead title="Work velocity" />
-                {velocity.some((v) => v.count) ? (
-                  <BucketColumns rows={velocity.map((v) => ({ label: v.date.slice(5).replace('-', '/'), value: v.count, color: 'var(--accent-1)' }))} height={104} />
-                ) : (
-                  <p className="empty-note">Complete subtasks to see how fast the work is moving.</p>
-                )}
-              </SectionCard>
-            </div>
+            <SectionCard className="pad"><CardHead title="Forecast / pressure" /><DeadlinePressure pressure={assignmentPressure(assignment, now)} size="lg" /><p className="tiny muted">{tvw ? `${tvw.elapsedPct}% of time elapsed · ${tvw.workPct}% work completed` : 'Set an assigned date and deadline to compare expected and actual progress.'}</p><p className="tiny muted">{pace.requiredPace != null ? `${minutesLabel(pace.requiredPace)} per day required.` : pace.reason || 'Add an effort estimate to see the required pace.'}</p></SectionCard>
+            <details className="assignment-analytics" onToggle={e => { if (e.currentTarget.open) setAnalytics(true) }}><summary>Progress analytics and velocity</summary>{analytics && <Suspense fallback={<p role="status">Loading analytics…</p>}><AssignmentAnalytics assignment={assignment} now={now} /></Suspense>}</details>
 
             <SectionCard className="pad">
               <CardHead title="Notes" />

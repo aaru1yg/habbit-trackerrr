@@ -15,7 +15,7 @@ import { Link } from '../../lib/router.jsx'
 const fmt = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${Math.floor(s % 60).toString().padStart(2, '0')}`
 const DURATIONS = [25, 45, 60, 90]
 
-export default function FocusMode({ state, dispatch, now = new Date(), openTick = 0 }) {
+export default function FocusMode({ state, dispatch, now = new Date(), openTick = 0, selectedItem = null }) {
   const [open, setOpen] = useState(false)
   const [minutes, setMinutes] = useState(25)
   const [elapsed, setElapsed] = useState(0)
@@ -24,7 +24,7 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
   const [done, setDone] = useState(false)
 
   const toast = useToast()
-  const rec = useMemo(() => focusRecommendation(state, { now }), [state, now])
+  const rec = useMemo(() => selectedItem ? { item: selectedItem, reason: 'Work you chose to focus on.', suggestedDuration: selectedItem.estimateMin ?? null } : focusRecommendation(state, { now }), [state, now, selectedItem])
   /* #25 — the same evidence as before, but now actionable. */
   const advice = useMemo(
     () => (rec ? estimateSuggestion(rec.item, state, { now }) : null),

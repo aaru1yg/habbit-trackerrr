@@ -34,19 +34,16 @@ const GoalDetailScreen = lazy(() => import('./screens/GoalDetailScreen.jsx'))
 const LibraryScreen = lazy(() => import('./screens/LibraryScreen.jsx'))
 const RecordScreen = lazy(() => import('./screens/RecordScreen.jsx'))
 const SettingsScreen = lazy(() => import('./screens/SettingsScreen.jsx'))
-const ProjectsScreen = lazy(() => import('./screens/ProjectsScreen.jsx'))
+const WorkScreen = lazy(() => import('./screens/WorkScreen.jsx'))
 const ProjectDetailScreen = lazy(() => import('./screens/ProjectDetailScreen.jsx'))
-const AssignmentsScreen = lazy(() => import('./screens/AssignmentsScreen.jsx'))
 const AssignmentDetailScreen = lazy(() => import('./screens/AssignmentDetailScreen.jsx'))
-const WorkloadScreen = lazy(() => import('./screens/WorkloadScreen.jsx'))
 const HabitsScreen = lazy(() => import('./screens/HabitsScreen.jsx'))
 const HabitDetailScreen = lazy(() => import('./screens/HabitDetailScreen.jsx'))
-const TimelineScreen = lazy(() => import('./screens/TimelineScreen.jsx'))
 const AchievementsScreen = lazy(() => import('./screens/AchievementsScreen.jsx'))
 
 const ROUTES = [
   'today', 'calendar', 'week', 'insights', 'mind', 'goals', 'library', 'settings',
-  'projects', 'assignments', 'workload', 'timeline', 'record', 'habits', 'achievements',
+  'work', 'projects', 'assignments', 'workload', 'timeline', 'record', 'habits', 'achievements',
 ]
 
 function ScreenFallback() {
@@ -174,10 +171,11 @@ export default function App() {
                   {active === 'library' && <LibraryScreen />}
                   {active === 'record' && <RecordScreen />}
                   {active === 'settings' && <SettingsScreen />}
-                  {active === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <ProjectsScreen route={active} />)}
-                  {active === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <AssignmentsScreen route={active} />)}
-                  {active === 'workload' && <WorkloadScreen route={active} />}
-                  {active === 'timeline' && <TimelineScreen route={active} />}
+                  {active === 'work' && <WorkScreen />}
+                  {active === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <WorkScreen route={active} />)}
+                  {active === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <WorkScreen route={active} />)}
+                  {active === 'workload' && <WorkScreen route={active} />}
+                  {active === 'timeline' && <WorkScreen route={active} />}
                   {active === 'achievements' && <AchievementsScreen route={active} />}
                   {active === 'habits' && (param ? <HabitDetailScreen id={param} /> : <HabitsScreen route={active} />)}
                 </Suspense>
@@ -216,6 +214,8 @@ function Fab({ route, onCapture }) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => { setOpen(false) }, [route])
+
+  if (route === 'work') return <div className="fab-stack"><button className="btn primary floating" style={{ position: 'static' }} onClick={onCapture} aria-label="Create work with quick capture"><IconPlus size={22} /></button></div>
 
   if (route === 'projects') {
     return (

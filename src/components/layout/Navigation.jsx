@@ -5,7 +5,7 @@ import { useStore } from '../../store.jsx'
 import { achievementSummary } from '../../lib/achievements.js'
 import {
   IconToday, IconCalendar, IconWeek, IconInsights, IconMind, IconGoals, IconSettings,
-  IconProjects, IconAssignment, IconWorkload, IconTimeline, IconSearch, IconStack, IconX,
+  IconProjects, IconSearch, IconStack, IconX,
   IconHabits, IconTrophy, IconRecord, IconSparkle,
 } from '../../lib/icons.jsx'
 
@@ -18,50 +18,26 @@ import {
    Assignments, Workload and Deadlines share the Work segment.
    ============================================================ */
 
-const WORK_ROUTES = ['projects', 'assignments', 'workload', 'timeline']
+const WORK_ROUTES = ['work', 'projects', 'assignments', 'workload', 'timeline']
 
-const GROUPS = [
-  {
-    label: 'Today',
-    items: [
-      { to: 'today', label: 'Today', Icon: IconToday },
-      { to: 'calendar', label: 'Calendar', Icon: IconCalendar },
-    ],
-  },
-  {
-    label: 'Build',
-    items: [
-      { to: 'habits', label: 'Habits', Icon: IconHabits },
-      { to: 'goals', label: 'Goals', Icon: IconGoals },
-      { to: 'projects', label: 'Projects', Icon: IconProjects },
-      { to: 'assignments', label: 'Assignments', Icon: IconAssignment },
-    ],
-  },
-  {
-    label: 'Plan',
-    items: [
-      { to: 'workload', label: 'Workload', Icon: IconWorkload },
-      { to: 'timeline', label: 'Deadlines', Icon: IconTimeline },
-      { to: 'week', label: 'Week', Icon: IconWeek },
-    ],
-  },
-  {
-    label: 'Understand',
-    items: [
-      { to: 'insights', label: 'Insights', Icon: IconInsights },
-      { to: 'achievements', label: 'Achievements', Icon: IconTrophy },
-      { to: 'mind', label: 'Mind', Icon: IconMind },
-      { to: 'record', label: 'Record', Icon: IconRecord },
-    ],
-  },
-]
-
-const MOBILE_TABS = [
+const PRIMARY = [
   { to: 'today', label: 'Today', Icon: IconToday },
-  { to: 'calendar', label: 'Calendar', Icon: IconCalendar },
-  { to: 'projects', label: 'Work', Icon: IconProjects, group: WORK_ROUTES },
+  { to: 'work', label: 'Work', Icon: IconProjects, group: WORK_ROUTES },
+  { to: 'habits', label: 'Habits', Icon: IconHabits },
+  { to: 'goals', label: 'Goals', Icon: IconGoals },
   { to: 'insights', label: 'Insights', Icon: IconInsights },
 ]
+const GROUPS = [
+  { label: 'Workspace', items: PRIMARY },
+  { label: 'More', items: [
+    { to: 'calendar', label: 'Calendar', Icon: IconCalendar },
+    { to: 'week', label: 'Week', Icon: IconWeek },
+    { to: 'achievements', label: 'Achievements', Icon: IconTrophy },
+    { to: 'mind', label: 'Mind', Icon: IconMind },
+    { to: 'record', label: 'Record', Icon: IconRecord },
+  ] },
+]
+const MOBILE_TABS = PRIMARY
 
 const MORE_GROUPS = [
   {
@@ -74,8 +50,7 @@ const MORE_GROUPS = [
   {
     label: 'Plan',
     items: [
-      { to: 'workload', label: 'Workload', Icon: IconWorkload },
-      { to: 'timeline', label: 'Deadlines', Icon: IconTimeline },
+      { to: 'calendar', label: 'Calendar', Icon: IconCalendar },
       { to: 'week', label: 'Week', Icon: IconWeek },
     ],
   },
@@ -101,22 +76,13 @@ const MORE_FLAT = MORE_GROUPS.flatMap((g) => g.items)
 const isActive = (route, item) => (item.group ? item.group.includes(route) : route === item.to)
 
 export function BottomNav({ route, onMore, onCapture }) {
-  const moreActive = MORE_FLAT.some((m) => m.to === route)
+  const moreActive = !PRIMARY.some(item => isActive(route, item)) && MORE_FLAT.some((m) => m.to === route)
   return (
     <nav className="bottom-nav" aria-label="Main">
-      {MOBILE_TABS.map(({ to, label, Icon, group }, i) => {
+      {MOBILE_TABS.map(({ to, label, Icon, group }) => {
         const active = isActive(route, { to, group })
         return (
           <Fragment key={to}>
-            {/* Phase E: quick capture sits in the middle of the mobile nav so
-                it is one thumb-reach away on every screen. Nothing existing
-                is removed or reordered. */}
-            {i === 2 && onCapture && (
-              <button type="button" className="nav-capture" onClick={onCapture} aria-label="Quick capture">
-                <span className="nav-pill nav-pill-accent"><IconSparkle size={21} /></span>
-                Capture
-              </button>
-            )}
             <Link to={to} aria-current={active ? 'page' : undefined}>
               <span className="nav-pill"><Icon size={21} /></span>
               {label}
@@ -124,6 +90,7 @@ export function BottomNav({ route, onMore, onCapture }) {
           </Fragment>
         )
       })}
+      {onCapture && <button type="button" className="nav-capture" onClick={onCapture} aria-label="Quick capture"><span className="nav-pill nav-pill-accent"><IconSparkle size={21} /></span>Capture</button>}
       <button type="button" onClick={onMore} aria-current={moreActive ? 'page' : undefined} aria-label="More sections">
         <span className="nav-pill"><IconStack size={21} /></span>
         More
@@ -152,8 +119,8 @@ export function Sidebar({ route, name, onSearch }) {
         {GROUPS.map((group) => (
           <div key={group.label} className="sidebar-group">
             <p className="sidebar-group-label">{group.label}</p>
-            {group.items.map(({ to, label, Icon }) => (
-              <Link key={to} to={to} aria-current={route === to ? 'page' : undefined}>
+            {group.items.map(({ to, label, Icon, group: routes }) => (
+              <Link key={to} to={to} aria-current={isActive(route, { to, group: routes }) ? 'page' : undefined}>
                 <Icon size={18} />
                 {label}
                 {to === 'achievements' && unlocked > 0 && (
@@ -190,8 +157,8 @@ export function MoreSheet({ open, onClose, route, onSearch }) {
         {MORE_GROUPS.map((group) => (
           <div key={group.label} className="more-group">
             <p className="more-group-label">{group.label}</p>
-            {group.items.map(({ to, label, Icon }) => (
-              <Link key={to} to={to} className="more-link" onClick={onClose} aria-current={route === to ? 'page' : undefined}>
+            {group.items.map(({ to, label, Icon, group: routes }) => (
+              <Link key={to} to={to} className="more-link" onClick={onClose} aria-current={isActive(route, { to, group: routes }) ? 'page' : undefined}>
                 <Icon size={19} />
                 <span>{label}</span>
               </Link>
@@ -204,23 +171,11 @@ export function MoreSheet({ open, onClose, route, onSearch }) {
 }
 
 /** Work hub segment control (Projects · Assignments · Workload · Deadlines). */
-export function WorkTabs({ route }) {
-  const tabs = [
-    { to: 'projects', label: 'Projects', Icon: IconProjects },
-    { to: 'assignments', label: 'Assignments', Icon: IconAssignment },
-    { to: 'workload', label: 'Workload', Icon: IconWorkload },
-    { to: 'timeline', label: 'Deadlines', Icon: IconTimeline },
-  ]
-  return (
-    <div className="tabbar" role="tablist" aria-label="Work sections">
-      {tabs.map(({ to, label, Icon }) => (
-        <Link key={to} to={to} role="tab" aria-selected={route === to} aria-current={route === to ? 'page' : undefined}>
-          <Icon size={16} />
-          {label}
-        </Link>
-      ))}
-    </div>
-  )
+export function WorkTabs({ route, view }) {
+  const selected = view || ({ projects: 'projects', assignments: 'deliverables', workload: 'workload', timeline: 'deadlines' }[route] || 'overview')
+  return <nav className="tabbar workspace-tabs" aria-label="Work sections">
+    {[['overview', 'Overview'], ['deliverables', 'Deliverables'], ['projects', 'Projects'], ['workload', 'Workload'], ['deadlines', 'Deadlines']].map(([id, label]) => <Link key={id} to={`work?view=${id}`} aria-current={selected === id ? 'page' : undefined}>{label}</Link>)}
+  </nav>
 }
 
 export function BrandMark({ size = 24 }) {

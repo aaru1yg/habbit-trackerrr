@@ -323,7 +323,7 @@ describe('commands', () => {
     mount()
     await openPalette()
     fireEvent.click(screen.getByRole('option', { name: /View workload/ }))
-    await waitFor(() => expect(window.location.hash).toBe('#/workload'))
+    await waitFor(() => expect(window.location.hash).toBe('#/work?view=workload'))
   })
 
   it('keeps search and commands separate', async () => {

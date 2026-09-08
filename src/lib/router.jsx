@@ -9,7 +9,7 @@ const parse = () => {
 /** '#/calendar/2026-03' → { route: 'calendar', param: '2026-03' } */
 const parseFull = () => {
   const parts = parse().split('/')
-  return { route: parts[0] || 'today', param: parts.slice(1).join('/') || null }
+  return { route: parts[0] || 'today', param: parts.slice(1).join('/') || null, query: window.location.hash.split('?')[1] || '' }
 }
 
 export function useRoute() {

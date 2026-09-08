@@ -54,8 +54,8 @@ const RUNNABLE = {
   'start-focus': { kind: 'open', target: 'focus' },
   'plan-day': { kind: 'open', target: 'plan-day' },
   'plan-week': { kind: 'open', target: 'plan-week' },
-  'view-at-risk': { kind: 'navigate', route: 'workload', filter: 'at-risk' },
-  'view-workload': { kind: 'navigate', route: 'workload' },
+  'view-at-risk': { kind: 'navigate', route: 'work?view=overview&filter=risk' },
+  'view-workload': { kind: 'navigate', route: 'work?view=workload' },
   'open-analytics': { kind: 'navigate', route: 'insights', view: 'lab' },
   'view-insights': { kind: 'navigate', route: 'insights' },
   'open-achievements': { kind: 'navigate', route: 'achievements' },
@@ -151,7 +151,7 @@ const hrefFor = (kind, entity) => {
     case 'project': return `projects/${entity.id}`
     case 'assignment': return `assignments/${entity.id}`
     case 'goal': return `goals/${entity.id}`
-    case 'project-task': return `projects/${entity.projectId}`
+    case 'project-task': return `projects/${entity.projectId}?task=${encodeURIComponent(entity.id)}`
     case 'goal-milestone': return `goals/${entity.goalId}`
     default: return 'today'
   }
@@ -199,7 +199,7 @@ export function itemActions(kind, entity, { now = new Date(), today = null } = {
     case 'project': {
       push(view)
       push({ id: 'add-task', label: 'Add task', form: 'project-task', entity })
-      push({ id: 'edit', label: 'Update', form: 'project', entity })
+      push({ id: 'edit', label: 'Edit', form: 'project', entity })
       push({ id: 'link', label: 'Link', link: { kind: 'project', id: entity.id } })
       push({ id: 'archive', label: 'Archive', dispatch: { type: 'UPDATE_PROJECT', id: entity.id, patch: { archived: true } }, destructive: true })
       push({ id: 'delete', label: 'Delete', dispatch: { type: 'DELETE_PROJECT', id: entity.id }, destructive: true, undo: { type: 'RESTORE_PROJECT', project: entity } })
@@ -215,6 +215,9 @@ export function itemActions(kind, entity, { now = new Date(), today = null } = {
     }
     case 'project-task': {
       push(view)
+      push({ id: 'focus', label: 'Focus', focus: { kind, id: entity.id, name: entity.name } })
+      push({ id: 'edit', label: 'Edit', href: hrefFor(kind, entity) })
+      push({ id: 'move', label: 'Move deadline', href: hrefFor(kind, entity) })
       push({
         id: 'complete', label: entity.done ? 'Reopen' : 'Complete',
         dispatch: { type: 'TOGGLE_TASK', projectId: entity.projectId, milestoneId: entity.milestoneId, taskId: entity.id },
@@ -256,6 +259,13 @@ export function resolveItem(state, kind, id, { now = new Date() } = {}) {
     case 'goal': {
       const g = (state.goals || []).find((x) => x.id === id)
       return g ? { kind, entity: g } : null
+    }
+    case 'project-task': {
+      for (const p of state.projects || []) for (const m of p.milestones || []) {
+        const task = (m.tasks || []).find(t => t.id === id)
+        if (task) return { kind, entity: { ...task, projectId: p.id, milestoneId: m.id } }
+      }
+      return null
     }
     default:
       return null

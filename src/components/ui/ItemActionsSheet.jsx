@@ -19,7 +19,7 @@ import { itemActions, resolveItem } from '../../lib/commandActions.js'
 import { navigate } from '../../lib/router.jsx'
 import { IconChevronRight } from '../../lib/icons.jsx'
 
-export default function ItemActionsSheet({ open, onClose, kind, id }) {
+export default function ItemActionsSheet({ open, onClose, kind, id, onAction }) {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const [confirming, setConfirming] = useState(null)
@@ -32,6 +32,7 @@ export default function ItemActionsSheet({ open, onClose, kind, id }) {
     setConfirming(null)
     onClose()
 
+    if (onAction?.(action)) return
     if (action.href) return navigate(action.href)
     if (action.dispatch) {
       dispatch(action.dispatch)

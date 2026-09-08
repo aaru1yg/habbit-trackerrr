@@ -179,6 +179,38 @@ text nodes on all five themes · horizontal overflow 0 on every habit route at
 390 / 430 / 1440. The same gate ran green on the GitHub runner for every
 commit on the branch via draft PR #27 (opened only to trigger `ci.yml`).
 
+### 15.1 GitHub-hosted Chromium at 390 × 844, 430 × 932 and 1440 × 900
+
+`ci.yml` drives the Habits journeys at 390 and 1440 (`qa/e2e.mjs`,
+`qa/release.mjs`) and the layout audit at ten viewports including 430, but
+no GitHub-hosted job ran the Habits *journeys* at 430 × 932 or published a
+per-viewport count — only Work had that (`work-qa.yml`). The sign-off commit
+adds the Habits equivalent, test-only:
+
+- `qa/habits-e2e.mjs` — the §39-41 journeys against the production build
+  with the persisted fixture (structure, completion / undo / keyboard,
+  missed logging, filters, edit / pause / archive / delete, routines,
+  calendar incl. legacy and deep links, week review, detail + patterns,
+  empty state, Omni creation, reduced motion), each screen checked for
+  horizontal overflow, clipped dialogs, broken images and 44 px targets;
+  each viewport ends with zero console errors / exceptions / failed requests.
+- `qa/publish-browser-proof.mjs` — `qa/publish-work-proof.mjs` generalised
+  through `QA_PROOF_*`; posts the check run **"Habits visual evidence
+  \<viewport\>"** titled `Real Chromium <viewport>: N passed / M failed`
+  (readable via `gh api repos/…/commits/<sha>/check-runs`).
+- `.github/workflows/habits-qa.yml` — `work-qa.yml` for this branch
+  (push + `workflow_dispatch`; matrix 390x844 / 430x932 / 1440x900; a second
+  job repeats unit, lint, build, schema and `git diff --check`).
+
+Local run of the same script on the same build (HeadlessChrome/149,
+`7ac5142`): **390 × 844 173 / 0 · 430 × 932 173 / 0 · 1440 × 900 156 / 0**
+(desktop skips the 17 touch-target checks). The two script bugs found while
+writing it were in the script, not the app: a toast (`z-index: 90`, from
+`main`) sits above a sheet (`z-index: 80`, from `main`) for 4.5 s and can
+cover the sheet's last row on a phone, so the proof waits for the toast to
+clear like a person would; and the "New habit" header button is not shown
+on the Routines tab by design.
+
 ## 16. Follow-up commit — CI gate green locally
 
 After the Phase 5 commit the full CI browser gate was replayed locally

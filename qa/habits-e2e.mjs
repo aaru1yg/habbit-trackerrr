@@ -27,14 +27,11 @@ if (PUBLIC && (!credentials.email || !credentials.password)) throw new Error('RE
 const KEEP = PUBLIC ? ['aaru.auth', 'aaru.habits.migration.v1'] : []
 const safe = (text) => [credentials.email, credentials.password].filter(Boolean).reduce((out, value) => out.replaceAll(value, '[redacted]'), String(text))
 mkdirSync(output, { recursive: true })
-const browser = await launch()
-const version = await browser.version()
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
-console.log(`Real browser: ${version}; commit: ${commit}; target: ${base}/ (${PUBLIC ? 'public site, real sign-in' : 'local build'})`)
 const viewports = [{ width: 390, height: 844, isMobile: true, hasTouch: true }, { width: 430, height: 932, isMobile: true, hasTouch: true }, { width: 1440, height: 900 }]
 const selected = viewports.filter(v => !process.env.HABITS_QA_VIEWPORT || process.env.HABITS_QA_VIEWPORT === `${v.width}x${v.height}`)
 if (!selected.length) throw new Error('Unknown HABITS_QA_VIEWPORT')
-const metadata = { commit, version, target: `${base}/`, mode: PUBLIC ? 'public' : 'local', viewports: [], results }
+const metadata = { commit, version: null, target: `${base}/`, mode: PUBLIC ? 'public' : 'local', viewports: [], results }
 
 /* Production identity, read from the public origin itself (same contract as
    deploy.yml and qa/release.mjs): wait for Pages to serve the exact commit,
@@ -72,7 +69,16 @@ const pretty = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', 
 const wdShort = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' })
 const FILTERS = '[role="group"][aria-label="Habit filters"]'
 
+let browser
 try {
+  // Launch inside the try: a runner that cannot start Chromium (the Phase-6
+  // public 390×844 job died right here — exit 1 after exactly puppeteer's
+  // 30 s launch timeout) must still produce results.json, so the publish
+  // step can name the abort in a check run instead of failing with nothing
+  // attributable. The run still fails; it just fails with evidence.
+  browser = await launch()
+  metadata.version = await browser.version()
+  console.log(`Real browser: ${metadata.version}; commit: ${commit}; target: ${base}/ (${PUBLIC ? 'public site, real sign-in' : 'local build'})`)
   if (PUBLIC) {
     build = await publicBuild()
     metadata.public = { url: `${base}/`, ...build }
@@ -572,13 +578,17 @@ try {
   }
   report(PUBLIC ? 'Phase 5 Habits — PUBLIC production site, real Chromium' : 'Phase 5 Habits — CI Chromium proof')
 } catch (error) {
-  // An abort outside a scenario (site unreachable, sign-in failure, wrong
-  // build) must never publish as "0 failed": record it as a failure first.
+  // An abort outside a scenario (site unreachable, browser launch failure,
+  // sign-in failure, wrong build) must never publish as "0 failed": record it
+  // as a failure first. Every one of those points is now inside this try, so
+  // the finally below always writes results.json and the Checks-API publish
+  // step always has something attributable to post.
   results.fail++
   results.failures.push(`aborted: ${safe(error.stack || error.message)}`)
   metadata.error = safe(error.message)
+  if (!metadata.version) metadata.version = `browser never launched — ${safe(error.message)}`
   throw error
 } finally {
   writeFileSync(`${output}/results.json`, JSON.stringify(metadata, null, 2))
-  await browser.close()
+  await browser?.close()
 }

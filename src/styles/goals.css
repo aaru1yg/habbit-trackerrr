@@ -107,6 +107,8 @@ details.goals-how .layer-chain { margin-top: var(--space-15); }
 /* ---------- Goal cards (list) ---------- */
 #goals-screen .goal-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: var(--space-15);
 }
 
@@ -115,6 +117,7 @@ details.goals-how .layer-chain { margin-top: var(--space-15); }
   display: flex;
   flex-direction: column;
   gap: var(--space-15);
+  min-width: 0;
   padding: var(--space-2);
   border-radius: var(--r-lg);
   background: var(--surface);
@@ -325,12 +328,18 @@ details.goals-how .layer-chain { margin-top: var(--space-15); }
 
 /* ---------- responsive ---------- */
 @media (max-width: 720px) {
-  .goal-head { gap: var(--space-15); }
+  .goal-head { gap: var(--space-15); flex-wrap: wrap; }
   .goal-title { font-size: 1.25rem; }
   .goals-toolbar { align-items: stretch; flex-direction: column; }
   .goals-toolbar .seg { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; }
   .goals-view-switch { width: 100%; justify-content: stretch; }
   .goals-view-switch .seg-btn { flex: 1; justify-content: center; }
+  /* Very narrow phones: let crowded rows wrap instead of forcing an
+     unshrinkable intrinsic card width that overflows the column. */
+  .goal-card .goal-next-row,
+  .goal-card .goal-eyebrow { flex-wrap: wrap; }
+  .goal-card .goal-meta { grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); }
+  .goal-card .goal-meta dd { white-space: normal; }
 }
 
 /* ---------- reduced motion ---------- */

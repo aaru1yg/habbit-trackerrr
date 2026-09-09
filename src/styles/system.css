@@ -102,29 +102,8 @@
   color: var(--text-2);
   line-height: var(--lh-body);
 }
-
-/* ---- Editorial type utilities ---- */
-.overline {
-  font-size: var(--fs-micro);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--tr-caps);
-  text-transform: uppercase;
-  color: var(--text-3);
-}
 .muted { color: var(--text-2); }
 .dim { color: var(--text-3); }
-.micro { font-size: var(--fs-micro); }
-
-/* A big, confident number for hero metrics & analytics. */
-.display-num {
-  font-family: var(--font-num);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1, 'ss01' 1;
-  font-size: var(--fs-hero);
-  font-weight: var(--fw-extrabold);
-  letter-spacing: var(--tr-display);
-  line-height: 1;
-}
 
 /* Tabular figures everywhere a digit matters. */
 .tnum,
@@ -146,8 +125,7 @@
 .card,
 .work-card,
 .routine-card,
-.insight-card,
-.insight-tile {
+.insight-card{
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 30%, transparent) 0%, transparent 38%),
     var(--surface);
@@ -184,8 +162,7 @@
   box-shadow: none;
 }
 
-.insight-card,
-.insight-tile {
+.insight-card{
   background: var(--surface-inset);
 }
 
@@ -386,20 +363,6 @@
   border: var(--bd-1) solid var(--border);
   background: var(--surface-2);
   color: var(--text-3);
-}
-
-.sidebar-group {
-  margin-bottom: var(--space-3);
-}
-
-.sidebar-group-label {
-  font-size: var(--fs-micro);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--tr-caps);
-  text-transform: uppercase;
-  color: var(--text-3);
-  padding: 0 10px;
-  margin-bottom: 6px;
 }
 
 .sidebar-nav {
@@ -692,15 +655,9 @@
   letter-spacing: var(--tr-body);
 }
 
-.today-work {
-  border-left: 3px solid var(--warn);
-}
-
 .today-insight {
   border-left: 3px solid var(--accent-2);
 }
-
-.today-work .card-head::after,
 .today-insight .card-head::after,
 .today-missed .card-head::after {
   content: none;
@@ -720,9 +677,6 @@
 #today-screen > .stack > .today-section,
 #today-screen > .stack > .today-missed {
   grid-column: 1 / -1;
-}
-#today-screen > .stack > .today-work {
-  grid-column: 1;
 }
 #today-screen > .stack > .today-insight {
   grid-column: 2;
@@ -1508,11 +1462,6 @@
   border-radius: 6px 6px 0 0;
 }
 
-#projects-screen .work-list,
-#assignments-screen .work-list {
-  gap: var(--space-15);
-}
-
 /* ------------------------------------------------------------
    MOOD / LEVEL CONTROLS
    ------------------------------------------------------------ */
@@ -1839,23 +1788,10 @@ a.chip, button.chip {
 
 /* Title links inside work cards and goal rows: full-height hit area. */
 .work-title,
-.goal-name,
 .tl-name {
   display: flex;
   align-items: center;
   min-height: var(--touch);
-}
-
-.goal-name {
-  text-decoration: none;
-  color: var(--text);
-  font-family: var(--font-display);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--tr-title);
-}
-
-.goal-name:hover {
-  color: var(--accent-1-lift);
 }
 
 .lb-row {
@@ -2192,17 +2128,6 @@ button.lb-row:hover {
   flex: none;
 }
 
-.habit-summary-inner {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(18px, 3vw, 32px);
-}
-
-.habit-summary-copy {
-  min-width: 0;
-}
-
 .habit-summary-line {
   margin-top: var(--space-15);
   color: var(--text-2);
@@ -2334,14 +2259,12 @@ button.lb-row:hover {
 }
 
 @media (max-width: 620px) {
-  .ach-hero-inner,
-  .habit-summary-inner {
+  .ach-hero-inner{
     grid-template-columns: minmax(0, 1fr);
     justify-items: start;
     gap: var(--space-2);
   }
-  .ach-hero-inner > :first-child,
-  .habit-summary-inner > :first-child {
+  .ach-hero-inner > :first-child{
     justify-self: center;
   }
   .ach-tiers,
@@ -2705,18 +2628,6 @@ button.lb-row:hover {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.goal-note {
-  color: var(--text-3);
-  font-size: var(--fs-xs);
-  line-height: var(--lh-body);
-  font-variant-numeric: tabular-nums;
-}
-
-.goal-milestones {
-  padding-top: var(--space-15);
-  border-top: var(--bd-1) solid var(--border);
 }
 
 .ms-list {
@@ -3128,18 +3039,6 @@ button.lb-row:hover {
     radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent-1) 12%, transparent) 0%, transparent 60%),
     var(--surface);
 }
-.goal-scene {
-  position: absolute;
-  top: -70%;
-  bottom: -70%;
-  left: -170px;
-  width: 560px;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.82;
-  -webkit-mask-image: radial-gradient(50% 50% at 50% 50%, #000 32%, transparent 76%);
-  mask-image: radial-gradient(50% 50% at 50% 50%, #000 32%, transparent 76%);
-}
 .goal-hero-inner {
   position: relative;
   z-index: 1;
@@ -3340,15 +3239,6 @@ button.lb-row:hover {
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     text-align: left;
-  }
-  .goal-scene {
-    top: -60px;
-    bottom: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 380px;
-    height: 380px;
-    opacity: 0.8;
   }
   .goal-hero-copy { width: 100%; }
 }
@@ -3749,43 +3639,9 @@ html {
   background: color-mix(in srgb, var(--accent-1) 30%, transparent);
 }
 
-/* ============================================================
-   SEARCH PALETTE — a focused command surface, not a list.
-   ============================================================ */
-.search-field {
-  background: var(--surface-inset);
-  transition: border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
-}
-.search-field:focus-within {
-  border-color: var(--accent-1);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-.search-field input::placeholder {
-  color: var(--text-3);
-}
-
 .search-group-label {
   letter-spacing: 0.09em;
   color: var(--text-3);
-}
-
-.search-result {
-  transition: background var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out);
-}
-.search-result:hover {
-  background: var(--surface-2);
-}
-.search-result[data-active='true'] {
-  background: var(--accent-soft);
-}
-.search-result[data-active='true'] .sr-title {
-  color: var(--text);
-}
-.search-result[data-active='true'] > span:first-child {
-  color: var(--accent-1-lift);
-}
-.search-result .sr-title {
-  color: var(--text);
 }
 
 /* ============================================================

@@ -141,7 +141,6 @@ details.goals-how .layer-chain { margin-top: var(--space-15); }
   box-shadow: none;
 }
 .goal-card.is-reached .goal-title { color: var(--text-2); }
-.goal-card.is-reached .goal-card-rail { background: var(--good); }
 
 /* Head: outcome on the left, big number on the right. */
 .goal-head {

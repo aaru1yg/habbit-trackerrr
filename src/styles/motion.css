@@ -62,9 +62,6 @@
   filter: none;
 }
 
-/* Children of a choreographed group inherit the group's timing. */
-.stagger-group > * { --mo-delay: calc(var(--mo-i, 0) * 55ms); }
-
 /* ------------------------------------------------------------
    2 · DEPTH — perspective containers and layered cards.
    A .stage gives its children a shared vanishing point; .layer-*
@@ -77,11 +74,6 @@
 .stage[data-depth='near'] { perspective: var(--mo-depth-1); }
 .stage[data-depth='far'] { perspective: var(--mo-depth-3); }
 .stage > * { transform-style: preserve-3d; }
-
-/* layered composition: each layer floats at its own z */
-.layer-1 { transform: translateZ(0); }
-.layer-2 { transform: translateZ(18px); }
-.layer-3 { transform: translateZ(36px); }
 
 /* Pointer tilt — JS writes --tilt-x/--tilt-y; CSS owns the feel. */
 .tilt {
@@ -164,45 +156,6 @@
 }
 .chart-draw.is-in .chart-label { opacity: 1; transform: none; }
 
-/* bars rise into place */
-.bar-rise .bar-rect,
-.bar-rise .bar-col {
-  transform: scaleY(0);
-  transform-origin: bottom;
-  transform-box: fill-box;
-  transition: transform 620ms var(--ease-spring);
-  transition-delay: calc(var(--i, 0) * 40ms);
-}
-.bar-rise.is-in .bar-rect,
-.bar-rise.is-in .bar-col { transform: scaleY(1); }
-
-/* horizontal bars grow from the axis */
-.hbar-grow .hbar-fill {
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 720ms var(--ease-out);
-  transition-delay: calc(var(--i, 0) * 55ms);
-}
-.hbar-grow.is-in .hbar-fill { transform: scaleX(1); }
-
-/* heatmap reveals column by column, week by week */
-.heat-reveal .heat-cell {
-  opacity: 0;
-  transform: scale(0.6);
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: opacity 200ms var(--ease-out), transform 260ms var(--ease-spring);
-  transition-delay: calc(var(--i, 0) * 9ms);
-}
-.heat-reveal.is-in .heat-cell { opacity: 1; transform: scale(1); }
-
-/* donuts sweep */
-.donut-sweep .donut-value {
-  stroke-dashoffset: var(--c, 300);
-  transition: stroke-dashoffset 900ms var(--ease-out) 100ms;
-}
-.donut-sweep.is-in .donut-value { stroke-dashoffset: var(--off, 0); }
-
 /* ------------------------------------------------------------
    5 · PROGRESS CORE — the signature object.
    Pure CSS/SVG so it works everywhere; the WebGL field layers
@@ -253,8 +206,6 @@
   opacity: var(--dot-o, 0.7);
 }
 @keyframes core-orbit { to { transform: rotate(360deg); } }
-
-.core-float { animation: core-float 9s var(--ease-in-out) infinite; }
 @keyframes core-float {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(0, -7px, 0); }

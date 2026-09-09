@@ -360,8 +360,6 @@
 .today-stage .lane-right { --z: var(--sp-z1); --sp-par: calc(6px * var(--sp-k)); }
 .today-stage .lane-mid { --z: var(--sp-z2); --sp-par: calc(10px * var(--sp-k)); }
 
-.today-constellation { font-size: var(--fs-micro); letter-spacing: var(--tr-caps); text-transform: uppercase; color: var(--text-3); }
-
 /* one heartbeat of light through the hero surface when a habit lands
    (spec §17): 380ms, transform/border only, never on reduced motion */
 @media (prefers-reduced-motion: no-preference) {
@@ -372,13 +370,6 @@
     100% { box-shadow: 0 0 0 0 transparent; }
   }
 }
-
-/* ------------------------------------------------------------
-   8 · PROJECTS GALLERY — floating covers, not a grid (spec §9).
-   Each item is a tilted plane with art depth; hover raises it and
-   the meta layer slides in from behind.
-   ------------------------------------------------------------ */
-.gal-stage { perspective: 1500px; }
 .gal-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
@@ -478,18 +469,6 @@
 .gal-pct { font-family: var(--font-num); font-weight: 800; font-size: 1.7rem; line-height: 1; }
 .gal-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--text-2); font-size: var(--fs-xs); }
 .gal-actions { display: flex; gap: 6px; align-items: center; }
-.gal-empty-art {
-  position: relative;
-  margin: 0 auto 14px;
-  width: min(420px, 82%);
-  aspect-ratio: 21/10;
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  border: 1px solid var(--border-1);
-  transform: translateZ(calc(var(--sp-z3) * var(--sp-k)));
-  box-shadow: 0 24px 60px rgba(5, 8, 18, 0.45);
-}
-.gal-empty-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* ------------------------------------------------------------
    9 · GOALS ATLAS — the constellation panel (spec §12).
@@ -611,23 +590,6 @@
 .pace-ribbon-legend { display: flex; gap: 14px; font-size: var(--fs-micro); color: var(--text-3); }
 .pace-ribbon-legend b { color: var(--text-2); font-weight: 600; }
 
-/* ------------------------------------------------------------
-   11 · INSIGHTS — the data room (spec §13). Chart groups rest on
-   translucent planes at alternating depth; the planes respond to
-   the pointer through the shared camera vars.
-   ------------------------------------------------------------ */
-.data-plane {
-  position: relative;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border-1);
-  background:
-    linear-gradient(165deg, color-mix(in oklab, var(--surface-2) 70%, transparent), color-mix(in oklab, var(--surface-1) 84%, transparent));
-  box-shadow: 0 16px 48px rgba(5, 8, 18, 0.34);
-}
-.sp-stage .data-plane.sp-depth { transform: translate3d(0, calc(var(--cam-y, 0) * -0.6px), calc(var(--z, var(--sp-z1)) * var(--sp-k))); }
-.range-morph .bar-rect,
-.range-morph .bar-col { transition: transform var(--cam-focus) var(--cam-ease), opacity 240ms var(--ease-out), y var(--cam-focus) var(--cam-ease), height var(--cam-focus) var(--cam-ease); }
-
 /* range switch = the data re-enters through depth (spec §15) */
 .insights-trend svg { animation: range-in 360ms var(--cam-ease) both; }
 @keyframes range-in {
@@ -672,14 +634,6 @@
   border-radius: var(--r-pill);
   border: 1px solid var(--border-1);
   color: var(--text-2);
-}
-.rarity-common { --rar: var(--text-3); }
-.rarity-rare { --rar: #0ea5e9; border-color: color-mix(in oklab, var(--rar) 40%, var(--border-1)); }
-.rarity-epic { --rar: var(--accent-1); border-color: color-mix(in oklab, var(--rar) 52%, var(--border-1)); }
-.rarity-legendary {
-  --rar: #f5b53c; color: #f5b53c;
-  border-color: color-mix(in oklab, #f5b53c 56%, var(--border-1));
-  box-shadow: 0 0 22px color-mix(in oklab, #f5b53c 30%, transparent);
 }
 [data-rarity='legendary']:not([data-locked]) { box-shadow: 0 0 0 1px color-mix(in oklab, #f5b53c 34%, transparent), 0 20px 52px rgba(5, 8, 18, 0.42); }
 [data-rarity='epic']:not([data-locked]) { box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent-1) 30%, transparent), 0 18px 46px rgba(5, 8, 18, 0.4); }
@@ -754,20 +708,7 @@
   pointer-events: none;
 }
 .auth-brand .auth-brand-inner, .auth-brand .auth-planes { z-index: 1; }
-
-.gal-scene {
-  position: absolute;
-  right: -6%;
-  top: -46px;
-  width: min(560px, 46%);
-  aspect-ratio: 960 / 420;
-  object-fit: cover;
-  opacity: 0.34;
-  mask-image: radial-gradient(90% 90% at 70% 40%, black, transparent 78%);
-  pointer-events: none;
-  z-index: -1;
-}
-@media (max-width: 899px) { .gal-scene { display: none; } }
+@media (max-width: 899px) { }
 
 .insights-scene {
   position: absolute;
@@ -823,10 +764,6 @@
 .press-open { padding: 13px 0; margin: -13px 0; }
 .rarity-label { color: var(--text-2); }
 .rarity-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--rar, var(--text-3)); }
-.rarity-common { border-color: var(--border-2); }
-.rarity-rare { border-color: color-mix(in oklab, #0ea5e9 45%, var(--border-1)); }
-.rarity-epic { border-color: color-mix(in oklab, var(--accent-1) 60%, var(--border-1)); }
-.rarity-legendary { border-color: color-mix(in oklab, #d97706 62%, var(--border-1)); }
 @media (max-width: 560px) {
   .gal-meta { gap: 4px 10px; }
 }
@@ -840,9 +777,6 @@
    ------------------------------------------------------------ */
 .atlas-node { padding: 11px 14px; min-height: 44px; box-sizing: border-box; }
 .atlas-node.atlas-goal { padding: 13px 18px; color: var(--text); text-decoration: none; }
-.gal-scene { right: 0; }
-.sticky-bar .row-between { flex-wrap: wrap; gap: 8px; }
-.sticky-bar .row-between .status-select { min-width: 0; max-width: 100%; }
 @media (max-width: 699px) {
   .atlas-frame { height: auto; display: grid; gap: 8px; padding: 14px; }
   .atlas-node { position: static; transform: none; max-width: 100%; }

@@ -117,6 +117,7 @@ export default function TodayHero({ stats, top, atRisk, nearMilestone, copy, wee
         {week && (
           <div className="today-week" aria-label="Completion over the last 7 days">
             <span className="today-week-label">last 7 days</span>
+            <span className="sr-only">{week.rows.map((d) => `${d.label} ${d.pct}%`).join(', ')}</span>
             {week.hasAny ? (
               <>
                 <AnimateOnView effect="bar-rise" className="today-week-bars">

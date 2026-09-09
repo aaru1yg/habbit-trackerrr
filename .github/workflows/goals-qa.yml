@@ -1,0 +1,97 @@
+name: Phase 6 Goals browser QA
+
+# Test-only proof for the Goals redesign (Phase 6 §37-38): real GitHub-hosted
+# Chromium at 390×844, 430×932 and 1440×900 against the production build.
+# Publishes an API-readable check run per viewport ("Goals visual evidence
+# <viewport>": "Real Chromium <viewport>: N passed / M failed"). Nothing is
+# deployed.
+
+on:
+  push:
+    branches: [arena/01a085a4-habbit-trackerrr]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  browser:
+    name: Chromium ${{ matrix.viewport }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        viewport: [390x844, 430x932, 1440x900]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Chromium runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libnspr4 libnss3
+      - run: npm run build
+      - name: Goals browser and visual proof (no deployment)
+        env:
+          GOALS_QA_VIEWPORT: ${{ matrix.viewport }}
+        run: |
+          set -euo pipefail
+          mkdir -p qa/shots/goals
+          npm run preview -- --host 0.0.0.0 --port 4173 --strictPort > qa/shots/goals/server.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID"' EXIT
+          # A cold runner can take well over 30 s to bring the preview up; a
+          # readiness timeout here is infrastructure, not evidence. Wait up to
+          # 120 s and print the server log if it still is not serving.
+          node --input-type=module -e '
+            for (let i = 0; i < 240; i++) {
+              try { if ((await fetch("http://127.0.0.1:4173/")).ok) process.exit(0) } catch {}
+              await new Promise(r => setTimeout(r, 500));
+            }
+            process.exit(1);
+          ' || { echo "::error::vite preview did not become ready on 4173"; cat qa/shots/goals/server.log; exit 1; }
+          npm run test:e2e:goals 2>&1 | tee qa/shots/goals/browser.log
+          exit "${PIPESTATUS[0]}"
+      - name: Publish API-readable Chromium diagnostics
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QA_PROOF_DIR: qa/shots/goals
+          QA_PROOF_NAME: Goals visual evidence
+          QA_PROOF_SCRIPT: qa/goals-browser.mjs
+          QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
+        run: node qa/publish-browser-proof.mjs
+      - name: Upload Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: goals-chromium-${{ matrix.viewport }}
+          path: qa/shots/goals/
+          retention-days: 14
+      - name: Publish result
+        if: always()
+        run: |
+          echo '## Chromium ${{ matrix.viewport }}' >> "$GITHUB_STEP_SUMMARY"
+          cat qa/shots/goals/browser.log >> "$GITHUB_STEP_SUMMARY" || true
+  checks:
+    name: Final unit, lint, build and schema checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test:schema
+      - run: git diff --check HEAD^ HEAD

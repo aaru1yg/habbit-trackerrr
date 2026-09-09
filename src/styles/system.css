@@ -213,6 +213,8 @@
   justify-content: center;
   gap: 6px;
   -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  user-select: none;
 }
 
 .btn:hover {
@@ -227,6 +229,24 @@
 
 .btn:active {
   transform: scale(0.975);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn.sm {
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+}
+
+.btn.danger {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+  background: var(--bad-soft);
 }
 
 .btn.primary {
@@ -272,6 +292,10 @@
 }
 
 .btn.floating {
+  position: fixed;
+  right: max(var(--sp-4), env(safe-area-inset-right));
+  bottom: calc(var(--nav-h) + var(--sp-4) + env(safe-area-inset-bottom));
+  z-index: 40;
   width: 56px;
   height: 56px;
   border-radius: var(--r-pill);
@@ -286,6 +310,9 @@
   background-color: color-mix(in srgb, var(--accent-1) 88%, #fff);
   background-image: linear-gradient(135deg, color-mix(in srgb, var(--accent-1) 88%, #fff) 0%, color-mix(in srgb, var(--accent-1) 96%, #fff) 46%, color-mix(in srgb, var(--accent-2) 60%, var(--accent-1)) 100%);
   transform: translateY(-1px);
+}
+@media (min-width: 1024px) {
+  .btn.floating { display: none; }
 }
 
 /* Segment control */

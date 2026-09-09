@@ -3,71 +3,8 @@
    Screens compose these; they don't invent their own systems.
    ============================================================ */
 
-/* ---------------- Buttons ---------------- */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-2);
-  min-height: var(--touch);
-  padding: 0 var(--sp-4);
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border-2);
-  background: var(--surface-2);
-  color: var(--text);
-  font-weight: 600;
-  font-size: var(--fs-sm);
-  letter-spacing: 0.01em;
-  text-decoration: none;
-  transition: transform var(--dur-fast) var(--ease-out),
-    background var(--dur-fast) ease, border-color var(--dur-fast) ease,
-    box-shadow var(--dur-med) ease, opacity var(--dur-fast) ease;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn.primary {
-  background: linear-gradient(135deg, var(--accent-1), color-mix(in srgb, var(--accent-2) 72%, var(--accent-1)));
-  border: none;
-  color: var(--accent-ink);
-  box-shadow: 0 6px 20px var(--accent-soft), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-.btn.primary:hover {
-  filter: brightness(1.08);
-  background: linear-gradient(135deg, var(--accent-1), color-mix(in srgb, var(--accent-2) 72%, var(--accent-1)));
-}
-
-.btn.danger {
-  color: var(--bad);
-  border-color: color-mix(in srgb, var(--bad) 35%, transparent);
-  background: var(--bad-soft);
-}
-
-.btn.sm {
-  min-height: 44px;
-  padding: 0 var(--sp-3);
-  font-size: var(--fs-xs);
-}
-
-.btn.floating {
-  position: fixed;
-  right: max(var(--sp-4), env(safe-area-inset-right));
-  bottom: calc(var(--nav-h) + var(--sp-4) + env(safe-area-inset-bottom));
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  z-index: 40;
-  box-shadow: var(--shadow-2), 0 8px 28px var(--accent-soft);
-}
-@media (min-width: 1024px) {
-  .btn.floating { display: none; }
-}
+/* Buttons live in system.css (one .btn system: base, primary, ghost,
+   danger, sm, icon, floating). This file keeps cards, sheets and chrome. */
 
 /* ---------------- Cards ---------------- */
 

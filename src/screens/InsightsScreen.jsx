@@ -14,6 +14,7 @@ import {
 } from '../lib/stats.js'
 import { navigate } from '../lib/router.jsx'
 import InsightsDeepDive from './InsightsDeepDive.jsx'
+import { SegControl } from '../components/ui/controls.jsx'
 import { IconInsights, IconTrendUp, IconTrendDown, IconFlame } from '../lib/icons.jsx'
 import { habitPatterns } from '../lib/habitPatterns.js'
 
@@ -148,19 +149,7 @@ export default function InsightsScreen() {
       <SpatialStage className="insights-stage" focus={1800} parallax={7}>
       <div className="stack insights-layout">
         <div className="insights-view-row">
-          <div className="seg seg-wide insights-switch" role="group" aria-label="Insights view">
-            {INSIGHT_VIEWS.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                className={`seg-btn${view === v.id ? ' active' : ''}`}
-                aria-pressed={view === v.id}
-                onClick={() => setView(v.id)}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
+          <div className="insights-switch"><SegControl label="Insights view" value={view} onChange={setView} options={INSIGHT_VIEWS} wide /></div>
           {/* Outside the switch group on purpose: the Lab is a separate
               analytics surface, not a third rendering of the same history. */}
           <button
@@ -229,19 +218,7 @@ export default function InsightsScreen() {
           <div className="sp-depth" data-z="3">
         <SectionCard className="pad insights-trend">
           <CardHead title="Completion trend" />
-          <div className="seg seg-wide" role="group" aria-label="Trend range">
-            {RANGES.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                className={`seg-btn${range === r.id ? ' active' : ''}`}
-                aria-pressed={range === r.id}
-                onClick={() => setRange(r.id)}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
+          <SegControl label="Trend range" value={range} onChange={setRange} options={RANGES} wide />
           {hasData ? (
             <TrendChart key={range} data={trend} />
           ) : (

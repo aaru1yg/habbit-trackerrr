@@ -6,6 +6,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import { useStore } from '../store.jsx'
 import useNow from '../lib/useNow.js'
+import { SegControl } from '../components/ui/controls.jsx'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
@@ -180,14 +181,7 @@ export default function ProjectDetailScreen({ id }) {
           </SectionCard>
         )}
 
-        <div className="seg seg-wide" role="group" aria-label="Project sections">
-          {[{ id: 'overview', label: 'Tasks' }, { id: 'timeline', label: 'Timeline' }, { id: 'analytics', label: 'Analytics' }].map((t) => (
-            <button key={t.id} type="button" aria-pressed={tab === t.id}
-              className={`seg-btn${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <SegControl label="Project sections" value={tab} onChange={setTab} wide options={[{ id: 'overview', label: 'Tasks' }, { id: 'timeline', label: 'Timeline' }, { id: 'analytics', label: 'Analytics' }]} />
 
         {tab === 'overview' && (
           <>

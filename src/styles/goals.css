@@ -21,43 +21,6 @@
   gap: var(--space-1);
 }
 
-#goals-screen .goals-toolbar .seg {
-  flex-wrap: wrap;
-  width: fit-content;
-}
-
-.goals-view-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border: var(--bd-1) solid var(--border);
-  border-radius: var(--r-pill);
-  background: var(--surface-inset);
-}
-
-.goals-view-switch .seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: var(--touch);
-  padding: 0 12px;
-  border-radius: var(--r-pill);
-  background: transparent;
-  border: 0;
-  color: var(--text-2);
-  font: inherit;
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-semibold);
-  cursor: pointer;
-}
-
-.goals-view-switch .seg-btn:hover { color: var(--text); }
-.goals-view-switch .seg-btn.active {
-  background: var(--surface-3);
-  color: var(--text);
-  box-shadow: var(--e-1);
-}
 
 /* Empty state secondary action */
 .goals-empty-actions {
@@ -298,7 +261,6 @@ details.goals-how .layer-chain { margin-top: var(--space-15); }
 }
 .goal-next-toggle:hover { background: var(--surface-2); border-color: var(--border-2); }
 .goal-next-toggle:focus-visible,
-.goals-view-switch .seg-btn:focus-visible,
 .goals-how-summary:focus-visible,
 .goals-empty-actions button:focus-visible,
 .goal-linkbar button:focus-visible,
@@ -330,9 +292,6 @@ details.goals-how .layer-chain { margin-top: var(--space-15); }
   .goal-head { gap: var(--space-15); flex-wrap: wrap; }
   .goal-title { font-size: 1.25rem; }
   .goals-toolbar { align-items: stretch; flex-direction: column; }
-  .goals-toolbar .seg { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; }
-  .goals-view-switch { width: 100%; justify-content: stretch; }
-  .goals-view-switch .seg-btn { flex: 1; justify-content: center; }
   /* Very narrow phones: let crowded rows wrap instead of forcing an
      unshrinkable intrinsic card width that overflows the column. */
   .goal-card .goal-next-row,
@@ -346,7 +305,6 @@ details.goals-how .layer-chain { margin-top: var(--space-15); }
   #goals-screen .goal-card,
   .goal-card,
   .goal-next-toggle,
-  .goals-view-switch .seg-btn,
   .goals-how-summary::before {
     transition-duration: 1ms;
   }

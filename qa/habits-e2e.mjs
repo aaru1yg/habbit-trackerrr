@@ -424,7 +424,7 @@ try {
       await seed(seededStateV4(), 'habits?view=calendar')
       await waitFor('.cal-grid')
       check(`${prefix}: Calendar tab selected`, await page.$eval('.habit-tabs a[aria-current="page"]', el => el.textContent.trim() === 'Calendar'))
-      check(`${prefix}: controls first — Month · 90 days · Year + Previous/Next`, (await page.$$eval('#calendar-screen .cal-range .seg-btn', els => els.map(b => b.textContent.trim()))).join() === 'Month,90 days,Year' && !!(await page.$(byLabel('Previous range'))) && !!(await page.$(byLabel('Next range'))) && await page.evaluate(() => document.querySelector('.cal-controls').getBoundingClientRect().bottom <= document.querySelector('.cal-grid').getBoundingClientRect().top))
+      check(`${prefix}: controls first — Month · 90 days · Year + Previous/Next`, (await page.$$eval('#calendar-screen .vseg-btn', els => els.map(b => b.textContent.trim()))).join() === 'Month,90 days,Year' && !!(await page.$(byLabel('Previous range'))) && !!(await page.$(byLabel('Next range'))) && await page.evaluate(() => document.querySelector('.cal-controls').getBoundingClientRect().bottom <= document.querySelector('.cal-grid').getBoundingClientRect().top))
       const y = daysAgo(1)
       const cellFor = () => page.$(`${byLabel(`Mark done: Morning run, ${pretty(y)}`)}, ${byLabel(`Mark not done: Morning run, ${pretty(y)}`)}`)
       let cell = await cellFor()

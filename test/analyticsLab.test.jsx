@@ -79,9 +79,10 @@ describe('Analytics Lab shell', () => {
   it('offers the Lab as a separate control and lazy-loads it', async () => {
     mountApp()
     await screen.findByRole('button', { name: /^Lab$/ })
-    expect(screen.getByRole('button', { name: /^Overview$/ })).toBeTruthy()
-    // the overview also has a "Deep dive" shortcut button, so scope by count
-    expect(screen.getAllByRole('button', { name: /^Deep dive$/ }).length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByRole('radio', { name: /^Overview$/ })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /^Deep dive$/ })).toBeTruthy()
+    // the overview also has a "Deep dive" shortcut button
+    expect(screen.getByRole('button', { name: /^Deep dive$/ })).toBeTruthy()
     expect(screen.queryByText('Your data story')).toBeNull() // not loaded yet
     fireEvent.click(screen.getByRole('button', { name: /^Lab$/ }))
     await screen.findByText('Your data story')
@@ -93,7 +94,7 @@ describe('Analytics Lab shell', () => {
        the switch stops describing a two-way choice. */
     mountApp()
     await screen.findByRole('button', { name: /^Lab$/ })
-    const labels = [...document.querySelectorAll('[aria-label="Insights view"] .seg-btn')]
+    const labels = [...document.querySelectorAll('[aria-label="Insights view"] .vseg-btn')]
       .map((b) => b.textContent.trim())
     expect(labels).toEqual(['Overview', 'Deep dive'])
   })

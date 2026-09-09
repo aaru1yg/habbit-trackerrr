@@ -21,6 +21,7 @@ import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { Meter, StatStrip, WorkEmpty } from '../components/work/WorkKit.jsx'
+import { SegControl } from '../components/ui/controls.jsx'
 import GoalFormSheet from '../components/goals/GoalForm.jsx'
 import { healthBadge } from '../components/goals/health.js'
 import {
@@ -115,10 +116,10 @@ export default function GoalsScreen() {
   }, [open, reached, goals, state])
 
   const tabs = [
-    { id: 'open', label: `Open (${summary.open})` },
-    { id: 'risk', label: `At risk (${summary.atRisk})` },
-    { id: 'reached', label: `Reached (${summary.reached})` },
-    { id: 'all', label: `All (${summary.all})` },
+    { id: 'open', label: 'Open', count: summary.open },
+    { id: 'risk', label: 'At risk', count: summary.atRisk },
+    { id: 'reached', label: 'Reached', count: summary.reached },
+    { id: 'all', label: 'All', count: summary.all },
   ]
 
   const cells = [
@@ -160,24 +161,10 @@ export default function GoalsScreen() {
         <StatStrip cells={cells} />
 
         <div className="goals-toolbar">
-          <div className="seg" role="tablist" aria-label="Goal filters">
-            {tabs.map((t) => (
-              <button key={t.id} type="button" role="tab" aria-selected={filter === t.id}
-                className={`seg-btn${filter === t.id ? ' active' : ''}`} onClick={() => setFilter(t.id)}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <SegControl label="Goal filters" value={filter} onChange={setFilter} options={tabs} />
 
           {goals.length > 0 && (filter === 'open' || filter === 'all') && (
-            <div className="goals-view-switch" role="group" aria-label="Goals view">
-              <button type="button" className={`seg-btn${view === 'list' ? ' active' : ''}`} aria-pressed={view === 'list'} onClick={() => setView('list')}>
-                <IconLayers size={15} /> List
-              </button>
-              <button type="button" className={`seg-btn${view === 'atlas' ? ' active' : ''}`} aria-pressed={view === 'atlas'} onClick={() => setView('atlas')}>
-                <IconTarget size={15} /> Atlas / Visual
-              </button>
-            </div>
+            <SegControl label="Goals view" value={view} onChange={setView} options={[{ id: 'list', label: 'List', icon: <IconLayers size={15} /> }, { id: 'atlas', label: 'Atlas / Visual', icon: <IconTarget size={15} /> }]} />
           )}
         </div>
 

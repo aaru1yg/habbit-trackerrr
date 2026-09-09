@@ -177,9 +177,9 @@ describe('active habits', () => {
   it('filters: All / Today / Needs attention / Active / Paused / Archived', async () => {
     mount(seed({ habits: [...seed().habits, habit('h-p', 'Stretch', { order: 3, pause: { from: ago(1), until: ago(-6) } })] }))
     await habitsList()
-    const filters = screen.getByRole('group', { name: 'Habit filters' })
-    const pressed = (label) => within(filters).getByRole('button', { name: new RegExp(`^${label}`) })
-    expect(within(filters).getAllByRole('button').map((b) => b.textContent.replace(/\d+$/, ''))).toEqual(['All', 'Today', 'Needs attention', 'Active', 'Paused', 'Archived'])
+    const filters = screen.getByRole('radiogroup', { name: 'Habit filters' })
+    const pressed = (label) => within(filters).getByRole('radio', { name: new RegExp(`^${label}`) })
+    expect(within(filters).getAllByRole('radio').map((b) => b.textContent.replace(/\s*\d+$/, ''))).toEqual(['All', 'Today', 'Needs attention', 'Active', 'Paused', 'Archived'])
 
     fireEvent.click(pressed('Archived'))
     expect(within(await habitsList()).getAllByRole('listitem').map((li) => li.dataset.habit)).toEqual(['h-old'])
@@ -267,7 +267,7 @@ describe('active habits', () => {
     mount(seed({ habits: [], checkins: {}, routines: [] }))
     expect(await screen.findByText("You don't have any habits yet.")).toBeTruthy()
     expect(screen.getByText('No habits yet')).toBeTruthy()
-    expect(screen.queryByRole('group', { name: 'Habit filters' })).toBeNull()
+    expect(screen.queryByRole('radiogroup', { name: 'Habit filters' })).toBeNull()
     expect(document.querySelector('.heatmap, .cal-grid, svg.chart')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /Create habit/ }))
     await screen.findByRole('dialog', { name: 'New habit' })
@@ -339,7 +339,7 @@ describe('calendar and week review', () => {
     expect(document.querySelector('.cal-marks')).toBeNull()
     expect(screen.queryByText(/Deadlines in this view/)).toBeNull()
     // range modes + navigation preserved
-    expect(document.querySelectorAll('#calendar-screen .seg-btn')).toHaveLength(3)
+    expect(document.querySelectorAll('#calendar-screen .vseg-btn')).toHaveLength(3)
     expect(screen.getByRole('button', { name: 'Previous range' })).toBeTruthy()
   })
 

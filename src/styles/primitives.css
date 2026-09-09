@@ -83,9 +83,12 @@
   max-width: 100%;
   overflow-x: auto;
 }
+.vseg[data-wide] { display: flex; width: 100%; }
+.vseg[data-wide] .vseg-btn { flex: 1; justify-content: center; }
 .vseg-btn {
   display: inline-flex; align-items: center; gap: 6px;
   min-height: var(--seg-h);
+  min-width: var(--touch);
   padding: 0 var(--space-15);
   border: 0; border-radius: 9px;
   background: transparent; color: var(--text-2);
@@ -95,6 +98,8 @@
   transition: background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
 }
 .vseg-btn:hover { color: var(--text); }
+.vseg-count { font-size: var(--fs-xs); color: var(--text-3); margin-left: 2px; }
+.vseg-btn.active .vseg-count { color: inherit; opacity: 0.75; }
 .vseg-btn.active { background: var(--surface-3); color: var(--text); box-shadow: var(--e-1); }
 .vseg-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .vseg-icon { display: inline-grid; place-items: center; }

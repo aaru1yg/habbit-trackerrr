@@ -86,7 +86,7 @@ describe('Goals workspace — list-first', () => {
     expect(root.querySelector('.atlas-wrap')).toBeNull()
     // Goal cards expose a health state and progress.
     expect(within(root).getByText('On track')).toBeTruthy()
-    expect(within(root).getByText('At risk')).toBeTruthy()
+    expect(within(root.querySelector('.goal-list')).getByText('At risk')).toBeTruthy()
     expect(within(root).getByText('Overdue')).toBeTruthy()
     expect(within(root).getAllByText('20%').length).toBeGreaterThan(0)
   })
@@ -104,27 +104,27 @@ describe('Goals workspace — list-first', () => {
   it('filters Open / Reached / All / At risk deterministically', async () => {
     const root = await mount()
     // Reached
-    fireEvent.click(within(root).getByRole('tab', { name: /Reached/ }))
+    fireEvent.click(within(root).getByRole('radio', { name: /Reached/ }))
     await within(root).findByRole('heading', { name: 'Learn Spanish', level: 2 })
     expect(within(root).queryByRole('heading', { name: 'Thesis', level: 2 })).toBeNull()
     // At risk → overdue + at-risk only
-    fireEvent.click(within(root).getByRole('tab', { name: /At risk/ }))
+    fireEvent.click(within(root).getByRole('radio', { name: /At risk/ }))
     await within(root).findByRole('heading', { name: 'Thesis', level: 2 })
     expect(within(root).getByText('Marathon')).toBeTruthy()
     expect(within(root).queryByText('Write a novella')).toBeNull()
     // All → everything including reached
-    fireEvent.click(within(root).getByRole('tab', { name: /All/ }))
+    fireEvent.click(within(root).getByRole('radio', { name: /All/ }))
     await within(root).findByRole('heading', { name: 'Learn Spanish', level: 2 })
   })
 
   it('makes the Atlas an optional exploration mode, not the default', async () => {
     const root = await mount()
     expect(root.querySelector('.atlas-wrap')).toBeNull()
-    fireEvent.click(within(root).getByRole('button', { name: /Atlas \/ Visual/ }))
+    fireEvent.click(within(root).getByRole('radio', { name: /Atlas \/ Visual/ }))
     // Lazy atlas mounts once the user opts in.
     const section = await within(root).findByLabelText(/Goal atlas for Thesis/)
     expect(section).toBeTruthy()
-    fireEvent.click(within(root).getByRole('button', { name: /List/ }))
+    fireEvent.click(within(root).getByRole('radio', { name: /List/ }))
     await waitFor(() => expect(root.querySelector('.atlas-wrap')).toBeNull())
   })
 
@@ -199,9 +199,9 @@ describe('Goals accessibility + reduced motion', () => {
     expect(css).toContain('min-height: var(--touch)')
     expect(css).toContain('@media (max-width: 720px)')
   })
-  it('uses semantic tablist + tab filters and h2 goal cards', async () => {
+  it('uses a semantic radiogroup + radio filters and h2 goal cards', async () => {
     const root = await mount()
-    expect(within(root).getByRole('tablist', { name: 'Goal filters' })).toBeTruthy()
-    expect(within(root).getAllByRole('tab').length).toBeGreaterThanOrEqual(3)
+    expect(within(root).getByRole('radiogroup', { name: 'Goal filters' })).toBeTruthy()
+    expect(within(root).getAllByRole('radio').length).toBeGreaterThanOrEqual(3)
   })
 })

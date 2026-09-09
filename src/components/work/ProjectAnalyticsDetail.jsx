@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { SegControl } from '../ui/controls.jsx'
 import useNow from '../../lib/useNow.js'
 import SectionCard, { CardHead } from '../ui/SectionCard.jsx'
 import { BurndownChart, LineSeries, BucketColumns, HBarList } from '../charts/workCharts.jsx'
@@ -57,11 +58,7 @@ export default function ProjectAnalyticsDetail({ project, status }) {
       <div className="split">
         <SectionCard className="pad">
           <CardHead title="Progress over time">
-            <div className="seg" role="group" aria-label="Range">
-              {[14, 30, 90].map((d) => (
-                <button key={d} type="button" className={`seg-btn${range === d ? ' active' : ''}`} aria-pressed={range === d} onClick={() => setRange(d)}>{d}D</button>
-              ))}
-            </div>
+            <SegControl label="Range" value={range} onChange={setRange} options={[14, 30, 90].map((d) => ({ id: d, label: `${d}D` }))} />
           </CardHead>
           {hasLog ? (
             <LineSeries

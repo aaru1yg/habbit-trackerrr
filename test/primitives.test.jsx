@@ -34,6 +34,21 @@ describe('controls', () => {
     expect(onChange).toHaveBeenCalledWith('b')
   })
 
+  it('SegControl shows counts, roves tabindex and selects with arrows', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<SegControl label="Filter" value="a" onChange={onChange}
+      options={[{ id: 'a', label: 'A', count: 3 }, { id: 'b', label: 'B', count: 0 }]} />)
+    expect(screen.getByRole('radio', { name: 'A 3' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: 'A 3' }).tabIndex).toBe(0)
+    expect(screen.getByRole('radio', { name: 'B 0' }).tabIndex).toBe(-1)
+    fireEvent.keyDown(screen.getByRole('radio', { name: 'A 3' }), { key: 'ArrowRight' })
+    expect(onChange).toHaveBeenCalledWith('b')
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'B 0' }))
+    rerender(<SegControl label="Filter" value="b" onChange={onChange}
+      options={[{ id: 'a', label: 'A', count: 3 }, { id: 'b', label: 'B', count: 0 }]} />)
+    expect(screen.getByRole('radio', { name: 'B 0' })).toHaveAttribute('aria-checked', 'true')
+  })
+
   it('Tabs walk with arrow keys and rove tabindex', () => {
     const onChange = vi.fn()
     render(<Tabs label="Sections" value="one" onChange={onChange}

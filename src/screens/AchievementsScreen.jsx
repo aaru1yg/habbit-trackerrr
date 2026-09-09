@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import ProgressRing from '../components/ui/ProgressRing.jsx'
+import { SegControl } from '../components/ui/controls.jsx'
 import AnimatedNumber from '../components/ui/AnimatedNumber.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import Burst from '../components/motion/Burst.jsx'
@@ -107,19 +108,7 @@ export default function AchievementsScreen() {
         )}
 
         {/* ---------- Filters ---------- */}
-        <div className="seg ach-filter" role="group" aria-label="Filter achievements by tier">
-          {['all', ...TIER_ORDER].map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={`seg-btn${tier === t ? ' active' : ''}`}
-              aria-pressed={tier === t}
-              onClick={() => setTier(t)}
-            >
-              {t === 'all' ? 'All' : t[0].toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
+        <SegControl label="Filter achievements by tier" value={tier} onChange={setTier} options={['all', ...TIER_ORDER].map((t) => ({ id: t, label: t === 'all' ? 'All' : t[0].toUpperCase() + t.slice(1) }))} />
 
         {/* ---------- Grid ---------- */}
         {summary.items.length === 0 || shown.length === 0 ? (

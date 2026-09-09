@@ -113,7 +113,7 @@ describe('Work routes and execution journeys', () => {
     expect(within(root).getByRole('heading', { name: 'Workload snapshot' })).toBeTruthy()
     expect(root.querySelector('.gal-grid')).toBeNull()
     expect(within(root).queryByText('Delivered paper')).toBeNull()
-    fireEvent.click(within(root).getByRole('button', { name: 'Completed', exact: true }))
+    fireEvent.click(within(root).getByRole('radio', { name: 'Completed', exact: true }))
     expect(await within(root).findByText('Delivered paper')).toBeTruthy()
   })
   it('switches all views with addressable links and reflects hash/back changes', async () => {
@@ -150,7 +150,7 @@ describe('Work routes and execution journeys', () => {
     expect(within(row).getByRole('link', { name: 'Habit OS' }).getAttribute('href')).toBe('#/projects/p1')
     fireEvent.click(within(row).getByRole('button', { name: 'Complete Submit DSA report' }))
     await waitFor(() => expect(stored().assignments.find(a => a.id === 'a1').progress).toBe(100))
-    fireEvent.click(screen.getByRole('button', { name: 'Completed', exact: true }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Completed', exact: true }))
     expect(await screen.findByText('Submit DSA report')).toBeTruthy()
   })
   it('opens a deliverable detail with deadline/progress before subtasks and starts its own focus', async () => {
@@ -169,10 +169,10 @@ describe('Work routes and execution journeys', () => {
   })
   it('uses list by default, keeps gallery optional and lets project work complete independently', async () => {
     const root = await mount('work?view=projects')
-    expect(within(root).getByRole('button', { name: 'List', exact: true }).getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(within(root).getByRole('button', { name: 'Gallery / spatial' }))
+    expect(within(root).getByRole('radio', { name: 'List', exact: true }).getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(within(root).getByRole('radio', { name: 'Gallery / spatial' }))
     await waitFor(() => expect(root.querySelector('.gal-card')).toBeTruthy())
-    fireEvent.click(within(root).getByRole('button', { name: 'List', exact: true }))
+    fireEvent.click(within(root).getByRole('radio', { name: 'List', exact: true }))
     const details = root.querySelector('.workspace-project-items')
     details.open = true; fireEvent(details, new Event('toggle'))
     const row = await screen.findByRole('article', { name: 'Project task: Finish API layer' })
@@ -253,9 +253,9 @@ describe('Work routes and execution journeys', () => {
   it('provides keyboard-native links, pressed filters, descriptive actions and scoped responsive structure', async () => {
     await mount('work?view=deliverables')
     const user = userEvent.setup()
-    const filter = screen.getByRole('button', { name: 'Overdue', exact: true })
+    const filter = screen.getByRole('radio', { name: 'Overdue', exact: true })
     filter.focus(); await user.keyboard('{Enter}')
-    await waitFor(() => expect(filter.getAttribute('aria-pressed')).toBe('true'))
+    await waitFor(() => expect(filter.getAttribute('aria-checked')).toBe('true'))
     expect(screen.getByRole('link', { name: 'View Overdue lab' })).toBeTruthy()
     const css = readFileSync('src/styles/workspace.css', 'utf8')
     expect(css).toContain('@media (max-width: 760px)')

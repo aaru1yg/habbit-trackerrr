@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SegControl } from '../ui/controls.jsx'
 import SectionCard, { CardHead } from '../ui/SectionCard.jsx'
 import { LineSeries, BucketColumns, TimeVsWorkBars } from '../charts/workCharts.jsx'
 import { progressSeries, entityVelocity, timeVsWork } from '../../lib/work.js'
@@ -12,11 +13,7 @@ export default function AssignmentAnalytics({ assignment, now }) {
   return <>            {/* Analytics */}
             <SectionCard className="pad">
               <CardHead title="Daily progress">
-                <div className="seg" role="group" aria-label="Range">
-                  {[7, 14, 30].map((d) => (
-                    <button key={d} type="button" className={`seg-btn${range === d ? ' active' : ''}`} aria-pressed={range === d} onClick={() => setRange(d)}>{d}D</button>
-                  ))}
-                </div>
+                <SegControl label="Range" value={range} onChange={setRange} options={[7, 14, 30].map((d) => ({ id: d, label: `${d}D` }))} />
               </CardHead>
               {(assignment.progressLog || []).length ? (
                 <LineSeries

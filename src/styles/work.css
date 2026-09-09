@@ -404,42 +404,7 @@
 .count-chip[data-tone='warn'] { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
 .count-chip[data-tone='good'] { color: var(--good); background: var(--good-soft); border-color: transparent; }
 
-/* ---------------- Filter bar / segmented nav ---------------- */
-
-.filter-bar {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 2px;
-  margin: 0 -2px;
-  -webkit-overflow-scrolling: touch;
-}
-.filter-bar::-webkit-scrollbar { display: none; }
-.filter-bar button {
-  flex: none;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: var(--fs-xs);
-  font-weight: 650;
-  white-space: nowrap;
-  transition: background var(--dur-fast) ease, color var(--dur-fast) ease, border-color var(--dur-fast) ease;
-}
-.filter-bar button:hover { color: var(--text); background: var(--surface-3); }
-.filter-bar button[aria-pressed='true'] {
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent-1) 60%, transparent);
-  color: var(--text);
-}
-.filter-bar .count {
-  font-variant-numeric: tabular-nums;
-  opacity: 0.7;
-  margin-left: 5px;
-}
+/* Filter groups render on SegControl (.vseg) — no local bar styles. */
 
 .tabbar {
   display: flex;
@@ -1236,7 +1201,6 @@
   .btn.sm,
   .btn.ghost.sm,
   .chip-btn,
-  .filter-bar button,
   .status-select,
   .seg-btn,
   .more-link,
@@ -1248,7 +1212,6 @@
   }
 
   .seg-btn,
-  .filter-bar button,
   .lb-n,
   .check-box,
   .btn.sm,

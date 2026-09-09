@@ -6,6 +6,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { IconClock, IconAlert, IconCheck } from '../../lib/icons.jsx'
 import { shortDate, prettyDateTime } from '../../lib/dates.js'
+import { SegControl } from '../ui/controls.jsx'
 
 /* ---------------- Status pill ---------------- */
 
@@ -198,14 +199,12 @@ export function StatStrip({ cells, className = '' }) {
 
 export function FilterBar({ filters, value, onChange, counts = {}, ariaLabel = 'Filters' }) {
   return (
-    <div className="filter-bar" role="group" aria-label={ariaLabel}>
-      {filters.map((f) => (
-        <button key={f.id} type="button" aria-pressed={value === f.id} onClick={() => onChange(f.id)}>
-          {f.label}
-          {counts[f.id] != null && <span className="count">{counts[f.id]}</span>}
-        </button>
-      ))}
-    </div>
+    <SegControl
+      label={ariaLabel}
+      value={value}
+      onChange={onChange}
+      options={filters.map((f) => ({ id: f.id, label: f.label, count: counts[f.id] }))}
+    />
   )
 }
 

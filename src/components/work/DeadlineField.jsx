@@ -5,6 +5,7 @@
    ============================================================ */
 import { useEffect, useState } from 'react'
 import { DEADLINE_PRESETS, dayStr, addDaysTo, isoLocal, toLocalDate, dayOf, prettyDateTime, shortDate, countdownLabel } from '../../lib/dates.js'
+import { SegControl } from '../ui/controls.jsx'
 
 const PROJECT_DURATIONS = [2, 3, 5, 7, 14, 30, 60]
 
@@ -22,19 +23,15 @@ export function AssignmentDeadlineField({ value, onChange, label = 'Deadline' })
         <span className="field-label" style={{ margin: 0 }}>{label}</span>
         {value && <span className="tiny muted tnum">{countdownLabel(value)} · {prettyDateTime(value)}</span>}
       </div>
-      <div className="filter-bar" role="group" aria-label="Deadline presets">
-        {DEADLINE_PRESETS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            aria-pressed={!custom && activePreset(value) === p.id}
-            onClick={() => { setCustom(false); onChange(presetToValue(p.hours)) }}
-          >
-            {p.label}
-          </button>
-        ))}
-        <button type="button" aria-pressed={custom} onClick={() => setCustom((c) => !c)}>Custom</button>
-        {value && <button type="button" onClick={() => { setCustom(false); onChange(null) }}>Clear</button>}
+      <div className="wrap-gap">
+        <SegControl
+          label="Deadline presets"
+          value={custom ? null : activePreset(value)}
+          onChange={(id) => { setCustom(false); onChange(presetToValue(DEADLINE_PRESETS.find((p) => p.id === id).hours)) }}
+          options={DEADLINE_PRESETS.map((p) => ({ id: p.id, label: p.label }))}
+        />
+        <button type="button" className="btn ghost sm" aria-pressed={custom} onClick={() => setCustom((x) => !x)}>Custom</button>
+        {value && <button type="button" className="btn ghost sm" onClick={() => { setCustom(false); onChange(null) }}>Clear</button>}
       </div>
       {(custom || hasCustom) && (
         <div style={{ marginTop: 10 }}>
@@ -71,19 +68,15 @@ export function ProjectDeadlineField({ value, onChange, startDate, label = 'Dead
           </span>
         )}
       </div>
-      <div className="filter-bar" role="group" aria-label="Project duration presets">
-        {PROJECT_DURATIONS.map((d) => (
-          <button
-            key={d}
-            type="button"
-            aria-pressed={!custom && duration === d}
-            onClick={() => { setCustom(false); onChange(addDaysTo(start, d)) }}
-          >
-            {d} days
-          </button>
-        ))}
-        <button type="button" aria-pressed={custom} onClick={() => setCustom((c) => !c)}>Custom</button>
-        {value && <button type="button" onClick={() => { setCustom(false); onChange(null) }}>No deadline</button>}
+      <div className="wrap-gap">
+        <SegControl
+          label="Project duration presets"
+          value={custom ? null : duration}
+          onChange={(d) => { setCustom(false); onChange(addDaysTo(start, d)) }}
+          options={PROJECT_DURATIONS.map((d) => ({ id: d, label: `${d} days` }))}
+        />
+        <button type="button" className="btn ghost sm" aria-pressed={custom} onClick={() => setCustom((x) => !x)}>Custom</button>
+        {value && <button type="button" className="btn ghost sm" onClick={() => { setCustom(false); onChange(null) }}>No deadline</button>}
       </div>
       {(custom || (value && !knownDuration)) && (
         <div style={{ marginTop: 10 }}>

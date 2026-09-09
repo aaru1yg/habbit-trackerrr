@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import { useToast } from '../ui/Toaster.jsx'
 import Sheet from '../ui/Sheet.jsx'
+import { SegControl } from '../ui/controls.jsx'
 import { Meter } from '../work/WorkKit.jsx'
 import { activeHabits, routineStats, routineRate, isDone } from '../../lib/stats.js'
 import { ROUTINE_KINDS, categoryOf } from '../../lib/schedule.js'
@@ -203,11 +204,7 @@ export function RoutineForm({ open, onClose, editing }) {
 
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
           <legend className="field-label">Type</legend>
-          <div className="filter-bar" role="group" aria-label="Routine type">
-            {ROUTINE_KINDS.map((k) => (
-              <button key={k.id} type="button" aria-pressed={kind === k.id} onClick={() => setKind(k.id)}>{k.label}</button>
-            ))}
-          </div>
+          <SegControl label="Routine type" value={kind} onChange={setKind} options={ROUTINE_KINDS} />
         </fieldset>
 
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>

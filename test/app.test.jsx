@@ -233,7 +233,7 @@ describe('core flows', () => {
     // completing the only milestone completes the goal and moves it out of Open
     fireEvent.click(screen.getByRole('button', { name: 'Finish a draft', pressed: false }))
     await waitFor(() => expect(screen.getAllByText('Reached').length).toBeGreaterThan(0))
-    fireEvent.click(screen.getByRole('tab', { name: /Reached/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Reached/ }))
     await screen.findByText('Write a novella')
   })
 

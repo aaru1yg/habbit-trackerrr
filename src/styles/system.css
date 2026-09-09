@@ -725,9 +725,6 @@
   gap: var(--space-2);
 }
 
-.insights-layout > .seg {
-  grid-column: 1 / -1;
-}
 
 .insights-layout > .card {
   border-radius: var(--r-lg);
@@ -799,9 +796,6 @@
   margin-top: var(--space-15);
 }
 
-.insights-trend .seg {
-  margin-top: 0;
-}
 
 .insights-compare {
   grid-column: 2;
@@ -1735,11 +1729,6 @@ button.chip {
 a.chip, button.chip {
   display: inline-flex;
   align-items: center;
-}
-
-.filter-bar button {
-  min-height: var(--touch);
-  padding: 0 var(--space-2);
 }
 
 .status-select {

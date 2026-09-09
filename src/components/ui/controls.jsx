@@ -47,20 +47,39 @@ export function IconButton({ label, children, ...rest }) {
 
 /* ---------------- SegControl (single-select) ---------------- */
 
-export function SegControl({ label, options, value, onChange, size = 'md' }) {
+export function SegControl({ label, options, value, onChange, size = 'md', wide = false }) {
+  const refs = useRef([])
+  const ids = options.map((o) => o.id)
+  /* APG radiogroup: arrows move and select together, with roving tabindex. */
+  const onKeyDown = (e) => {
+    const i = ids.indexOf(value)
+    let next = null
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % ids.length
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + ids.length) % ids.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = ids.length - 1
+    if (next != null) {
+      e.preventDefault()
+      onChange(ids[next])
+      refs.current[next]?.focus()
+    }
+  }
   return (
-    <div className="vseg" role="radiogroup" aria-label={label} data-size={size}>
-      {options.map((o) => (
+    <div className="vseg" role="radiogroup" aria-label={label} data-size={size} data-wide={wide || undefined} onKeyDown={onKeyDown}>
+      {options.map((o, i) => (
         <button
           key={o.id}
+          ref={(el) => { refs.current[i] = el }}
           type="button"
           role="radio"
           aria-checked={value === o.id}
+          tabIndex={value === o.id || (value == null && i === 0) ? 0 : -1}
           className={`vseg-btn${value === o.id ? ' active' : ''}`}
           onClick={() => onChange(o.id)}
         >
           {o.icon && <span className="vseg-icon" aria-hidden="true">{o.icon}</span>}
           {o.label}
+          {o.count != null && <> <span className="vseg-count tnum">{o.count}</span></>}
         </button>
       ))}
     </div>

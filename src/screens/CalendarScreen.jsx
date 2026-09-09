@@ -10,6 +10,7 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import useNow from '../lib/useNow.js'
 import { useStore } from '../store.jsx'
 import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
+import { SegControl } from '../components/ui/controls.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { todayStr, monthDays, monthLabel, weekdayInitial, dayNum, isFuture, prettyDate, shortDate, addDaysStr, subDaysStr } from '../lib/dates.js'
@@ -234,19 +235,7 @@ export default function CalendarScreen({ ymParam }) {
   return (
     <div className="habits-view cal-view" id="calendar-screen">
       <div className="cal-controls">
-        <div className="seg seg-wide cal-range" role="group" aria-label="Calendar range">
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={`seg-btn${mode === m.id ? ' active' : ''}`}
-              aria-pressed={mode === m.id}
-              onClick={() => setMode(m.id)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <SegControl label="Calendar range" value={mode} onChange={setMode} options={MODES} wide />
         <div className="cal-nav">
           <button className="btn icon" onClick={prev} aria-label="Previous range"><IconChevronLeft size={18} /></button>
           <h2 className="card-title cal-title" aria-live="polite">{title}</h2>

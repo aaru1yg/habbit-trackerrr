@@ -4,6 +4,7 @@ import { useRoute, navigate } from '../lib/router.jsx'
 import useNow from '../lib/useNow.js'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { WorkTabs } from '../components/layout/Navigation.jsx'
+import { SegControl } from '../components/ui/controls.jsx'
 import { WorkItem } from '../components/entity/work.jsx'
 import { workWorkspace, workView, workHref, filterWork, deadlineGroups, FILTERS } from '../components/work/workViewModel.js'
 import { minutesLabel, prettyDate } from '../lib/dates.js'
@@ -41,7 +42,7 @@ export default function WorkScreen({ route = 'work' }) {
     <WorkTabs route={route} view={view} />
     {!model.rows.length ? <section className="card pad workspace-empty"><h2>Your work starts here.</h2><p>No active work. Add a deliverable or create a project to begin.</p><button className="btn primary" onClick={() => work.newAssignment()}>Create work</button></section> : <>
       {(view !== 'overview' || filteredOverview) && <div className="workspace-filters">
-        <div role="group" aria-label="Filter work">{FILTERS.map(([id, label]) => <button key={id} className={`btn ghost sm${filter === id ? ' active' : ''}`} aria-pressed={filter === id} onClick={() => changeFilter(id)}>{label}</button>)}</div>
+        <SegControl label="Filter work" value={filter} onChange={changeFilter} options={FILTERS.map(([id, label]) => ({ id, label }))} />
         {['overview', 'deliverables', 'projects', 'deadlines'].includes(view) && <label className="workspace-search">Search work<input className="field" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Filter titles, tasks, notes…" /></label>}
         {horizon && <button className="btn ghost sm" onClick={() => navigate(workHref(view, filter))}>Clear horizon: {model.horizons.find(h => h.id === horizon)?.label || horizon}</button>}
       </div>}
@@ -67,7 +68,7 @@ export function WorkOverview({ model, now, onPlan }) {
       <a href={`#/${workHref('deadlines', 'soon', '7')}`}><span>Due soon</span><strong>{model.horizons[3].count}</strong><small>Next 7 days</small></a>
       <a href={`#/${workHref('overview', 'active')}`}><span>Active work</span><strong>{model.active.length}</strong><small>Across your workspace</small></a>
     </div>
-    <section className="workspace-active"><div className="workspace-section-head"><h2>Active work</h2><div role="group" aria-label="Work status"><button className="btn ghost sm" aria-pressed={filter === 'active'} onClick={() => setFilter('active')}>Active</button><button className="btn ghost sm" aria-pressed={filter === 'completed'} onClick={() => setFilter('completed')}>Completed</button></div></div>
+    <section className="workspace-active"><div className="workspace-section-head"><h2>Active work</h2><SegControl label="Work status" value={filter} onChange={setFilter} options={[{ id: 'active', label: 'Active' }, { id: 'completed', label: 'Completed' }]} /></div>
       {model.next && filter === 'active' && <p className="tiny muted workspace-next">Suggested next: <a href={`#/${model.next.item.kind === 'project' ? 'projects' : 'assignments'}/${model.next.item.id}`}>{model.next.item.name}</a></p>}
       <Rows rows={visible} now={now} empty={filter === 'completed' ? 'No completed work yet.' : 'No active work. Your commitments are clear.'} />
       {activeRows.length > 2 && <a className="btn ghost" href={`#/${workHref('overview', filter)}`}>View all work</a>}
@@ -87,7 +88,7 @@ export function ProjectsView({ rows, now }) {
   const [layout, setLayout] = useState('list')
   const [showItems, setShowItems] = useState(false)
   const projects = rows.filter(r => r.kind === 'project')
-  return <section aria-labelledby="projects-heading"><div className="workspace-section-head"><h2 id="projects-heading">Projects</h2><div role="group" aria-label="Project presentation">{['list', 'gallery'].map(mode => <button key={mode} className="btn ghost sm" aria-pressed={layout === mode} onClick={() => setLayout(mode)}>{mode === 'list' ? 'List' : 'Gallery / spatial'}</button>)}</div></div>
+  return <section aria-labelledby="projects-heading"><div className="workspace-section-head"><h2 id="projects-heading">Projects</h2><SegControl label="Project presentation" value={layout} onChange={setLayout} options={[{ id: 'list', label: 'List' }, { id: 'gallery', label: 'Gallery / spatial' }]} /></div>
     {layout === 'gallery' ? <Suspense fallback={<p role="status">Loading gallery…</p>}><ProjectGallery rows={projects.map(r => ({ project: r.item, status: r.status }))} now={now} /></Suspense> : <Rows rows={projects} now={now} />}
     <details className="workspace-project-items" open={showItems || !projects.length} onToggle={e => setShowItems(e.currentTarget.open)}><summary>Project tasks and milestones</summary>{(showItems || !projects.length) && <Rows rows={rows.filter(r => ['project-task', 'milestone'].includes(r.kind))} now={now} />}</details>
   </section>

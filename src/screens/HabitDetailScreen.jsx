@@ -28,6 +28,7 @@ import { describeHabit } from '../components/habits/habitRowModel.js'
 import { categoryOf, scheduleLabel, WEEKDAY_NAMES } from '../lib/schedule.js'
 import { prettyDate, todayStr, shortDate } from '../lib/dates.js'
 import { Link, navigate } from '../lib/router.jsx'
+import { SegControl } from '../components/ui/controls.jsx'
 import { IconPencil, IconChevronLeft, IconFlame, IconClock, IconCalendar, IconLayers, IconCheck, IconTrash, IconArchive, IconPlus } from '../lib/icons.jsx'
 import '../styles/habits.css'
 
@@ -191,13 +192,7 @@ export default function HabitDetailScreen({ id }) {
         <section className="card pad" aria-labelledby="habit-consistency-title">
           <div className="card-head">
             <h2 id="habit-consistency-title" className="card-title">Consistency</h2>
-            <div className="seg" role="group" aria-label="Date range">
-              {RANGES.map((r) => (
-                <button key={r.id} type="button" className={`seg-btn${days === r.id ? ' active' : ''}`} aria-pressed={days === r.id} onClick={() => setDays(r.id)}>
-                  {r.label}
-                </button>
-              ))}
-            </div>
+            <SegControl label="Date range" value={days} onChange={setDays} options={RANGES} />
           </div>
           <p className="habit-summary-line">
             {pct == null

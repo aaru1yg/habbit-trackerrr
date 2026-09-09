@@ -273,3 +273,79 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat qa/shots/habits-public/browser.log >> "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  # Phase 6 §37-38 on the PUBLIC site: the same qa/goals-browser.mjs journeys
+  # that gate the branch (list-first workspace, Open/At-risk/Reached/All
+  # filters, optional Atlas, create/edit/delete, milestone completion, goal
+  # detail hierarchy, forecast, contributors, linked work, insufficient-history,
+  # empty state, reduced motion, console/overflow/assets/touch checks) run
+  # against https://aaru1yg.github.io/habbit-trackerrr/ with a real sign-in as
+  # the pre-confirmed TEST_A account, at 390×844, 430×932 and 1440×900. Chained
+  # after habits-public (same shared account) and publishes API-readable
+  # "Goals public site <viewport>" check runs against the deployed commit.
+  goals-public:
+    # Same account-safety rules as habits-public; serialized behind it because
+    # both seed/mutate the shared TEST_A device fixture.
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.verify.result != 'skipped' }}
+    needs: [verify, habits-public]
+    name: Goals on the public site ${{ matrix.viewport }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        viewport: [390x844, 430x932, 1440x900]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Chromium runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libnspr4 libnss3
+      - name: Goals journeys against the public production site
+        env:
+          GOALS_QA_VIEWPORT: ${{ matrix.viewport }}
+          GOALS_QA_OUT: qa/shots/goals-public
+          REQUIRE_AUTH: '1'
+          EXPECT_BUILD_ID: ${{ github.event.workflow_run.head_sha }}
+          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p qa/shots/goals-public
+          node qa/goals-browser.mjs https://aaru1yg.github.io/habbit-trackerrr/ 2>&1 | tee qa/shots/goals-public/browser.log
+          exit "${PIPESTATUS[0]}"
+      - name: Publish API-readable public-site diagnostics
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QA_PROOF_DIR: qa/shots/goals-public
+          QA_PROOF_NAME: Goals public site
+          QA_PROOF_SCRIPT: qa/goals-browser.mjs
+          QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
+          QA_PROOF_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: node qa/publish-browser-proof.mjs
+      - name: Upload public-site screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: goals-public-${{ matrix.viewport }}
+          path: qa/shots/goals-public/
+          retention-days: 14
+      - name: Publish result
+        if: always()
+        run: |
+          echo '## Goals on the public site — ${{ matrix.viewport }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat qa/shots/goals-public/browser.log >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

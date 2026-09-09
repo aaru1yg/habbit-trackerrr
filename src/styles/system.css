@@ -315,22 +315,31 @@
   .btn.floating { display: none; }
 }
 
-/* Segment control */
+/* Segment control — the one tab/segment style (Omni view tabs). The final
+   look (hover wash, active lift) is owned by the visual layer below. */
 .seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
   background: var(--surface-inset);
   border: var(--bd-1) solid var(--border);
   border-radius: var(--r-pill);
-  padding: 3px;
-  gap: 2px;
 }
+.seg-wide { display: flex; width: 100%; }
 
 .seg-btn {
-  min-height: 34px;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch);
+  padding: 0 var(--sp-3);
   border-radius: var(--r-pill);
   color: var(--text-2);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
   transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .seg-btn:hover {

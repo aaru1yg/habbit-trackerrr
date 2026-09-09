@@ -97,30 +97,7 @@ select.field {
   padding-right: 36px;
 }
 
-/* ---------------- Segmented control ---------------- */
-
-.seg {
-  display: inline-flex;
-  padding: 3px;
-  gap: 2px;
-  border-radius: var(--r-sm);
-  background: var(--bg-deep);
-  border: 1px solid var(--border);
-}
-.seg button {
-  min-height: 44px;
-  padding: 0 var(--sp-3);
-  border-radius: 8px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--text-2);
-  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
-}
-.seg button[aria-pressed='true'],
-.seg button.active {
-  background: var(--surface-3);
-  color: var(--text);
-}
+/* Segmented control lives in system.css (one .seg system). */
 
 /* ---------------- Progress ring ---------------- */
 
@@ -727,31 +704,6 @@ html[data-theme='ember'] .bottom-nav a[aria-current='page'] svg { color: #c4b5fd
 /* ============================================================
    ANALYTICS — insights dashboard + chart kit (no chart lib)
    ============================================================ */
-
-/* Segmented control (≥44px tap targets) */
-.seg {
-  display: inline-flex;
-  padding: 3px;
-  gap: 2px;
-  border-radius: var(--r-pill);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-.seg-wide { display: flex; width: 100%; }
-.seg-btn {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--touch);
-  padding: 0 var(--sp-3);
-  border-radius: var(--r-pill);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  color: var(--text-2);
-  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
-  -webkit-tap-highlight-color: transparent;
-}
 
 /* Hero ring + streaks */
 .insights-grid {

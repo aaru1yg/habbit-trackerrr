@@ -88,6 +88,13 @@ const titles = {
 }
 
 async function clickVisible(page, selector) {
+  // A control can be momentarily absent while a lazy screen chunk is still
+  // mounting or while a fresh profile's service-worker claim reloads the
+  // document (see warmUp) — the Phase-6 public proof aborted on exactly that
+  // race at `.habit-tabs a[href='#/habits?view=calendar']`. Wait for the
+  // control to attach before the one-shot hit test; a control that never
+  // appears still fails below with the same verdict, just not racily.
+  await page.waitForSelector(selector, { timeout: 15000 }).catch(() => {})
   const handles = await page.$$(selector)
   for (const handle of handles) {
     const visible = await handle.evaluate((el) => {
@@ -173,6 +180,31 @@ async function layout(page, name) {
     return { overflow: root.scrollWidth - root.clientWidth, images, invalid: /\b(?:NaN|Infinity|undefined)\b/.test(document.body.innerText) }
   })
   check(`${name}: no horizontal overflow, broken images or invalid numbers`, result.overflow <= 1 && result.images.length === 0 && !result.invalid, JSON.stringify(result))
+}
+
+/* The production service worker claims the first document of a fresh profile
+ * and main.jsx then reloads it once (controllerchange). That one-off reload
+ * can land mid-journey on a contended runner — the Phase-6 public proof
+ * aborted on it: the reload hit between ready('habits') and the calendar-tab
+ * hit test, so `.habit-tabs` was momentarily gone and the whole run failed.
+ * Warm every fresh context up first, exactly as qa/habits-e2e.mjs and
+ * qa/goals-browser.mjs do, so the claim-reload has already happened (or can
+ * never happen) before any sweep interaction. Local preview serves the same
+ * production sw.js, so this is not public-only.
+ * End at about:blank: the seed/verify navigations that follow must be full
+ * document loads or their evaluateOnNewDocument injections never run (a
+ * hash-only goto is same-document navigation). */
+async function warmUp(page) {
+  await page.goto(BASE, { waitUntil: 'networkidle0' }).catch(() => {})
+  const stop = Date.now() + 15000
+  while (Date.now() < stop) {
+    await page.waitForNetworkIdle({ idleTime: 1500, timeout: 10000 }).catch(() => {})
+    const controlled = await page.evaluate(() => !('serviceWorker' in navigator) || !!navigator.serviceWorker.controller).catch(() => false)
+    if (controlled) break
+    await sleep(250)
+  }
+  await sleep(1500)
+  await page.goto('about:blank')
 }
 
 async function dialogFits(page, name) {
@@ -304,6 +336,7 @@ try {
     const context = await browser.createBrowserContext()
     const page = await newPage(context, config)
     try {
+      await warmUp(page)
       await seedAndGoto(page, seededStateV4(), 'today', BASE.replace(/\/$/, ''))
       if (REQUIRE_AUTH) {
         await page.waitForSelector('#auth-email', { visible: true, timeout: 20000 })
@@ -319,6 +352,7 @@ try {
         const other = await browser.createBrowserContext()
         const device = await newPage(other, config)
         try {
+          await warmUp(device)
           await device.goto(`${BASE}#/today`, { waitUntil: 'networkidle0' })
           await login(device)
           const marker = `QA V2 ${viewport} ${proof.buildId}`

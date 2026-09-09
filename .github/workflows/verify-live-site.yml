@@ -238,8 +238,12 @@ jobs:
       - name: Chromium runtime libraries
         run: |
           set -euo pipefail
-          # Runner-level apt mirrors can be transiently unavailable (exit 100);
-          # retry before treating the install as a failed browser verification.
+          # Runner-level apt mirrors can be transiently unavailable (exit 100).
+          # Retry the install; if apt still cannot provision the libs, do not
+          # treat a provisioning outage as a browser failure. Fall back to a
+          # real launch probe: if a usable Chromium already exists (system
+          # Chrome or a bundled binary whose libs are present) the public
+          # journey below is the real gate; if it cannot launch, fail loudly.
           for attempt in 1 2 3; do
             if sudo apt-get update -qq && sudo apt-get install -y libnspr4 libnss3; then
               echo "Chromium runtime libraries installed."
@@ -248,7 +252,18 @@ jobs:
             echo "::warning::Chromium library apt install attempt ${attempt} failed — retrying."
             sleep 5
           done
-          echo "::error::Could not install Chromium runtime libraries after 3 attempts."
+          if node --input-type=module -e '
+            import { launch } from "./qa/helpers.mjs"
+            const browser = await launch()
+            console.log("chromium launch OK:", await browser.version())
+            await browser.close()
+          ' >/tmp/chromium-launch.log 2>&1; then
+            echo "::warning::apt failed to install Chromium runtime libraries, but a usable Chromium already exists — continuing to the public browser verification."
+            cat /tmp/chromium-launch.log
+            exit 0
+          fi
+          echo "::error::Could not install Chromium runtime libraries after 3 attempts and no usable Chromium is available."
+          cat /tmp/chromium-launch.log
           exit 1
       - name: Habits journeys against the public production site
         env:
@@ -340,8 +355,12 @@ jobs:
       - name: Chromium runtime libraries
         run: |
           set -euo pipefail
-          # Runner-level apt mirrors can be transiently unavailable (exit 100);
-          # retry before treating the install as a failed browser verification.
+          # Runner-level apt mirrors can be transiently unavailable (exit 100).
+          # Retry the install; if apt still cannot provision the libs, do not
+          # treat a provisioning outage as a browser failure. Fall back to a
+          # real launch probe: if a usable Chromium already exists (system
+          # Chrome or a bundled binary whose libs are present) the public
+          # journey below is the real gate; if it cannot launch, fail loudly.
           for attempt in 1 2 3; do
             if sudo apt-get update -qq && sudo apt-get install -y libnspr4 libnss3; then
               echo "Chromium runtime libraries installed."
@@ -350,7 +369,18 @@ jobs:
             echo "::warning::Chromium library apt install attempt ${attempt} failed — retrying."
             sleep 5
           done
-          echo "::error::Could not install Chromium runtime libraries after 3 attempts."
+          if node --input-type=module -e '
+            import { launch } from "./qa/helpers.mjs"
+            const browser = await launch()
+            console.log("chromium launch OK:", await browser.version())
+            await browser.close()
+          ' >/tmp/chromium-launch.log 2>&1; then
+            echo "::warning::apt failed to install Chromium runtime libraries, but a usable Chromium already exists — continuing to the public browser verification."
+            cat /tmp/chromium-launch.log
+            exit 0
+          fi
+          echo "::error::Could not install Chromium runtime libraries after 3 attempts and no usable Chromium is available."
+          cat /tmp/chromium-launch.log
           exit 1
       - name: Goals journeys against the public production site
         env:

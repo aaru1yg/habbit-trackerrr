@@ -19,6 +19,7 @@
 @import './styles/adaptive.css';
 @import './styles/primitives.css';
 @import './styles/charts.css';
+@import './styles/entity.css';
 
 .spinner {
   width: 28px;

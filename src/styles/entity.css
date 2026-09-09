@@ -1,0 +1,174 @@
+/* ============================================================
+   ENTITY — V5 habit / goal / work compositions.
+   Shared DNA per entity across every screen: same accent scope,
+   same status model, same progress semantics, same typography.
+   ============================================================ */
+
+/* ---------------- HabitRing ---------------- */
+
+.vring { position: relative; display: inline-grid; place-items: center; flex: none; }
+.vring-bar { transition: stroke-dashoffset 0.9s var(--ease-out); }
+.vring-center {
+  position: absolute; inset: 0;
+  display: grid; place-items: center; text-align: center;
+  color: var(--ea-strong);
+}
+.vring-streak {
+  display: inline-flex; align-items: center; gap: 2px;
+  font: 700 var(--fs-xs)/1 var(--font-num); color: var(--text);
+}
+
+/* ---------------- HabitCard ---------------- */
+
+.vhabit {
+  display: flex; align-items: center; gap: var(--space-15);
+  min-height: var(--row-min-h);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--space-15) var(--space-2);
+  box-shadow: var(--e-card);
+}
+.vhabit[data-done] { border-color: color-mix(in srgb, var(--good) 30%, var(--border)); }
+.vhabit-toggle {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  border-radius: 999px; flex: none;
+  min-width: var(--touch); min-height: var(--touch);
+  display: grid; place-items: center;
+}
+.vhabit-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.vhabit-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.vhabit-name {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  font: 600 var(--fs-body)/1.35 var(--font-body); color: var(--text);
+  text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.vhabit-name:hover { color: var(--ea-strong); }
+.vhabit[data-done] .vhabit-name { color: var(--text-2); }
+.vhabit-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--fs-xs); color: var(--text-3); }
+.vhabit-sched { white-space: nowrap; }
+.vhabit-streak { display: inline-flex; align-items: center; gap: 3px; color: var(--warn); font-weight: 600; white-space: nowrap; }
+.vhabit-flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.vhabit-open {
+  flex: none;
+  display: grid; place-items: center;
+  width: var(--touch); height: var(--touch);
+  border-radius: var(--r-sm); border: 0; background: none;
+  color: var(--text-3); cursor: pointer;
+}
+.vhabit-open:hover { color: var(--text); background: var(--accent-soft); }
+.vhabit-open:focus-visible, .vhabit-name:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 8px; }
+
+/* ---------------- GoalCard ---------------- */
+
+.vgoal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--card-pad);
+  box-shadow: var(--e-card);
+  display: flex; flex-direction: column; gap: var(--space-1);
+  min-width: 0;
+}
+.vgoal-top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-1); }
+.vgoal-name {
+  font: 700 var(--fs-body)/1.35 var(--font-body); color: var(--text);
+  text-decoration: none; min-width: 0;
+}
+.vgoal-name:hover { color: var(--ea-strong); }
+.vgoal-prog { display: flex; flex-direction: column; gap: 6px; }
+.vgoal-prog-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-1); }
+.vgoal-pct { font: 700 var(--fs-h2)/1 var(--font-num); color: var(--text); }
+.vgoal-detail { font-size: var(--fs-xs); color: var(--text-3); text-align: right; }
+.vgoal-next { font-size: var(--fs-sm); color: var(--text-2); margin: 0; }
+.vgoal-next-k {
+  font: 600 var(--fs-micro)/1 var(--font-body); letter-spacing: var(--tr-caps); text-transform: uppercase;
+  color: var(--text-3); margin-right: 6px;
+}
+
+/* ---------------- WorkItem / cards / milestones ---------------- */
+
+.vwork {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--space-15) var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--space-15) var(--space-2);
+  box-shadow: var(--e-card);
+}
+.vwork.is-complete { opacity: 0.72; }
+.vwork-main { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.vwork-title-row { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.vwork-title {
+  font: 600 var(--fs-body)/1.35 var(--font-body); color: var(--text); text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.vwork-title:hover { color: var(--accent-1-lift); }
+.vwork-parent { font-size: var(--fs-xs); color: var(--text-3); text-decoration: none; }
+.vwork-parent:hover { color: var(--text-2); text-decoration: underline; }
+.vwork-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--fs-xs); color: var(--text-3); }
+.vwork-progress { flex: 0 1 160px; min-width: 120px; display: flex; align-items: center; gap: var(--space-1); }
+.vwork-pct { font: 700 var(--fs-sm)/1 var(--font-num); color: var(--text); min-width: 38px; text-align: right; }
+.vwork-progress .meter { flex: 1; }
+.vwork-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+
+.vproj, .vasgn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--card-pad);
+  box-shadow: var(--e-card);
+  display: flex; flex-direction: column; gap: var(--space-1);
+  min-width: 0;
+}
+.vproj-top, .vasgn-top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-1); }
+.vproj-name, .vasgn-name {
+  font: 700 var(--fs-body)/1.35 var(--font-body); color: var(--text); text-decoration: none; min-width: 0;
+}
+.vproj-name:hover, .vasgn-name:hover { color: var(--ea-strong); }
+.vasgn-subject { font-size: var(--fs-xs); color: var(--text-3); margin: 0; }
+.vproj-prog, .vasgn-prog { display: flex; align-items: center; gap: var(--space-1); }
+.vproj-prog .tnum, .vasgn-prog .tnum { font-weight: 700; min-width: 40px; }
+.vproj-prog .meter, .vasgn-prog .meter { flex: 1; }
+.vproj-meta, .vasgn-meta { font-size: var(--fs-xs); color: var(--text-3); margin: 0; }
+
+.vms {
+  display: flex; gap: var(--space-15); align-items: flex-start;
+  padding: var(--space-15) 0;
+  border-bottom: 1px solid var(--border);
+}
+.vms:last-child { border-bottom: 0; }
+.vms-check {
+  border: 0; background: none; padding: 0; cursor: pointer; flex: none;
+  width: var(--touch); height: var(--touch);
+  display: grid; place-items: center; margin: -8px 0 -8px -8px;
+  border-radius: 8px;
+}
+.vms-check:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.vms-box {
+  width: 22px; height: 22px; border-radius: 7px;
+  border: 1.5px solid var(--border-2);
+  display: grid; place-items: center;
+  font-size: 14px; color: var(--accent-ink);
+}
+.vms-check[aria-checked='true'] .vms-box { background: var(--accent-1); border-color: transparent; }
+.vms-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.vms-name { font: 600 var(--fs-sm)/1.4 var(--font-body); color: var(--text); text-decoration: none; }
+a.vms-name:hover { text-decoration: underline; }
+.vms.is-done .vms-name { color: var(--text-3); text-decoration: line-through; }
+.vms-meta { font-size: var(--fs-xs); color: var(--text-3); }
+
+/* entity grids */
+.ventity-grid { display: grid; gap: var(--space-15); grid-template-columns: 1fr; }
+@media (min-width: 760px) {
+  .ventity-grid.duo { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 1100px) {
+  .ventity-grid.trio { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vring-bar { transition: none; }
+}

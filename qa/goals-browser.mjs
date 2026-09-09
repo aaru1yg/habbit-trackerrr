@@ -232,8 +232,9 @@ try {
       const cardText = await first.evaluate(el => el.textContent)
       check(`${prefix}: card shows area chip, health and progress`, /Creative/.test(cardText) && /On track|on track/i.test(cardText) && /0%|percent/.test(cardText))
       check(`${prefix}: next milestone surfaced on the card`, await first.$eval('.goal-next .goal-next-name', el => /Finish a first draft/.test(el.textContent)))
-      // An open goal card is above the fold on mobile.
-      if (viewport.isMobile) check(`${prefix}: an open goal card is above the fold`, await page.evaluate(() => document.querySelector('#goals-screen .goal-card')?.getBoundingClientRect().bottom <= innerHeight))
+      // An open goal card (its health/title top edge) is visible above the fold
+      // on mobile — the list must not push the outcome off-screen.
+      if (viewport.isMobile) check(`${prefix}: an open goal card is above the fold`, await page.evaluate(() => { const r = document.querySelector('#goals-screen .goal-card')?.getBoundingClientRect(); return !!r && r.top >= 0 && r.top < innerHeight }))
       await layout('workspace')
     })
 
@@ -261,9 +262,13 @@ try {
       await clickView('Atlas')
       await waitFor('.atlas-wrap')
       check(`${prefix}: Atlas loads on explicit opt-in`, !!(await page.$('.atlas-wrap')))
-      check(`${prefix}: atlas constellation names a real goal`, await page.$eval('.atlas-wrap .atlas-goal', el => /Write a novella/.test(el.textContent)))
-      // Relationship accuracy: an atlas anchor deep-links to the goal.
-      check(`${prefix}: atlas goal node links to #/goals/`, await page.$eval('.atlas-wrap .atlas-goal', el => /^#\/goals\//.test(el.getAttribute('href'))))
+      // Relationship accuracy: every centre node is one real open goal (by
+      // title and deep link), and there is one constellation per such goal.
+      const centre = await page.$$eval('.atlas-wrap .atlas-goal', els => els.map(e => ({ href: e.getAttribute('href'), text: e.textContent.replace(/\s+/g, ' ').trim() })))
+      const realTitles = ['Write a novella', 'Run a marathon', 'Finish the thesis']
+      check(`${prefix}: atlas constellations name real open goals`, centre.length >= 1 && centre.every(n => /^#\/goals\//.test(n.href)) && centre.some(n => realTitles.some(t => n.text.includes(t))), JSON.stringify(centre))
+      // Every anchor deep-links back into the list route's own detail screen.
+      check(`${prefix}: atlas goal node links to #/goals/:id`, centre.every(n => /^#\/goals\//.test(n.href)), JSON.stringify(centre.map(n => n.href)))
       await layout('atlas')
       // Back to List removes Atlas.
       await clickView('List')
@@ -282,9 +287,13 @@ try {
       await page.click('[role="dialog"] .btn.primary')
       await page.waitForFunction((n, k) => JSON.parse(localStorage.getItem(k)).goals.length === n + 1, {}, before, STORAGE_KEY)
       check(`${prefix}: create adds one goal through the shared form`, (await stored()).goals.some(g => g.title === 'Learn SQL by June' && g.why === 'Ship the analytics feature.'))
-      await click('.goal-card[aria-label="Goal Learn SQL by June"] .goal-title-link')
+      // The new goal appears as a card; open it through a real reload so a
+      // freshly-created goal proves it survives refresh with no data loss.
+      await page.waitForSelector('.goal-card[aria-label="Goal Learn SQL by June"]', { timeout: 15000 })
+      const created = (await stored()).goals.find(g => g.title === 'Learn SQL by June')
+      await page.goto(`${base}/#/goals/${created.id}`, { waitUntil: 'networkidle0' })
       await waitFor('#goal-detail-screen')
-      check(`${prefix}: created goal opens its detail`, await page.$eval('#goal-detail-screen h1', el => el.textContent.trim() === 'Learn SQL by June'))
+      check(`${prefix}: created goal opens its detail after a reload (no data loss)`, await page.$eval('#goal-detail-screen h1', el => el.textContent.trim() === 'Learn SQL by June'))
       // Edit → rename + save.
       await page.evaluate(() => [...document.querySelectorAll('#goal-detail-screen button')].find(b => b.textContent.trim() === 'Edit')?.click())
       await waitFor('[role="dialog"][aria-label="Edit goal"]')

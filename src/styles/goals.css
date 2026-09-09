@@ -40,7 +40,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  min-height: var(--touch);
   padding: 0 12px;
   border-radius: var(--r-pill);
   background: transparent;

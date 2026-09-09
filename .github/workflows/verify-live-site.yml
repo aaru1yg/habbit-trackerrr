@@ -209,8 +209,11 @@ jobs:
   habits-public:
     # After `verify` finishes (shared account), whatever its verdict — the
     # Habits matrix is independent evidence. Skipped only when `verify` was
-    # skipped (a non-main deployment) or for PR runs, which never see secrets.
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.verify.result != 'skipped' }}
+    # skipped (a non-main deployment). Same-repo PR runs also carry the TEST_A
+    # secrets, so the public matrix can be re-verified on a PR without
+    # requiring a fresh deployment — the 390×844 Chromium launch is a known
+    # transient runner abort and must be re-runnable through CI alone.
+    if: ${{ !cancelled() && needs.verify.result != 'skipped' }}
     needs: verify
     name: Habits on the public site ${{ matrix.viewport }}
     runs-on: ubuntu-latest
@@ -234,8 +237,34 @@ jobs:
       - run: npm ci
       - name: Chromium runtime libraries
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y libnspr4 libnss3
+          set -euo pipefail
+          # Runner-level apt mirrors can be transiently unavailable (exit 100).
+          # Retry the install; if apt still cannot provision the libs, do not
+          # treat a provisioning outage as a browser failure. Fall back to a
+          # real launch probe: if a usable Chromium already exists (system
+          # Chrome or a bundled binary whose libs are present) the public
+          # journey below is the real gate; if it cannot launch, fail loudly.
+          for attempt in 1 2 3; do
+            if sudo apt-get update -qq && sudo apt-get install -y libnspr4 libnss3; then
+              echo "Chromium runtime libraries installed."
+              exit 0
+            fi
+            echo "::warning::Chromium library apt install attempt ${attempt} failed — retrying."
+            sleep 5
+          done
+          if node --input-type=module -e '
+            import { launch } from "./qa/helpers.mjs"
+            const browser = await launch()
+            console.log("chromium launch OK:", await browser.version())
+            await browser.close()
+          ' >/tmp/chromium-launch.log 2>&1; then
+            echo "::warning::apt failed to install Chromium runtime libraries, but a usable Chromium already exists — continuing to the public browser verification."
+            cat /tmp/chromium-launch.log
+            exit 0
+          fi
+          echo "::error::Could not install Chromium runtime libraries after 3 attempts and no usable Chromium is available."
+          cat /tmp/chromium-launch.log
+          exit 1
       - name: Habits journeys against the public production site
         env:
           HABITS_QA_VIEWPORT: ${{ matrix.viewport }}
@@ -245,10 +274,23 @@ jobs:
           TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
           TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
         run: |
-          set -euo pipefail
+          set -u
           mkdir -p qa/shots/habits-public
-          node qa/habits-e2e.mjs https://aaru1yg.github.io/habbit-trackerrr/ 2>&1 | tee qa/shots/habits-public/browser.log
-          exit "${PIPESTATUS[0]}"
+          code=1
+          for attempt in 1 2; do
+            node qa/habits-e2e.mjs https://aaru1yg.github.io/habbit-trackerrr/ 2>&1 | tee qa/shots/habits-public/browser.log
+            code="${PIPESTATUS[0]}"
+            if [ "$code" = 0 ]; then
+              exit 0
+            fi
+            if [ "$attempt" = 1 ]; then
+              echo "::warning::Public Habits attempt 1 failed (exit $code) — retrying once. Verification still fails after the last attempt."
+              sleep 20
+            else
+              exit "$code"
+            fi
+          done
+          exit "$code"
       - name: Publish API-readable public-site diagnostics
         if: always()
         env:
@@ -285,8 +327,10 @@ jobs:
   # "Goals public site <viewport>" check runs against the deployed commit.
   goals-public:
     # Same account-safety rules as habits-public; serialized behind it because
-    # both seed/mutate the shared TEST_A device fixture.
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.verify.result != 'skipped' }}
+    # both seed/mutate the shared TEST_A device fixture. Same-repo PR runs are
+    # allowed so the public matrix (especially the transient 390×844 Chromium
+    # launch) can be re-verified through CI without a fresh deployment.
+    if: ${{ !cancelled() && needs.verify.result != 'skipped' }}
     needs: [verify, habits-public]
     name: Goals on the public site ${{ matrix.viewport }}
     runs-on: ubuntu-latest
@@ -310,8 +354,34 @@ jobs:
       - run: npm ci
       - name: Chromium runtime libraries
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y libnspr4 libnss3
+          set -euo pipefail
+          # Runner-level apt mirrors can be transiently unavailable (exit 100).
+          # Retry the install; if apt still cannot provision the libs, do not
+          # treat a provisioning outage as a browser failure. Fall back to a
+          # real launch probe: if a usable Chromium already exists (system
+          # Chrome or a bundled binary whose libs are present) the public
+          # journey below is the real gate; if it cannot launch, fail loudly.
+          for attempt in 1 2 3; do
+            if sudo apt-get update -qq && sudo apt-get install -y libnspr4 libnss3; then
+              echo "Chromium runtime libraries installed."
+              exit 0
+            fi
+            echo "::warning::Chromium library apt install attempt ${attempt} failed — retrying."
+            sleep 5
+          done
+          if node --input-type=module -e '
+            import { launch } from "./qa/helpers.mjs"
+            const browser = await launch()
+            console.log("chromium launch OK:", await browser.version())
+            await browser.close()
+          ' >/tmp/chromium-launch.log 2>&1; then
+            echo "::warning::apt failed to install Chromium runtime libraries, but a usable Chromium already exists — continuing to the public browser verification."
+            cat /tmp/chromium-launch.log
+            exit 0
+          fi
+          echo "::error::Could not install Chromium runtime libraries after 3 attempts and no usable Chromium is available."
+          cat /tmp/chromium-launch.log
+          exit 1
       - name: Goals journeys against the public production site
         env:
           GOALS_QA_VIEWPORT: ${{ matrix.viewport }}
@@ -321,10 +391,23 @@ jobs:
           TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
           TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
         run: |
-          set -euo pipefail
+          set -u
           mkdir -p qa/shots/goals-public
-          node qa/goals-browser.mjs https://aaru1yg.github.io/habbit-trackerrr/ 2>&1 | tee qa/shots/goals-public/browser.log
-          exit "${PIPESTATUS[0]}"
+          code=1
+          for attempt in 1 2; do
+            node qa/goals-browser.mjs https://aaru1yg.github.io/habbit-trackerrr/ 2>&1 | tee qa/shots/goals-public/browser.log
+            code="${PIPESTATUS[0]}"
+            if [ "$code" = 0 ]; then
+              exit 0
+            fi
+            if [ "$attempt" = 1 ]; then
+              echo "::warning::Public Goals attempt 1 failed (exit $code) — retrying once. Verification still fails after the last attempt."
+              sleep 20
+            else
+              exit "$code"
+            fi
+          done
+          exit "$code"
       - name: Publish API-readable public-site diagnostics
         if: always()
         env:

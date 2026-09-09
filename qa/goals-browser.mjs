@@ -194,6 +194,20 @@ try {
       if (!el) throw new Error(`Missing goal card: ${title}`)
       return el
     }
+    // Native click on the primary action of the open (visible) dialog. Sheet
+    // springs animate, so puppeteer's real-mouse clickablePoint can race the
+    // element mid-transition; a DOM click is deterministic and still exercises
+    // the real onClick handler.
+    const saveDialog = async () => {
+      const ok = await page.evaluate(() => {
+        const d = [...document.querySelectorAll('[role="dialog"]')].find((el) => el.getBoundingClientRect().width > 0)
+        const b = d?.querySelector('.btn.primary') || d?.querySelector('button[type="submit"]')
+        if (!b) return false
+        b.click(); return true
+      })
+      if (!ok) throw new Error('open dialog has no primary submit')
+      await settle()
+    }
     const clickFilterTab = async (label) => {
       const ok = await page.evaluate((FILTERS, label) => {
         const t = [...document.querySelectorAll(`${FILTERS} [role="tab"]`)].find(b => b.textContent.startsWith(label))
@@ -284,7 +298,7 @@ try {
       await waitFor('[role="dialog"][aria-label="New goal"]')
       await page.type('#goal-title', 'Learn SQL by June')
       await page.type('#goal-why', 'Ship the analytics feature.')
-      await page.click('[role="dialog"] .btn.primary')
+      await saveDialog()
       await page.waitForFunction((n, k) => JSON.parse(localStorage.getItem(k)).goals.length === n + 1, {}, before, STORAGE_KEY)
       check(`${prefix}: create adds one goal through the shared form`, (await stored()).goals.some(g => g.title === 'Learn SQL by June' && g.why === 'Ship the analytics feature.'))
       // The new goal appears as a card; open it through a real reload so a
@@ -299,7 +313,7 @@ try {
       await waitFor('[role="dialog"][aria-label="Edit goal"]')
       await page.$eval('#goal-title', el => { el.focus(); el.select() })
       await page.keyboard.type('Learn SQL properly')
-      await page.click('[role="dialog"] .btn.primary')
+      await saveDialog()
       await page.waitForFunction(() => document.querySelector('#goal-detail-screen h1')?.textContent.trim() === 'Learn SQL properly')
       check(`${prefix}: edit persists a rename`, (await stored()).goals.some(g => g.title === 'Learn SQL properly'))
       // Delete → confirm dialog, then removed with undo offered.

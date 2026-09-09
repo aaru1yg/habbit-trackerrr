@@ -35,7 +35,7 @@ export function WorkStatus({ status }) {
  * WorkItem — the universal work row. row: workViewModel row
  * ({ key, kind, item, status, href, risk, remainingMin, ... }).
  */
-export function WorkItem({ row, now }) {
+export function WorkItem({ row }) {
   const { dispatch } = useStore()
   const work = useWorkUI()
   const [actionsOpen, setActionsOpen] = useState(false)

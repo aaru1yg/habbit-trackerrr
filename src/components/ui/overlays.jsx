@@ -5,7 +5,7 @@
    Tooltip: hover/focus label. Popover: Esc/outside-close panel with
    focus return. Both respect reduced motion (CSS) and the z scale.
    ============================================================ */
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 export function Tooltip({ label, children, position = 'top' }) {
   const [open, setOpen] = useState(false)
@@ -35,10 +35,10 @@ export function Popover({ label, trigger, children, align = 'end', onOpenChange 
   const panelRef = useRef(null)
   const id = useId().replace(/:/g, '')
 
-  const set = (v) => {
+  const set = useCallback((v) => {
     setOpen(v)
     onOpenChange?.(v)
-  }
+  }, [onOpenChange])
 
   useEffect(() => {
     if (!open) return undefined
@@ -59,7 +59,7 @@ export function Popover({ label, trigger, children, align = 'end', onOpenChange 
       document.removeEventListener('pointerdown', onDoc)
       document.removeEventListener('keydown', onKey)
     }
-  }, [open])
+  }, [open, set])
 
   return (
     <span className="vpop-anchor" ref={anchorRef}>

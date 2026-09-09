@@ -20,6 +20,7 @@
 @import './styles/primitives.css';
 @import './styles/charts.css';
 @import './styles/entity.css';
+@import './styles/shell.css';
 
 .spinner {
   width: 28px;

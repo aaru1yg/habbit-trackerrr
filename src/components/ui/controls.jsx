@@ -37,7 +37,7 @@ export function Button({
 
 /* ---------------- IconButton ---------------- */
 
-export function IconButton({ label, size = 18, children, ...rest }) {
+export function IconButton({ label, children, ...rest }) {
   return (
     <button type="button" className="viconbtn" aria-label={label} {...rest}>
       {children}

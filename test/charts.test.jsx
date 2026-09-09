@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { useChartSeries, ChartLegend, ChartCard, summarizeSeries } from '../src/components/charts/system.jsx'
 import { MultiSeriesChart, GroupedBars, BulletRow } from '../src/components/charts/multi.jsx'

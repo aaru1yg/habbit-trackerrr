@@ -1,0 +1,35 @@
+/* ============================================================
+   V5 SHELL — landmarks, skip link, shell-level corrections.
+   The nav/sidebar/sheet structures ship their own styles; this file
+   only adds what no layer owns. New code uses the --z-* scale.
+   ============================================================ */
+
+/* Skip link: invisible until keyboard focus, above everything. */
+.skip-link {
+  position: fixed;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  z-index: var(--z-boot);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-sm);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.skip-link:focus-visible {
+  transform: none;
+}
+
+/* The skip target takes focus without drawing a second ring. */
+#content:focus {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link { transition: none; }
+}

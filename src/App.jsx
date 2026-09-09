@@ -136,6 +136,7 @@ export default function App() {
 
   return (
     <>
+      <a className="skip-link" href="#content">Skip to content</a>
       <Backdrop />
       {/* V4: the ambient environment sits under the whole app; the boot
           cinematic runs once per session above everything (skippable,
@@ -154,7 +155,7 @@ export default function App() {
         <UnlockWatcher />
         <WorkUIProvider>
           <HabitUIProvider onFire={onFire}>
-            <main id="content" style={{ position: 'relative' }}>
+            <main id="content" tabIndex={-1} style={{ position: 'relative' }}>
               {/* Route change = camera travel, not a swap (spec §8): the screen
                   rises ~90px out of depth in 420ms. Keyed so any route/param
                   change re-plays it; reduced motion disables it in CSS. */}

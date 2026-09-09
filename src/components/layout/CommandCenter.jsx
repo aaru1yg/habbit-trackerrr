@@ -1,10 +1,11 @@
 /* ============================================================
    COMMAND CENTER — ⌘K / Ctrl+K.
 
-   Three things live here and they are kept visibly separate (E12):
+   Four things live here and they are kept visibly separate (E12):
      1. Quick capture — the field at the top, the fast path in.
      2. Commands — things this app can DO.
      3. Search — things this app can FIND.
+     4. Coach — deterministic answers from the local engines.
 
    Merging 2 and 3 into one undifferentiated list is exactly what
    makes a palette unusable, so they get their own tabs.
@@ -40,6 +41,15 @@ const ICONS = {
 const MODES = [
   { id: 'command', label: 'Commands' },
   { id: 'search', label: 'Search' },
+  { id: 'coach', label: 'Coach' },
+]
+
+/* Example questions the deterministic local coach can actually answer. */
+const COACH_EXAMPLES = [
+  'What should I focus on?',
+  'Am I at risk on anything?',
+  'How is my workload?',
+  'How was my week?',
 ]
 
 const TYPE_META = {
@@ -62,7 +72,7 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
     if (!open) return
     setQuery('')
     setCursor(0)
-    setMode(initialMode === 'create' ? 'create' : initialMode === 'search' ? 'search' : 'command')
+    setMode(initialMode === 'create' ? 'create' : initialMode === 'coach' ? 'coach' : initialMode === 'search' ? 'search' : 'command')
     setNba(null)
     setPreset(null)
     setCaptureKey((k) => k + 1)
@@ -86,21 +96,29 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
   const candidateSearch = useMemo(() => searchAll(state, query, 30), [state, query])
   const likelyCapture = /\b(finish|complete|add|create|by|today|tomorrow|assignment|project|habit|goal|task|routine)\b/i.test(query)
   const autoSearch = query.trim().length >= 2 && commands.length === 0 && !filterMatch && !likelyCapture && candidateSearch.groups.length > 0
-  const showSearch = mode === 'search' || autoSearch
+  /* Coach mode owns the query — typing a question must never flip to search. */
+  const showSearch = mode !== 'coach' && (mode === 'search' || autoSearch)
   const search = useMemo(() => (showSearch ? candidateSearch : { groups: [], count: 0 }), [showSearch, candidateSearch])
   const coach = useMemo(() => {
     if (!query.trim() || !(/why is .*risk|how did .*week|how was .*week|what should i focus/i.test(query))) return null
     return routeCoachQuestion(query, state)
   }, [query, state])
 
+  /* Coach mode answers the query directly — there is no walkable list. */
+  const coachDirect = useMemo(
+    () => (mode === 'coach' ? routeCoachQuestion(query, state) : null),
+    [mode, query, state],
+  )
+
   /* The flat list the keyboard walks. Commands and search results are
      never interleaved — the mode decides which one is live. */
   const flat = useMemo(() => {
+    if (mode === 'coach') return []
     if (showSearch) {
       return search.groups.flatMap((g) => g.items.map((item) => ({ kind: 'result', item, group: g.label })))
     }
     return commands.map((c) => ({ kind: 'command', command: c }))
-  }, [showSearch, commands, search])
+  }, [mode, showSearch, commands, search])
 
   useEffect(() => { setCursor(0) }, [query, mode])
   useEffect(() => { if (cursor >= flat.length) setCursor(0) }, [flat.length, cursor])
@@ -138,6 +156,7 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
         return
       }
       if (d.target === 'search') { setMode('search'); return }
+      if (d.target === 'coach') { setQuery(''); setMode('coach'); inputRef.current?.focus(); return }
       if (d.target === 'focus') { onClose(); setIntent(INTENTS.START_FOCUS); navigate('today'); return }
       if (d.target === 'plan-day') { onClose(); setIntent(INTENTS.PLAN_DAY); navigate('today'); return }
       if (d.target === 'plan-week') { onClose(); setIntent(INTENTS.PLAN_WEEK); navigate('today'); return }
@@ -171,6 +190,17 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
     else if (e.key === 'Enter' && flat[cursor]) { e.preventDefault(); activate(flat[cursor]) }
   }
 
+  /* Roving tabindex: with no tab selected (create mode) the first tab stays reachable. */
+  const tabbed = MODES.some((m) => m.id === mode) ? mode : 'command'
+  const onTabKeyDown = (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+    e.preventDefault()
+    const ids = MODES.map((m) => m.id)
+    const next = ids[(ids.indexOf(tabbed) + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length]
+    setMode(next)
+    document.getElementById(`omni-tab-${next}`)?.focus()
+  }
+
   let index = -1
 
   return (
@@ -197,8 +227,9 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
           </div>
 
           {/* The capture read-out, the ambiguity question and the confirmation
-              preview — the same component the standalone sheet uses. */}
-          {!showSearch && <CaptureBody
+              preview — the same component the standalone sheet uses.
+              Hidden in coach mode, where the query is a question, not a draft. */}
+          {!showSearch && mode !== 'coach' && <CaptureBody
             key={captureKey}
             bare
             text={query}
@@ -247,9 +278,10 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
 
           {/* These are views of one Omni input, not separate systems. Typing
               still auto-switches to the most useful result type. */}
-          <div className="seg seg-wide" role="tablist" aria-label="Omni view">
+          <div className="seg seg-wide" role="tablist" aria-label="Omni view" onKeyDown={onTabKeyDown}>
             {MODES.map((m) => (
-              <button key={m.id} type="button" role="tab" aria-selected={mode === m.id}
+              <button key={m.id} type="button" role="tab" id={`omni-tab-${m.id}`} aria-selected={mode === m.id}
+                aria-controls={`omni-panel-${m.id}`} tabIndex={tabbed === m.id ? 0 : -1}
                 className={`seg-btn${mode === m.id ? ' active' : ''}`} onClick={() => setMode(m.id)}>
                 {m.label}
               </button>
@@ -259,10 +291,20 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
           {/* Search, capture and commands share this one input. The result
               sections adapt as the text becomes more specific. */}
           <p className="tiny muted" data-context={route} aria-live="polite">
-            {showSearch ? 'Results' : mode === 'create' ? 'Create preview' : 'Commands'} · Recent and suggested actions use only real activity.
+            {showSearch ? 'Results' : mode === 'create' ? 'Create preview' : mode === 'coach' ? 'Coach' : 'Commands'} · Recent and suggested actions use only real activity.
           </p>
 
-          {coach && (
+          {/* ---- Coach: the query is the question, answered deterministically ---- */}
+          {mode === 'coach' && coachDirect && (
+            <section className="cc-nba" role="tabpanel" id="omni-panel-coach" aria-labelledby="omni-tab-coach">
+              <p className="eyebrow">Habit OS Coach · {coachDirect.source}</p>
+              <p>{coachDirect.summary}</p>
+              {coachDirect.evidence?.length > 0 && <ul>{coachDirect.evidence.map((e) => <li key={e}>{e}</li>)}</ul>}
+              <p className="tiny muted">Deterministic answers from your Habit OS data · Provider: {LOCAL_COACH_STATUS.provider} · External AI: {LOCAL_COACH_STATUS.externalAI} · Cost: {LOCAL_COACH_STATUS.apiCost}</p>
+            </section>
+          )}
+
+          {coach && mode !== 'coach' && (
             <section className="cc-nba" role="status" aria-label="Habit OS Coach">
               <p className="eyebrow">Habit OS Coach · {LOCAL_COACH_STATUS.provider}</p>
               <p>{coach.summary}</p>
@@ -272,7 +314,8 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
           )}
 
           {/* ---- Commands ---- */}
-          {!showSearch && mode !== 'create' && (
+          {!showSearch && mode !== 'create' && mode !== 'coach' && (
+            <div role="tabpanel" id="omni-panel-command" aria-labelledby="omni-tab-command">
             <div className="cc-list" role="listbox" aria-label="Commands">
               {!query.trim() && ranked.actions.length > 0 && (
                 <div className="cc-suggested">
@@ -332,10 +375,12 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
                     )
                   })}
             </div>
+            </div>
           )}
 
           {/* ---- Search ---- */}
           {showSearch && (
+            <div role="tabpanel" id="omni-panel-search" aria-labelledby="omni-tab-search">
             <div className="cc-list" role="listbox" aria-label="Search results">
               {query.trim().length < 2 && (
                 <p className="tiny muted" style={{ lineHeight: 1.6 }}>
@@ -368,10 +413,25 @@ export default function CommandCenter({ open, onClose, initialMode = 'command', 
                 </div>
               ))}
             </div>
+            </div>
+          )}
+
+          {/* ---- coach examples, discoverable ---- */}
+          {mode === 'coach' && !query.trim() && (
+            <div className="cc-filters">
+              <p className="eyebrow">Try asking</p>
+              <div className="cap-choices">
+                {COACH_EXAMPLES.map((q) => (
+                  <button key={q} type="button" className="chip" onClick={() => setQuery(q)}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* ---- every supported filter, discoverable ---- */}
-          {!query.trim() && (
+          {!query.trim() && mode !== 'coach' && (
             <div className="cc-filters">
               <p className="eyebrow">You can also ask</p>
               <div className="cap-choices">

@@ -161,7 +161,9 @@ describe('Work routes and execution journeys', () => {
     expect(detail.textContent.indexOf('Deadline')).toBeLessThan(detail.textContent.indexOf('Next action'))
     fireEvent.click(screen.getByRole('button', { name: 'Start Focus' }))
     const dialog = await screen.findByRole('dialog', { name: 'Focus · Submit DSA report' })
-    expect(within(dialog).getByRole('heading', { name: 'Submit DSA report' })).toBeTruthy()
+    // FocusMode is a lazy chunk: await its inner <h2> (named after the item)
+    // instead of a sync getByRole, which can run before the chunk mounts.
+    expect(await within(dialog).findByRole('heading', { name: 'Submit DSA report' })).toBeTruthy()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Start', exact: true }))
     expect(await within(dialog).findByRole('button', { name: 'Pause' })).toBeTruthy()
   })

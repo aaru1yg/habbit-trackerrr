@@ -24,6 +24,7 @@ import { habitDetail, consistencyLabel } from '../lib/analytics.js'
 import { heatmapSeries } from '../lib/stats.js'
 import { habitPatterns } from '../lib/habitPatterns.js'
 import { patternCards, NOT_ENOUGH } from '../components/habits/habitPatternsView.js'
+import HabitRing from '../components/habits/HabitRing.jsx'
 import { describeHabit } from '../components/habits/habitRowModel.js'
 import { categoryOf, scheduleLabel, WEEKDAY_NAMES } from '../lib/schedule.js'
 import { prettyDate, todayStr, shortDate } from '../lib/dates.js'
@@ -132,6 +133,7 @@ export default function HabitDetailScreen({ id }) {
         <section className="card pad-lg habit-now" aria-labelledby="habit-now-title">
           <div className="habit-now-inner">
             <div className="habit-now-streak" aria-label={`Current streak ${detail.streak} ${detail.streak === 1 ? 'day' : 'days'}`}>
+              <HabitRing done={done} streak={detail.streak} size={88} label={`${habit.name}: ${done ? 'completed today' : 'not completed today'}`} />
               <span className="habit-now-flame" data-hot={detail.streak >= 3} aria-hidden="true"><IconFlame size={22} /></span>
               <strong className="tnum">{detail.streak}</strong>
               <span className="habit-now-unit">day streak</span>

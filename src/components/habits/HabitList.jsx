@@ -17,6 +17,7 @@ import { Link } from '../../lib/router.jsx'
 import { categoryOf } from '../../lib/schedule.js'
 import { todayStr } from '../../lib/dates.js'
 import { describeHabit, HABIT_FILTERS, matchesFilter, filterCounts } from './habitRowModel.js'
+import HabitRing from './HabitRing.jsx'
 import { IconCheck, IconFlame, IconMore, IconClock, IconPlus } from '../../lib/icons.jsx'
 
 function HabitRowLine({ row, onMore, onFire }) {
@@ -36,12 +37,27 @@ function HabitRowLine({ row, onMore, onFire }) {
       className={`hrow${done ? ' is-done' : ''}${paused ? ' is-paused' : ''}${archived ? ' is-archived' : ''}${status.id === 'missed' ? ' is-missed' : ''}`}
       data-status={status.id}
       data-habit={habit.id}
+      style={{
+        '--habit-color': `var(${cat.cssVar})`,
+        '--habit-soft': `color-mix(in srgb, var(${cat.cssVar}) 16%, transparent)`,
+        '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, white)`,
+      }}
     >
       <div className="hrow-main">
-        <Link to={`habits/${habit.id}`} className="hrow-name" aria-label={`Open ${habit.name}`}>
-          <span className="hrow-dot" style={{ background: `var(${cat.cssVar})` }} aria-hidden="true" />
-          <span className="hrow-name-text">{habit.name}</span>
-        </Link>
+        <div
+          className="hrow-identity"
+          style={{
+            '--habit-color': `var(${cat.cssVar})`,
+            '--habit-soft': `color-mix(in srgb, var(${cat.cssVar}) 16%, transparent)`,
+            '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, white)`,
+          }}
+        >
+          <HabitRing done={done} streak={streak} size={38} label={`${habit.name}: ${done ? 'completed today' : 'not completed today'}`} />
+          <Link to={`habits/${habit.id}`} className="hrow-name" aria-label={`Open ${habit.name}`}>
+            <span className="hrow-dot" style={{ background: `var(${cat.cssVar})` }} aria-hidden="true" />
+            <span className="hrow-name-text">{habit.name}</span>
+          </Link>
+        </div>
         <div className="hrow-meta">
           <span className="status-pill hrow-status" data-tone={status.tone === 'neutral' ? undefined : status.tone} data-status={status.id}>
             {status.label}

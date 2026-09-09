@@ -185,7 +185,7 @@ export default function InsightsScreen() {
         <>
         <SectionCard className="pad habit-patterns" aria-label="Habit patterns">
           <CardHead title="Habit patterns"><span className="tiny muted">real history only</span></CardHead>
-          {patterns.length === 0 ? <p className="empty-note">Not enough data yet. Keep checking in to reveal patterns.</p> : <div className="habit-pattern-list">{patterns.map((p) => <div className="habit-pattern-row" key={p.habit.id}><strong>{p.habit.name}</strong><span>{p.trend.id === 'INSUFFICIENT DATA' ? 'Not enough data yet.' : `${p.trend.id.toLowerCase()} · ${p.trend.current}% vs ${p.trend.previous}% previously`}</span>{p.weekday.best && <span>Strongest weekday: {p.weekday.best.weekday} ({p.weekday.best.rate}%)</span>}{p.workload.enough && <span>{p.workload.observation} {p.workload.high}% vs {p.workload.low}%.</span>}</div>)}</div>}
+          {patterns.length === 0 ? <p className="empty-note">Not enough data yet. Keep checking in to reveal patterns.</p> : <div className="habit-pattern-list">{patterns.map((p) => <div className="habit-pattern-row" key={p.habit.id}><strong>{p.habit.name}</strong><span>{p.trend.id === 'INSUFFICIENT DATA' ? 'Not enough data yet.' : `${p.trend.id.toLowerCase()} · ${p.trend.current}% vs ${p.trend.current - p.trend.delta}% previously`}</span>{p.weekday.best && <span>Strongest weekday: {p.weekday.best.weekday} ({p.weekday.best.rate}%)</span>}{p.workload.enough && <span>{p.workload.observation} {p.workload.high}% vs {p.workload.low}%.</span>}</div>)}</div>}
         </SectionCard>
         {/* Hero: ring + streaks */}
           <div className="sp-depth" data-z="2">

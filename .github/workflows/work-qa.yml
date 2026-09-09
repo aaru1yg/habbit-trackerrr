@@ -1,0 +1,84 @@
+name: Phase 4 Work browser QA
+
+on:
+  push:
+    branches: [arena/01a08091-habbit-trackerrr]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  browser:
+    name: Chromium ${{ matrix.viewport }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        viewport: [390x844, 430x932, 1440x900]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Chromium runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libnspr4 libnss3
+      - run: npm run build
+      - name: Work browser and visual proof (no deployment)
+        env:
+          WORK_QA_VIEWPORT: ${{ matrix.viewport }}
+        run: |
+          set -euo pipefail
+          mkdir -p qa/shots/workspace
+          npm run preview -- --host 0.0.0.0 > qa/shots/workspace/server.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID"' EXIT
+          node --input-type=module -e '
+            for (let i = 0; i < 60; i++) {
+              try { if ((await fetch("http://localhost:4173/")).ok) process.exit(0) } catch {}
+              await new Promise(r => setTimeout(r, 500));
+            }
+            process.exit(1);
+          '
+          npm run test:e2e:work 2>&1 | tee qa/shots/workspace/browser.log
+      - name: Publish API-readable Chromium diagnostics
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WORK_QA_VIEWPORT: ${{ matrix.viewport }}
+        run: node qa/publish-work-proof.mjs
+      - name: Upload Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-chromium-${{ matrix.viewport }}
+          path: qa/shots/workspace/
+          retention-days: 14
+      - name: Publish result
+        if: always()
+        run: |
+          echo '## Chromium ${{ matrix.viewport }}' >> "$GITHUB_STEP_SUMMARY"
+          cat qa/shots/workspace/browser.log >> "$GITHUB_STEP_SUMMARY" || true
+  checks:
+    name: Final unit, lint, build and schema checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test:schema
+      - run: git diff --check HEAD^ HEAD

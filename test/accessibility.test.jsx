@@ -172,6 +172,28 @@ describe('the universal action sheet is operable — #22', () => {
     await waitFor(() => expect(isSheetOpen()).toBe(false))
   })
 
+  it('returns focus to the opener on close, even when the sheet auto-focuses a field', async () => {
+    /* Sheet captured `document.activeElement` inside its open effect. React
+       commits a child's `autoFocus` before effects run, so for the habit,
+       routine and note forms the "opener" it remembered was the sheet's own
+       first field — which is unmounted by the time it is "restored", so
+       focus fell to <body>. Seen in real Chromium; asserted here on the
+       New-habit form, which autofocuses Name. */
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seedState()))
+    window.location.hash = '#/habits'
+    render(<StoreProvider><App /></StoreProvider>)
+    const opener = await screen.findByRole('button', { name: 'New habit' })
+    opener.focus()
+    fireEvent.click(opener)
+    const dialog = await screen.findByRole('dialog', { name: 'New habit' })
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+    expect(document.activeElement.id).toBe('habit-name')
+
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    await waitFor(() => expect(isSheetOpen()).toBe(false))
+    await waitFor(() => expect(document.activeElement).toBe(opener))
+  })
+
   it('every action button is named', async () => {
     mountToday()
     await screen.findByText("Today's priorities")

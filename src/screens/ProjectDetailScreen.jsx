@@ -2,7 +2,7 @@
    PROJECT DETAIL — overview, milestones, tasks, timeline and
    the project's own analytics. One project, one job.
    ============================================================ */
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import { useStore } from '../store.jsx'
 import useNow from '../lib/useNow.js'
@@ -10,13 +10,16 @@ import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
 import { StatusPill, KindTag, Meter, MeterRow, MilestoneStepper, QuickProgress, WorkEmpty } from '../components/work/WorkKit.jsx'
-import { BurndownChart, LineSeries, BucketColumns, HBarList, DonutStat } from '../components/charts/workCharts.jsx'
-import PaceChart from '../components/charts/PaceChart.jsx'
-import ProjectTrack from '../components/work/ProjectTrack.jsx'
+import { HBarList } from '../components/charts/workCharts.jsx'
+const ProjectTrack = lazy(() => import('../components/work/ProjectTrack.jsx'))
+const ProjectAnalyticsDetail = lazy(() => import('../components/work/ProjectAnalyticsDetail.jsx'))
+import { useRoute } from '../lib/router.jsx'
+import UniversalWorkRow from '../components/work/UniversalWorkRow.jsx'
+import { workWorkspace } from '../components/work/workViewModel.js'
+import '../styles/workspace.css'
 import {
-  projectStatus, projectProgress, milestoneTrack, burndown, progressSeries, entityVelocity,
-  timeVsWork, itemHistory, allTasks, TASK_STATUSES, PRIORITIES,
-  projectPace, projectPhase, phaseTone, PROJECT_PHASES,
+  projectStatus, projectProgress, milestoneTrack, TASK_STATUSES, PRIORITIES,
+  projectPhase, phaseTone, PROJECT_PHASES,
 } from '../lib/work.js'
 import { activeHabits, habitRate, habitStreak } from '../lib/stats.js'
 import { categoryOf } from '../lib/schedule.js'
@@ -33,9 +36,11 @@ export default function ProjectDetailScreen({ id }) {
   const work = useWorkUI()
   const now = useNow()
   const today = todayStr()
+  const { query } = useRoute()
 
   const project = (state.projects || []).find((p) => p.id === id) || null
   const [tab, setTab] = useState('overview')
+  const [visual, setVisual] = useState(false)
   const [newTask, setNewTask] = useState({})
   const [addingMilestone, setAddingMilestone] = useState(false)
   const [milestoneName, setMilestoneName] = useState('')
@@ -45,6 +50,20 @@ export default function ProjectDetailScreen({ id }) {
   const track = useMemo(() => (project ? milestoneTrack(project) : []), [project])
   const nextMilestone = useMemo(() => track.find((m) => !m.reached) || null, [track])
   const habits = activeHabits(state)
+  const nextWork = useMemo(() => project ? workWorkspace({ ...state, projects: [project], assignments: [] }, now).active.find(row => row.kind === 'project-task') : null, [state, project, now])
+  useEffect(() => {
+    const params = new URLSearchParams(query)
+    const task = params.get('task')
+    const milestone = params.get('milestone')
+    if (!task && !milestone) return
+    setTab('overview')
+    const id = requestAnimationFrame(() => {
+      const target = document.getElementById(task ? `work-task-${task}` : `work-milestone-${milestone}`)
+      target?.scrollIntoView({ block: 'center' })
+      target?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [query, project?.id])
 
   if (!project) {
     return (
@@ -53,7 +72,7 @@ export default function ProjectDetailScreen({ id }) {
           <WorkEmpty
             icon={<IconProjects size={40} />}
             title="Project not found"
-            action={<a className="btn primary" href="#/projects">Back to projects</a>}
+            action={<a className="btn primary" href="#/work?view=projects">Back to projects</a>}
           >
             It may have been deleted on this device.
           </WorkEmpty>
@@ -62,6 +81,7 @@ export default function ProjectDetailScreen({ id }) {
     )
   }
 
+  const linkedAssignments = (state.assignments || []).filter(a => !a.archived && a.projectId === project.id)
   const linkedHabits = (project.linkedHabitIds || []).map((hid) => habits.find((h) => h.id === hid)).filter(Boolean)
 
   const addTask = (milestoneId) => {
@@ -81,14 +101,14 @@ export default function ProjectDetailScreen({ id }) {
 
   const removeProject = () => {
     work.deleteProject(project)
-    window.location.hash = '#/projects'
+    window.location.hash = '#/work?view=projects'
   }
 
   return (
     <div className="screen" id="project-detail">
       <header className="screen-head">
         <div style={{ minWidth: 0 }}>
-          <a href="#/projects" className="back-link" aria-label="Back to projects">
+          <a href="#/work?view=projects" className="back-link" aria-label="Back to projects">
             <IconChevronLeft size={16} /> Projects
           </a>
           <div className="wrap-gap" style={{ gap: 8, marginTop: 6 }}>
@@ -107,17 +127,9 @@ export default function ProjectDetailScreen({ id }) {
       <div className="detail-layout">
       <div className="stack">
         {/* Progress hero */}
-        <SectionCard className="pad-lg project-detail-hero">
+        <SectionCard className="pad project-detail-hero">
+          <CardHead title="Status"><span className="tiny muted">{progress.done}/{progress.total} tasks complete</span></CardHead>
           <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-            <DonutStat
-              pct={status.pct}
-              size={124}
-              tone={status.tone}
-              label={progress.total ? `${progress.done} of ${progress.total} tasks` : progress.mode === 'none' ? 'No tasks yet' : 'Manual progress'}
-              sub={status.hasDeadline
-                ? `${status.complete ? 'Completed' : status.dueText}${project.startDate ? ` · started ${shortDate(project.startDate)}` : ''}`
-                : project.startDate ? `Started ${shortDate(project.startDate)}` : 'No deadline set'}
-            />
             <div style={{ flex: 1, minWidth: 200 }}>
               <div className="wrap-gap" style={{ gap: 6, marginBottom: 10 }}>
                 <span className="status-pill" data-tone={phaseTone(projectPhase(project, now))}>
@@ -156,17 +168,7 @@ export default function ProjectDetailScreen({ id }) {
           )}
         </SectionCard>
 
-        <ProjectForecastCard project={project} now={now} />
-
-        {/* V3: the project as an object on its own track */}
-        <SectionCard className="pad project-track-card">
-          <CardHead title="The track">
-            <span className="tiny muted">
-              {project.deadline ? `deadline ${shortDate(dayOf(project.deadline))}` : 'no deadline'}
-            </span>
-          </CardHead>
-          <ProjectTrack project={project} now={now} />
-        </SectionCard>
+        <section className="project-next-work"><h2>Next work</h2>{nextWork ? <UniversalWorkRow row={nextWork} now={now} /> : <p className="empty-note">{status.complete ? 'All work complete.' : 'Add a task below to make the next step clear.'}</p>}</section>
 
         {/* Milestones */}
         {track.length > 0 && (
@@ -178,9 +180,9 @@ export default function ProjectDetailScreen({ id }) {
           </SectionCard>
         )}
 
-        <div className="seg seg-wide" role="tablist" aria-label="Project sections">
+        <div className="seg seg-wide" role="group" aria-label="Project sections">
           {[{ id: 'overview', label: 'Tasks' }, { id: 'timeline', label: 'Timeline' }, { id: 'analytics', label: 'Analytics' }].map((t) => (
-            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id}
+            <button key={t.id} type="button" aria-pressed={tab === t.id}
               className={`seg-btn${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
               {t.label}
             </button>
@@ -192,7 +194,7 @@ export default function ProjectDetailScreen({ id }) {
             {(project.milestones || []).map((m) => {
               const mt = track.find((x) => x.id === m.id)
               return (
-                <SectionCard className="pad" key={m.id}>
+                <section className="card pad" key={m.id} id={`work-milestone-${m.id}`} tabIndex={-1}>
                   <CardHead title={m.name}>
                     <span className="tiny muted tnum">{mt?.done ?? 0}/{mt?.total ?? 0}</span>
                   </CardHead>
@@ -203,7 +205,7 @@ export default function ProjectDetailScreen({ id }) {
                     onNewTaskChange={(v) => setNewTask((s) => ({ ...s, [m.id]: v }))}
                     onAddTask={() => addTask(m.id)}
                   />
-                </SectionCard>
+                </section>
               )
             })}
 
@@ -225,6 +227,14 @@ export default function ProjectDetailScreen({ id }) {
               )}
             </SectionCard>
 
+
+          </>
+        )}
+
+        {linkedAssignments.length > 0 && <section className="card pad"><CardHead title="Linked deliverables" /><div className="stack">{linkedAssignments.map(a => <a className="btn ghost" href={`#/assignments/${a.id}`} key={a.id}>{a.name}</a>)}</div></section>}
+        <ProjectForecastCard project={project} now={now} />
+        {tab === 'timeline' && <ProjectTimeline project={project} status={status} track={track} />}
+        {tab === 'analytics' && <Suspense fallback={<p role="status">Loading analytics…</p>}><ProjectAnalyticsDetail project={project} status={status} /></Suspense>}
             <div className="split">
               <SectionCard className="pad">
                 <CardHead title="Linked habits" />
@@ -259,11 +269,7 @@ export default function ProjectDetailScreen({ id }) {
                 />
               </SectionCard>
             </div>
-          </>
-        )}
-
-        {tab === 'timeline' && <ProjectTimeline project={project} status={status} track={track} />}
-        {tab === 'analytics' && <ProjectAnalyticsDetail project={project} status={status} />}
+        <details className="project-visual-details" onToggle={e => { if (e.currentTarget.open) setVisual(true) }}><summary>Visual project track</summary>{visual && <Suspense fallback={<p role="status">Loading track…</p>}><ProjectTrack project={project} now={now} /></Suspense>}</details>
       </div>
 
       {/* Desktop rail (§81): the facts, always visible next to the work.
@@ -293,7 +299,7 @@ export default function ProjectDetailScreen({ id }) {
           {linkedHabits.length ? (
             <div className="wrap-gap" style={{ gap: 6 }}>
               {linkedHabits.map((h) => (
-                <Link key={h.id} to="library" className="chip">{h.name}</Link>
+                <Link key={h.id} to={`habits/${h.id}`} className="chip">{h.name}</Link>
               ))}
             </div>
           ) : (
@@ -323,7 +329,10 @@ function TaskList({ project, milestone, newTask, onNewTaskChange, onAddTask }) {
   const toast = useToast()
   const reduced = useReducedMotion()
   const tasks = milestone.tasks || []
-  const [expanded, setExpanded] = useState(null)
+  const { query } = useRoute()
+  const taskParam = new URLSearchParams(query).get('task')
+  const [expanded, setExpanded] = useState(taskParam)
+  useEffect(() => { if (taskParam) setExpanded(taskParam) }, [taskParam])
 
   const onReorder = (next) => dispatch({ type: 'REORDER_TASKS', projectId: project.id, milestoneId: milestone.id, order: next.map((t) => t.id) })
 
@@ -384,7 +393,7 @@ function TaskRow({ task: t, project, milestone, expanded, setExpanded, dispatch,
   const patch = (p) => dispatch({ type: 'UPDATE_TASK', projectId: project.id, milestoneId: milestone.id, taskId: t.id, patch: p })
 
   const row = (
-    <div className={`task-row${t.done ? ' is-done' : ''}`}>
+    <div id={`work-task-${t.id}`} tabIndex={-1} className={`task-row${t.done ? ' is-done' : ''}`}>
       <button
         className="check-box"
         data-done={t.done}
@@ -569,149 +578,3 @@ function ProjectTimeline({ project, status, track }) {
 /* ------------------------------------------------------------
    PROJECT ANALYTICS (single project)
    ------------------------------------------------------------ */
-function ProjectAnalyticsDetail({ project, status }) {
-  const now = useNow()
-  const today = todayStr()
-  const [range, setRange] = useState(30)
-
-  const bd = useMemo(() => burndown(project, now), [project, now])
-  const series = useMemo(() => {
-    const from = subDaysStr(today, range - 1)
-    return progressSeries(project, from, today)
-  }, [project, range, today])
-  const velocity = useMemo(() => entityVelocity(project, Math.min(range, 30), now), [project, range, now])
-  const tvw = useMemo(() => timeVsWork(project, 'project', now), [project, now])
-  const history = useMemo(() => itemHistory(project, 'project', now), [project, now])
-
-  const taskBuckets = useMemo(() => {
-    const b = { done: 0, doing: 0, blocked: 0, todo: 0 }
-    for (const t of allTasks(project)) {
-      if (t.done) b.done++
-      else if (t.status === 'doing') b.doing++
-      else if (t.status === 'blocked') b.blocked++
-      else b.todo++
-    }
-    return b
-  }, [project])
-
-  const hasLog = (project.progressLog || []).length > 0
-  const pace = useMemo(() => projectPace(project, { days: range, now }), [project, range, now])
-
-  return (
-    <>
-      <SectionCard className="pad">
-        <CardHead title="Expected vs actual">
-          <span className="pace-legend" aria-hidden="true">
-            <i className="pace-legend-actual" /> actual
-            <i className="pace-legend-expected" /> expected
-          </span>
-        </CardHead>
-        <PaceChart
-          actual={pace.actual}
-          expected={pace.expected}
-          ariaLabel={`Expected versus actual progress for ${project.name} over the last ${range} days`}
-        />
-        {!pace.expected && (
-          <p className="tiny muted" style={{ marginTop: 6 }}>
-            No expected line: this project needs a start date and a deadline to compute one.
-          </p>
-        )}
-      </SectionCard>
-
-      <div className="split">
-        <SectionCard className="pad">
-          <CardHead title="Progress over time">
-            <div className="seg" role="group" aria-label="Range">
-              {[14, 30, 90].map((d) => (
-                <button key={d} type="button" className={`seg-btn${range === d ? ' active' : ''}`} aria-pressed={range === d} onClick={() => setRange(d)}>{d}D</button>
-              ))}
-            </div>
-          </CardHead>
-          {hasLog ? (
-            <LineSeries
-              series={[{ id: 'pct', label: 'Complete', color: 'var(--accent-2)', points: series.map((r) => ({ date: r.date, value: r.pct })) }]}
-              ariaLabel="Project progress over time"
-            />
-          ) : (
-            <p className="empty-note">Progress is logged every time you complete a task or set a percentage.</p>
-          )}
-        </SectionCard>
-
-        <SectionCard className="pad">
-          <CardHead title="Task status" />
-          <BucketColumns
-            rows={[
-              { label: 'Done', value: taskBuckets.done, color: 'var(--good)' },
-              { label: 'Doing', value: taskBuckets.doing, color: 'var(--accent-2)' },
-              { label: 'Blocked', value: taskBuckets.blocked, color: 'var(--bad)' },
-              { label: 'To do', value: taskBuckets.todo, color: 'var(--text-3)' },
-            ]}
-          />
-          <div className="hr" />
-          <HBarList
-            rows={[
-              { label: 'Completed', value: status.pct, tone: 'good' },
-              { label: 'Remaining', value: 100 - status.pct, tone: 'neutral' },
-            ]}
-          />
-        </SectionCard>
-      </div>
-
-      {bd && (
-        <SectionCard className="pad">
-          <CardHead title="Deadline burndown" />
-          <BurndownChart rows={bd.rows} today={today} />
-          <p className="card-blurb">
-            Ideal pace assumes even work from {shortDate(bd.start)} to {shortDate(bd.end)}. The solid line is what actually happened.
-          </p>
-        </SectionCard>
-      )}
-
-      {tvw && (
-        <SectionCard className="pad">
-          <CardHead title="Time versus work" />
-          <HBarList
-            rows={[
-              { label: 'Time elapsed', value: tvw.elapsedPct, tone: tvw.behind ? 'bad' : 'neutral' },
-              { label: 'Work completed', value: tvw.workPct, tone: tvw.behind ? 'warn' : 'good' },
-            ]}
-          />
-          <p className="card-blurb">
-            {tvw.behind
-              ? `Behind schedule: ${tvw.gapPct} points of the clock have gone without matching work. ${tvw.remainingWork}% of the work is still open with ${tvw.daysLeft} days left.`
-              : tvw.ahead
-                ? `Ahead of schedule by ${Math.abs(tvw.gapPct)} points.`
-                : 'On pace — time elapsed and work completed are within 15 points.'}
-          </p>
-        </SectionCard>
-      )}
-
-      <SectionCard className="pad">
-        <CardHead title="Velocity" />
-        {velocity.some((v) => v.count) ? (
-          <>
-            <BucketColumns rows={velocity.map((v) => ({ label: v.date.slice(5).replace('-', '/'), value: v.count, color: 'var(--accent-1)' }))} height={110} />
-            <p className="card-blurb">Tasks completed per day over the last {Math.min(range, 30)} days.</p>
-          </>
-        ) : (
-          <p className="empty-note">No completed tasks with timestamps in this window yet.</p>
-        )}
-      </SectionCard>
-
-      {history && (
-        <SectionCard className="pad">
-          <CardHead title="Completion record" />
-          <dl className="kv">
-            <dt>Started</dt><dd>{history.start ? shortDate(history.start) : '—'}</dd>
-            <dt>Completed</dt><dd>{history.completedDay ? shortDate(history.completedDay) : '—'}</dd>
-            <dt>Duration</dt><dd className="tnum">{history.durationDays != null ? `${history.durationDays} days` : '—'}</dd>
-            <dt>Estimated</dt><dd className="tnum">{history.estimated || '—'}</dd>
-            <dt>Actual</dt><dd className="tnum">{history.actual || '—'}</dd>
-            <dt>Tasks</dt><dd className="tnum">{history.tasksTotal ? `${history.tasksDone}/${history.tasksTotal}` : '—'}</dd>
-            <dt>Deadline</dt><dd>{history.early == null ? '—' : history.early ? 'Finished early' : 'Finished after the deadline'}</dd>
-          </dl>
-        </SectionCard>
-      )}
-    </>
-  )
-}

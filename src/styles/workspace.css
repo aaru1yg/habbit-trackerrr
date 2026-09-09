@@ -1,0 +1,118 @@
+/* Phase 4: scoped composition, using the existing visual tokens. */
+.workspace { max-width: 1240px; }
+.workspace :is(h2, h3) { margin: 0 0 12px; }
+.workspace h2 { font-size: 1.12rem; }
+.workspace h3 { font-size: 1rem; margin-top: 24px; }
+.workspace a { color: var(--text); }
+.workspace :is(button, a, input, summary):focus-visible,
+#project-detail :is(button, a, summary):focus-visible,
+#assignment-detail :is(button, a, summary):focus-visible { outline: 2px solid var(--accent-1); outline-offset: 3px; }
+.workspace-head { margin-bottom: 16px; }
+.tabbar.workspace-tabs { display: flex; flex-wrap: wrap; margin-bottom: 20px; overflow: visible; }
+.workspace-tabs a { flex: 1 0 auto; min-height: 44px; justify-content: center; }
+/* --accent-1-lift is the token for accent-coloured TEXT (accent-1 itself is
+   ~3:1 on dark surfaces); the same rule the rest of the shell follows. */
+.workspace-tabs a[aria-current="page"] { color: var(--accent-1-lift); background: var(--surface-2); }
+.workspace-overview { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, 1fr); gap: 22px; align-items: start; }
+.workspace-summary { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.workspace-summary > a { padding: 16px 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); text-decoration: none; display: grid; gap: 5px; }
+.workspace-summary strong { font-size: 1.8rem; font-variant-numeric: tabular-nums; }
+.workspace-summary span { font-weight: 650; }
+.workspace-summary small, .workspace-meta, .workspace-type, .workspace-parent { color: var(--text-2); }
+.workspace-active { grid-column: 1; grid-row: 2; min-width: 0; }
+.workspace-attention { grid-column: 2; grid-row: 2; min-width: 0; }
+.workspace-horizon { grid-column: 2; grid-row: 3; }
+.workspace-capacity { grid-column: 1; grid-row: 3; }
+.workspace-recent { grid-column: 1 / -1; }
+.workspace-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.workspace-section-head h2 { margin: 0; }
+.workspace-section-head > a { min-height: 44px; display: inline-flex; align-items: center; font-size: .82rem; }
+.workspace-list { display: flex; flex-direction: column; gap: 8px; }
+.workspace-row { display: grid; grid-template-columns: minmax(0, 1fr) 100px; gap: 10px 16px; border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; background: var(--surface); min-width: 0; }
+.workspace-row.is-complete { background: transparent; border-style: dashed; }
+.workspace-row.is-complete .workspace-row-title { color: var(--text-2); }
+.workspace-row-main { min-width: 0; }
+.workspace-type { display: block; font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.workspace-row-title { display: block; width: fit-content; min-width: 44px; font-size: .95rem; font-weight: 650; text-decoration: none; padding: 6px 0; min-height: 44px; display: flex; align-items: center; overflow-wrap: anywhere; }
+.workspace-parent { display: block; font-size: .75rem; text-decoration: none; overflow-wrap: anywhere; min-height: 44px; display: flex; align-items: center; padding-bottom: 5px; }
+.workspace-meta { display: flex; flex-wrap: wrap; gap: 5px 12px; font-size: .73rem; line-height: 1.5; }
+.workspace-risk { font-weight: 650; }
+.workspace-risk[data-risk="OVERDUE"], .workspace-risk[data-risk="CRITICAL"] { color: var(--bad); }
+.workspace-risk[data-risk="AT RISK"] { color: var(--warn); }
+.workspace-progress { font-size: .73rem; display: grid; gap: 8px; align-content: start; text-align: right; padding-top: 16px; }
+.workspace-row-actions { grid-column: 1 / -1; display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
+.workspace .btn { min-height: 44px; }
+.workspace-row-actions .btn { min-width: 44px; }
+.workspace-horizons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.workspace-horizons a { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; text-decoration: none; overflow-wrap: anywhere; }
+.workspace-horizons span, .workspace-horizons small { font-size: .75rem; color: var(--text-2); }
+.workspace-capacity-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.workspace-capacity-values dt { font-size: .75rem; color: var(--text-2); }
+.workspace-capacity-values dd { margin: 8px 0 0; font-size: 1.15rem; font-weight: 650; overflow-wrap: anywhere; }
+.workspace-overload { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; border: 1px solid var(--warn); border-radius: 14px; padding: 16px; margin: 0 0 18px; }
+.workspace-overload h2 { color: var(--warn); }
+.workspace-overload p { margin: 6px 0; overflow-wrap: anywhere; }
+.workspace-filters { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+.workspace-filters [role="group"] { display: flex; flex-wrap: wrap; gap: 4px; }
+.workspace [aria-pressed="true"] { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--accent-1); }
+.workspace-search { display: flex; flex-direction: column; gap: 4px; font-size: .75rem; flex: 1; min-width: 200px; }
+.workspace-search input { min-width: 0; }
+.workspace-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.workspace-days button { display: flex; flex-direction: column; align-items: flex-start; padding: 14px; white-space: normal; text-align: left; }
+.workspace-days span, .workspace-days small { font-size: .75rem; }
+.workspace-project-items { margin-top: 24px; }
+.workspace-project-items summary { cursor: pointer; padding: 12px 0; min-height: 44px; }
+.workspace-deadline-group { margin-top: 22px; }
+.workspace-empty { margin-top: 20px; }
+.workspace-next { margin-bottom: 12px; }
+.workspace-next a { display: inline-flex; align-items: center; min-height: 44px; }
+@media (max-width: 760px) {
+  .workspace-overview { display: flex; flex-direction: column; gap: 20px; }
+  .workspace-overview > * { width: 100%; min-width: 0; }
+  .workspace-summary { gap: 6px; }
+  .workspace-summary > a { padding: 12px 10px; border-radius: 12px; }
+  .workspace-summary span { font-size: .75rem; }
+  .workspace-summary small { font-size: .65rem; }
+  .workspace-summary strong { font-size: 1.5rem; }
+  .workspace-tabs { gap: 2px; }
+  .workspace-tabs a { flex-basis: 30%; font-size: .78rem; padding: 8px; }
+  .workspace-head { flex-wrap: wrap; gap: 12px; }
+  .workspace-head .screen-sub { display: none; }
+  .workspace-head .head-actions { gap: 6px; }
+  .workspace-head .btn { padding: 8px 10px; font-size: .8rem; }
+  .workspace-row { padding: 12px; grid-template-columns: minmax(0, 1fr) 78px; gap: 8px; }
+  .workspace-row-actions { justify-content: flex-start; }
+  .workspace-attention { order: 3; }
+  .workspace-horizon { order: 4; }
+  .workspace-capacity { order: 2; }
+  .workspace-recent { order: 5; }
+  .workspace-overload { padding: 12px; }
+  .workspace-overload .tiny { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .workspace *, .workspace *::before, .workspace *::after { animation: none !important; transition: none !important; } }
+#project-detail .project-next-work h2, #assignment-detail .assignment-next-action h2 { font-size: 1.1rem; margin-bottom: 12px; }
+#project-detail .project-detail-hero, #assignment-detail .assignment-detail-hero { background-image: none; }
+#project-detail .project-visual-details summary, #assignment-detail :is(.assignment-progress-controls, .assignment-analytics) summary { min-height: 44px; padding: 12px 0; cursor: pointer; }
+#assignment-detail .assignment-progress-heading { font-size: 1rem; margin-top: 18px; }
+#assignment-detail .assignment-next-action p { margin-bottom: 12px; }
+#project-detail [id^="work-task-"], #project-detail [id^="work-milestone-"] { scroll-margin-top: 20px; }
+@media (max-width: 760px) {
+  #project-detail .detail-layout, #assignment-detail .detail-layout { display: flex; flex-direction: column; }
+  #project-detail .detail-layout > *, #assignment-detail .detail-layout > * { min-width: 0; width: 100%; }
+  #project-detail .project-detail-hero { padding: 16px; }
+  #assignment-detail .assignment-detail-hero { padding: 16px; }
+}
+
+/* Final Chromium QA: preserve the appearance but give these existing Work
+   controls a full touch hit area. Scoped away from other destinations. */
+#assignment-detail .kv a,
+[aria-labelledby="work-focus-title"] summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+[aria-labelledby="assignment-form-title"] input[type="range"] {
+  min-height: 44px;
+}
+/* inline "Set daily capacity in Settings" link: keep the sentence, give the finger 44px */
+.workspace-capacity-link { display: inline-flex; align-items: center; min-height: 44px; margin: -12px 0; text-decoration: underline; text-underline-offset: 3px; }

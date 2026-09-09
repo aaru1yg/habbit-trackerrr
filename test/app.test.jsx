@@ -160,7 +160,7 @@ describe('core flows', () => {
   it('project progress is mathematical: 1 of 2 tasks = 50%, 2 of 2 = 100% + celebration', async () => {
     await onboard()
     window.location.hash = '#/projects'
-    await screen.findByText('No projects yet')
+    await screen.findByText('Your work starts here.')
     fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
     const form = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Ship v1' } })
@@ -169,15 +169,15 @@ describe('core flows', () => {
     await screen.findByText('Ship v1')
 
     // open the project and add one task per milestone
-    fireEvent.click(screen.getByRole('link', { name: /Open Ship v1/i }))
+    fireEvent.click(screen.getByRole('link', { name: /View Ship v1/i }))
     const scopeInput = await screen.findByRole('textbox', { name: /task to Scope/i })
     fireEvent.change(scopeInput, { target: { value: 'Write spec' } })
     fireEvent.submit(scopeInput.closest('form'))
     const buildInput = await screen.findByRole('textbox', { name: /task to Build/i })
     fireEvent.change(buildInput, { target: { value: 'Frontend' } })
     fireEvent.submit(buildInput.closest('form'))
-    await screen.findByText('Write spec')
-    await screen.findByText('Frontend')
+    await screen.findAllByText('Write spec')
+    await screen.findAllByText('Frontend')
 
     // 1 of 2 tasks done is exactly 50%
     fireEvent.click(screen.getByRole('button', { name: 'Mark Write spec done' }))
@@ -196,7 +196,7 @@ describe('core flows', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Mark Write complete/i }))
 
     window.location.hash = '#/projects'
-    await screen.findByText('No projects yet')
+    await screen.findByText('Your work starts here.')
     fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
     const form = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Write a novella' } })
@@ -282,37 +282,36 @@ describe('core flows', () => {
     await screen.findByText(/Start with one habit/i)
   })
 
-  it('mobile nav shows the four primary tabs and More reveals the rest (§78)', async () => {
+  it('mobile nav shows the five primary destinations and More reveals secondary tools (§78)', async () => {
     await onboard()
     const nav = document.querySelector('.bottom-nav')
     expect(nav).toBeTruthy()
-    for (const label of ['Today', 'Calendar', 'Work', 'Insights']) {
+    for (const label of ['Today', 'Work', 'Habits', 'Goals', 'Insights']) {
       expect(within(nav).getByText(label)).toBeTruthy()
     }
-    expect(within(nav).getAllByRole('link')).toHaveLength(4)
+    expect(within(nav).getAllByRole('link')).toHaveLength(5)
 
-    fireEvent.click(within(nav).getByText('Calendar'))
-    await screen.findByText(/Tap any past day to log it/i)
+    fireEvent.click(within(nav).getByText('Habits'))
+    await screen.findByText('No habits yet')
     fireEvent.click(within(nav).getByText('Work'))
-    await screen.findByText('No projects yet')
+    await screen.findByText('Your work starts here.')
     fireEvent.click(within(nav).getByText('Insights'))
     await screen.findByText(/Nothing to analyze yet/i)
 
     // More sheet carries the secondary routes
     fireEvent.click(within(nav).getByRole('button', { name: 'More sections' }))
     const sheet = await screen.findByRole('dialog')
-    for (const label of ['Habits', 'Goals', 'Workload', 'Deadlines', 'Week', 'Achievements', 'Mind', 'Record']) {
+    for (const label of ['Deliverables', 'Projects', 'Workload', 'Deadlines', 'Calendar', 'Week review', 'Achievements', 'Mind', 'Record']) {
       expect(within(sheet).getByText(label)).toBeTruthy()
     }
-    fireEvent.click(within(sheet).getByText('Week'))
+    fireEvent.click(within(sheet).getByText('Week review'))
     await screen.findByText(/No habits scheduled this week/i)
   })
 
   it('desktop sidebar exposes every route and the search shortcut (§78, §30)', async () => {
     await onboard()
     const links = [...document.querySelectorAll('.sidebar-nav a, .sidebar-settings')].map((a) => a.getAttribute('href'))
-    for (const to of ['#/today', '#/calendar', '#/habits', '#/goals', '#/projects', '#/assignments',
-      '#/workload', '#/timeline', '#/week', '#/insights', '#/achievements', '#/mind', '#/record', '#/settings']) {
+    for (const to of ['#/today', '#/work', '#/habits', '#/goals', '#/insights', '#/settings']) {
       expect(links).toContain(to)
     }
     expect(document.querySelector('.sidebar-search')).toBeTruthy()
@@ -354,56 +353,58 @@ describe('work layer', () => {
   it('every work route renders without crashing', async () => {
     await onboard()
     window.location.hash = '#/projects'
-    await screen.findByText('No projects yet')
+    await screen.findByText('Your work starts here.')
     window.location.hash = '#/assignments'
-    await screen.findByText('Nothing due yet')
+    await screen.findByRole('link', { name: 'Deliverables' })
     window.location.hash = '#/workload'
-    await screen.findByText('No work scheduled')
+    await screen.findByText('Your work starts here.')
     window.location.hash = '#/timeline'
-    await screen.findByText('No deadlines in this view')
+    await screen.findByText('Your work starts here.')
     window.location.hash = '#/library'
     await screen.findByText('No habits yet')
     window.location.hash = '#/record'
     await screen.findByText('Nothing recorded yet')
   })
 
-  it('Work tab segments between Projects and Assignments', async () => {
+  it('Work sections switch from legacy Projects to canonical Deliverables', async () => {
     await onboard()
     window.location.hash = '#/projects'
-    await screen.findByText('No projects yet')
+    await screen.findByText('Your work starts here.')
     const seg = document.querySelector('.tabbar')
     expect(seg).toBeTruthy()
-    fireEvent.click(within(seg).getByText('Assignments'))
-    await screen.findByText('Nothing due yet')
-    expect(window.location.hash).toBe('#/assignments')
+    fireEvent.click(within(seg).getByText('Deliverables'))
+    await screen.findByRole('link', { name: 'Deliverables' })
+    await waitFor(() => expect(window.location.hash).toBe('#/work?view=deliverables'))
   })
 
   it('creates a project from the Work FAB and shows it on the dashboard', async () => {
     await onboard()
     window.location.hash = '#/projects'
-    await screen.findByText('No projects yet')
+    await screen.findByText('Your work starts here.')
     fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
     const form = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Portfolio site' } })
     fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Plan\nBuild\nLaunch' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
     await screen.findByText('Portfolio site')
-    // milestones drive the stepper; progress is honest at 0%
-    await screen.findByText('Next: Plan')
-    await screen.findByText('No tasks yet')
+    // The compact default keeps progress honest and milestones available.
+    await screen.findByText('0% complete')
+    expect(screen.getByText(/0\/0 tasks/)).toBeTruthy()
+    expect(screen.getByText('Project tasks and milestones')).toBeTruthy()
   })
 
   it('creates an assignment with a deadline and shows the countdown', async () => {
     await onboard()
     window.location.hash = '#/assignments'
-    await screen.findByText('Nothing due yet')
-    fireEvent.click(screen.getByRole('button', { name: /Create an assignment/i }))
+    await screen.findByRole('link', { name: 'Deliverables' })
+    fireEvent.click(screen.getByRole('button', { name: /Add an assignment/i }))
     const form = await screen.findByRole('dialog', { name: 'New assignment' })
     fireEvent.change(within(form).getByLabelText(/^Assignment$/i), { target: { value: 'DS Lab 3' } })
     fireEvent.change(within(form).getByLabelText(/^Subject/i), { target: { value: 'Data Structures' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create assignment/i }))
     await screen.findByText('DS Lab 3')
-    await screen.findByText('Data Structures')
+    fireEvent.click(screen.getByRole('link', { name: 'View DS Lab 3' }))
+    await screen.findAllByText(/Data Structures/)
   })
 
   it('global search finds habits, projects and assignments (§30)', async () => {
@@ -412,7 +413,7 @@ describe('work layer', () => {
     await screen.findByRole('button', { name: /Mark Deep work complete/i })
 
     window.location.hash = '#/projects'
-    await screen.findByText('No projects yet')
+    await screen.findByText('Your work starts here.')
     fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
     const pform = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(pform).getByLabelText(/^Project$/i), { target: { value: 'Thesis draft' } })
@@ -420,8 +421,8 @@ describe('work layer', () => {
     await screen.findByText('Thesis draft')
 
     window.location.hash = '#/assignments'
-    await screen.findByText('Nothing due yet')
-    fireEvent.click(screen.getByRole('button', { name: /Create an assignment/i }))
+    await screen.findByRole('link', { name: 'Deliverables' })
+    fireEvent.click(screen.getByRole('button', { name: /Add an assignment/i }))
     const aform = await screen.findByRole('dialog', { name: 'New assignment' })
     fireEvent.change(within(aform).getByLabelText(/^Assignment$/i), { target: { value: 'Physics problem set' } })
     fireEvent.change(within(aform).getByLabelText(/^Subject/i), { target: { value: 'Physics' } })

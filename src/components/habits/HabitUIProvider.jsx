@@ -8,7 +8,7 @@ import HabitDetailSheet from './HabitDetailSheet.jsx'
 const HabitUIContext = createContext(null)
 export const useHabitUI = () => useContext(HabitUIContext)
 
-export default function HabitUIProvider({ children }) {
+export default function HabitUIProvider({ children, onFire = null }) {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const [formOpen, setFormOpen] = useState(false)
@@ -43,7 +43,7 @@ export default function HabitUIProvider({ children }) {
   }, [dispatch, state.checkins, toast])
 
   return (
-    <HabitUIContext.Provider value={{ openAdd, openEdit, openDetail, archive, remove }}>
+    <HabitUIContext.Provider value={{ openAdd, openEdit, openDetail, archive, remove, fire: onFire }}>
       {children}
       <HabitForm open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
       <HabitDetailSheet

@@ -83,8 +83,8 @@ const titles = {
   // between 00:00–04:59 (src/lib/dates.js). Accept either so the check is
   // deterministic regardless of when the runner executes.
   today: /(Good (morning|afternoon|evening)|Up late)/, calendar: /Calendar/, habits: /^Habits$/,
-  goals: /^Goals$/, projects: /^Projects$/, assignments: /^Assignments$/,
-  insights: /^Insights$/, workload: /^Workload$/, achievements: /^Achievements$/, settings: /^Settings$/,
+  goals: /^Goals$/, work: /^Work$/, projects: /^Work$/, assignments: /^Work$/,
+  insights: /^Insights$/, workload: /^Work$/, achievements: /^Achievements$/, settings: /^Settings$/,
 }
 
 async function clickVisible(page, selector) {
@@ -110,20 +110,41 @@ async function clickVisible(page, selector) {
 async function ready(page, route) {
   await page.waitForFunction((route) => {
     const h = document.querySelector('main .screen-title')
-    return location.hash === `#/${route}` && h && h.textContent.trim() && !document.querySelector('.auth-loading')
+    return location.hash === `#/${route}` && h && h.textContent.trim() && !document.querySelector('.auth-loading') && !document.querySelector('main [role="status"][aria-label="Loading"]')
   }, { timeout: 20000 }, route)
   await sleep(650)
   await page.evaluate(() => document.fonts.ready)
 }
 
 async function navigate(page, route, mobile) {
-  if (mobile) {
-    if (['today', 'calendar', 'projects', 'insights'].includes(route)) {
+  const workViews = { projects: 'projects', assignments: 'deliverables', workload: 'workload' }
+  // Phase 1 IA: secondary screens live under their pillar as ?view= and are
+  // reached from the mobile More sheet or (desktop) from the pillar itself.
+  const pillarViews = { calendar: ['habits', 'calendar', '.habit-tabs'], achievements: ['insights', 'achievements', null] }
+  let target = route
+  if (workViews[route]) {
+    await clickVisible(page, `${mobile ? '.bottom-nav' : '.sidebar'} a[href="#/work"]`)
+    await ready(page, 'work')
+    target = `work?view=${workViews[route]}`
+    await clickVisible(page, `.workspace-tabs a[href="#/${target}"]`)
+  } else if (pillarViews[route]) {
+    const [pillar, view, tabs] = pillarViews[route]
+    target = `${pillar}?view=${view}`
+    if (mobile) {
+      await clickVisible(page, '.bottom-nav button[aria-label="More sections"]')
+      await page.waitForSelector('[role="dialog"]', { visible: true })
+      await sleep(400)
+      await dialogFits(page, 'mobile More sheet')
+      await clickVisible(page, `[role="dialog"] a[href="#/${target}"]`)
+    } else {
+      await clickVisible(page, `.sidebar a[href="#/${pillar}"]`)
+      await ready(page, pillar)
+      if (tabs) await clickVisible(page, `${tabs} a[href="#/${target}"]`)
+      else await page.evaluate((t) => { location.hash = `#/${t}` }, target)
+    }
+  } else if (mobile) {
+    if (['today', 'work', 'habits', 'goals', 'insights'].includes(route)) {
       await clickVisible(page, `.bottom-nav a[href="#/${route}"]`)
-    } else if (route === 'assignments') {
-      await clickVisible(page, '.bottom-nav a[href="#/projects"]')
-      await ready(page, 'projects')
-      await clickVisible(page, '.tabbar a[href="#/assignments"]')
     } else {
       await clickVisible(page, '.bottom-nav button[aria-label="More sections"]')
       await page.waitForSelector('[role="dialog"]', { visible: true })
@@ -134,8 +155,15 @@ async function navigate(page, route, mobile) {
   } else {
     await clickVisible(page, `.sidebar a[href="#/${route}"]`)
   }
-  await ready(page, route)
-  check(`${mobile ? 'mobile' : 'desktop'} navigation → ${route}`, await page.$eval('main .screen-title', (el) => el.textContent).then((t) => titles[route].test(t)))
+  await ready(page, target)
+  // Screens are lazy: the hash flips before React swaps the screen, so wait
+  // for the *expected* title rather than sampling whatever is mounted after a
+  // fixed pause (which lands on the Suspense fallback on a contended runner).
+  const titled = await page.waitForFunction((src) => {
+    const h = document.querySelector('main .screen-title')
+    return !!h && new RegExp(src).test(h.textContent)
+  }, { timeout: 20000 }, titles[route].source).then(() => true).catch(() => false)
+  check(`${mobile ? 'mobile' : 'desktop'} navigation → ${route}`, titled)
 }
 
 async function layout(page, name) {
@@ -200,12 +228,9 @@ async function addHabit(page, name, viewport) {
   check(`${viewport}: Add habit primary action is reachable and saves`, true)
 }
 
-async function addWork(page, route, viewport, mobile) {
+async function addWork(page, route, viewport, _mobile) {
   const kind = route === 'projects' ? 'project' : 'assignment'
-  const article = kind === 'assignment' ? 'an' : 'a'
-  await clickVisible(page, mobile
-    ? `.fab-stack button[aria-label="Add ${article} ${kind}"]`
-    : `#${route}-screen .head-actions .btn.primary`)
+  await clickVisible(page, `#work-screen .head-actions .btn.${kind === 'project' ? 'ghost' : 'primary'}`)
   await page.waitForSelector(`#${kind}-name`, { visible: true })
   await dialogFits(page, `${viewport} New ${kind}`)
   const name = `QA V2 ${kind} ${viewport} ${proof.buildId}`

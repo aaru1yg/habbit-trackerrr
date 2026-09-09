@@ -132,17 +132,25 @@ export async function setStoredState(page, state) {
 /** Seed storage deterministically, then load the app fresh at a route.
  *  The seed is injected before any app script runs (no stale-app writes),
  *  and the injection is removed so later reloads test real persistence. */
-export async function seedAndGoto(page, state, route, base = 'http://localhost:4173') {
+export async function seedAndGoto(page, state, route, base = 'http://localhost:4173', { keep = [] } = {}) {
   // AARU_CAP lets browser QA pin the device tier (high/balanced/low) so the
   // WebGL scene and each fallback can be exercised deterministically.
   const cap = process.env.AARU_CAP || ''
-  const handle = await page.evaluateOnNewDocument((s, cap) => {
+  // `keep` lists storage-key prefixes that survive the reset — public-site runs
+  // keep the real Supabase session ('aaru.auth') and the remembered first-link
+  // choice ('aaru.habits.migration.v1') so a fixture reload behaves like a
+  // signed-in device instead of signing in again on every scenario.
+  const handle = await page.evaluateOnNewDocument((s, cap, keep) => {
     try {
+      const kept = Object.keys(localStorage)
+        .filter((key) => keep.some((prefix) => key.startsWith(prefix)))
+        .map((key) => [key, localStorage.getItem(key)])
       localStorage.clear()
+      for (const [key, value] of kept) localStorage.setItem(key, value)
       localStorage.setItem('aaru.habits.v4', JSON.stringify(s))
       if (cap) localStorage.setItem('aaru.cap', cap)
     } catch { /* ignore */ }
-  }, state, cap)
+  }, state, cap, keep)
   try {
     await page.goto(`${base}/#/${route}`, { waitUntil: 'networkidle0' })
     await sleep(500)

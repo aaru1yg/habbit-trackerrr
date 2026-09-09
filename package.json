@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:schema": "node qa/schema-check.mjs",
     "test:e2e": "node qa/e2e.mjs",
+    "test:e2e:work": "node qa/workspace-e2e.mjs",
+    "test:e2e:habits": "node qa/habits-e2e.mjs",
     "test:release": "node qa/release.mjs",
     "lint": "eslint src test qa --max-warnings 40"
   },

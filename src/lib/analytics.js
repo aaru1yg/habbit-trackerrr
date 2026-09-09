@@ -745,6 +745,29 @@ export function searchAll(state, query, _limit = 24) {
     })
   }
 
+  const projectTasks = []
+  for (const p of state.projects || []) {
+    for (const m of p.milestones || []) for (const t of m.tasks || []) {
+      if (hit(t.name) || hit(t.notes)) projectTasks.push({ id: t.id, type: 'project-task', title: t.name, sub: `${p.name} · ${m.name}${t.done ? ' · Complete' : ''}`, projectId: p.id, milestoneId: m.id, entity: t })
+    }
+  }
+  if (projectTasks.length) groups.push({ id: 'project-tasks', label: 'Project tasks', items: projectTasks.slice(0, 10) })
+
+  const subtasks = []
+  for (const a of state.assignments || []) for (const s of a.subtasks || []) {
+    if (hit(s.name) || hit(s.notes)) subtasks.push({ id: s.id, type: 'subtask', title: s.name, sub: `${a.name}${s.done ? ' · Complete' : ''}`, assignmentId: a.id, entity: s })
+  }
+  if (subtasks.length) groups.push({ id: 'subtasks', label: 'Subtasks', items: subtasks.slice(0, 10) })
+
+  const goals = (state.goals || []).filter((g) => hit(g.title) || hit(g.description) || hit(g.notes))
+  if (goals.length) groups.push({ id: 'goals', label: 'Goals', items: goals.slice(0, 8).map((g) => ({ id: g.id, type: 'goal', title: g.title, sub: g.archived ? 'Archived' : 'Goal', entity: g })) })
+
+  const milestones = []
+  for (const g of state.goals || []) for (const m of g.milestones || []) {
+    if (hit(m.title || m.name) || hit(m.description)) milestones.push({ id: m.id, type: 'milestone', title: m.title || m.name, sub: `${g.title}${m.done ? ' · Complete' : ''}`, goalId: g.id, entity: m })
+  }
+  if (milestones.length) groups.push({ id: 'milestones', label: 'Milestones', items: milestones.slice(0, 10) })
+
   const routines = (state.routines || []).filter((r) => hit(r.name))
   if (routines.length) groups.push({ id: 'routines', label: 'Routines', items: routines.map((r) => ({ id: r.id, type: 'routine', title: r.name, sub: `${r.habitIds.length} habits`, entity: r })) })
 

@@ -696,24 +696,27 @@ console.log('\n— Projects & celebration (mobile) —')
   await sleep(500)
   const ptxt = await page.evaluate(() => document.body.textContent)
   check('projects dashboard shows real task math (3 of 5 = 60%)', ptxt.includes('60%'))
-  check('projects are tagged as their own kind', await page.evaluate(() => document.querySelectorAll('.kind-tag.project').length >= 2))
-  check('status engine reports real states (at risk + completed)', /At risk/.test(ptxt) && /Completed/.test(ptxt))
-  check('projects carry the four V3 life states (planned/active/at risk/completed)', await page.evaluate(() => {
-    const pills = [...document.querySelectorAll('.project-card .status-pill')].map((e) => e.textContent.trim().toLowerCase())
-    return ['planned', 'active', 'at risk', 'completed'].some((ph) => pills.includes(ph)) && pills.length >= 2
+  check('projects are tagged as their own kind', await page.evaluate(() => document.querySelectorAll('.workspace-row[data-kind="project"]').length >= 2))
+  check('status engine reports real states (at risk + completed)', /AT RISK|CRITICAL|OVERDUE/.test(ptxt) && /Completed/.test(ptxt))
+  check('project rows surface deterministic work risk', await page.evaluate(() => {
+    const pills = [...document.querySelectorAll('.workspace-row[data-kind="project"] .workspace-risk')].map((e) => e.textContent.trim())
+    return pills.length >= 2 && pills.every(Boolean)
   }))
   check('projects dashboard shows deadline countdowns', /\dd left|days left|Due/i.test(ptxt))
   await shot(page, '14-projects')
   await overflowCheck(page, 'projects')
   await tapTargetCheck(page, 'projects')
 
+  await page.goto(`${BASE}/#/projects/p1`, { waitUntil: 'networkidle0' })
+  // the detail tabs come from a lazy chunk — wait for them before clicking
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Analytics'), { timeout: 15000 })
   await clickByText(page, 'Analytics')
   await sleep(1000)
   const atxt = await page.evaluate(() => document.body.textContent)
-  check('project analytics render comparison + velocity', /Comparison|compared/i.test(atxt) || !!document.querySelector('.dist'))
+  check('project analytics preserve pace + velocity', /Expected vs actual/.test(atxt) && /Velocity/.test(atxt))
   await shot(page, '14b-projects-analytics')
   await overflowCheck(page, 'projects-analytics')
-  await clickByText(page, 'Overview')
+  await clickByText(page, 'Tasks')
   await sleep(500)
 
   // open a project and finish every remaining task
@@ -722,6 +725,8 @@ console.log('\n— Projects & celebration (mobile) —')
   const dtxt = await page.evaluate(() => document.body.textContent)
   check('project detail shows milestones and pace', /Milestones/.test(dtxt) && /(Behind|Ahead|pace)/i.test(dtxt))
   check('project detail shows linked habits', /Portfolio|linked|Habits/i.test(dtxt))
+  await clickByText(page, 'Visual project track', 'summary')
+  await sleep(600)
   check('[projects 2.0] the track places milestones on real dates with today marked', await page.evaluate(() => (
     !!document.querySelector('.ptl .ptl-track .ptl-node')
     && !!document.querySelector('.ptl .ptl-today')
@@ -733,6 +738,7 @@ console.log('\n— Projects & celebration (mobile) —')
     node.click()
     return (document.querySelector('.ptl-detail')?.textContent || '').length > 4
   }))
+  await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Analytics'), { timeout: 15000 })
   await clickByText(page, 'Analytics')
   await sleep(800)
   check('[projects 2.0] analytics draw expected vs actual from the real log', await page.evaluate(() => (
@@ -767,7 +773,8 @@ console.log('\n— Projects & celebration (mobile) —')
   await sleep(600)
   await page.type('#project-name', 'Learn piano')
   await page.type('#project-milestones', 'Basics\nScales')
-  await clickByText(page, 'Create project')
+  // the Work header also has a "Create project" button — submit the dialog's
+  await clickByText(page, 'Create project', '[role="dialog"] button')
   await sleep(800)
   check('new project created with milestones', await page.evaluate(() => document.body.textContent.includes('Learn piano')))
   check('new project starts at an honest 0%', await page.evaluate(() => document.body.textContent.includes('0%')))
@@ -784,25 +791,26 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await seedAndGoto(page, seededStateV4(), 'assignments', BASE)
   await sleep(500)
   const atxt = await page.evaluate(() => document.body.textContent)
-  check('assignments are their own system (ASSIGNMENT tags)', await page.evaluate(() => document.querySelectorAll('.kind-tag.assignment').length >= 3))
-  check('assignment due today is called out', /Due today|Today/i.test(atxt))
-  check('assignment urgency states are real (urgent + overdue)', /Urgent/.test(atxt) && /Overdue/.test(atxt))
-  check('assignments lead with a countdown', await page.evaluate(() => !!document.querySelector('.deadline-hero, .count-chip')))
+  check('assignments are their own system (ASSIGNMENT tags)', await page.evaluate(() => document.querySelectorAll('.workspace-row[data-kind="assignment"]').length >= 2))
+  check('assignment due today is called out', /Due /i.test(atxt))
+  check('assignment urgency states are real (urgent + overdue)', /CRITICAL/.test(atxt) && /OVERDUE/.test(atxt))
+  check('deliverables lead with deadline, effort and progress', await page.evaluate(() => !!document.querySelector('.workspace-meta') && !!document.querySelector('.workspace-progress')))
+  await shot(page, '16-assignments')
+  await overflowCheck(page, 'assignments')
+  await tapTargetCheck(page, 'assignments')
+  await page.goto(`${BASE}/#/assignments/a1`, { waitUntil: 'networkidle0' })
+  await sleep(600)
   check('[assignments 2.0] deadline pressure renders ten honest segments', await page.evaluate(() => {
-    const bars = document.querySelectorAll('.assignment-card .pressure-bar')
+    const bars = document.querySelectorAll('#assignment-detail .pressure-bar')
     if (!bars.length) return false
     const segs = bars[0].querySelectorAll('.pressure-seg')
     return segs.length === 10 && bars[0].querySelectorAll('.pressure-seg[data-lit]').length <= 10
   }))
   check('[assignments 2.0] pressure tone follows urgency, never alarm colour by default', await page.evaluate(() => {
-    const p = document.querySelector('.assignment-card .pressure')
+    const p = document.querySelector('#assignment-detail .pressure')
     return !!p && ['good', 'warn', 'bad', 'neutral', 'info'].includes(p.dataset.tone)
   }))
-  await shot(page, '16-assignments')
-  await overflowCheck(page, 'assignments')
-  await tapTargetCheck(page, 'assignments')
-
-  await clickByText(page, 'Analytics')
+  await clickByText(page, 'Progress analytics and velocity', 'summary')
   await sleep(1000)
   await shot(page, '16b-assignments-analytics')
   await overflowCheck(page, 'assignments-analytics')
@@ -811,7 +819,7 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await sleep(700)
   check('subtask-derived progress is honest (3 of 4 = 75%)', await page.evaluate(() => document.body.textContent.includes('75%')))
   check('assignment detail shows subject + countdown', await page.evaluate(() => /Data Structures/.test(document.body.textContent)))
-  check('[assignments 2.0] detail leads with the draining window', await page.evaluate(() => (
+  check('[assignments 2.0] detail preserves contextual pressure', await page.evaluate(() => (
     !!document.querySelector('#assignment-detail .pressure-lg .pressure-bar')
   )))
   await shot(page, '16c-assignment-detail')
@@ -831,25 +839,28 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
 
   await page.goto(`${BASE}/#/workload`, { waitUntil: 'networkidle0' })
   await sleep(800)
-  check('workload renders load-by-day bars', await page.evaluate(() => !!document.querySelector('.load-bars .lb-row')))
-  check('workload counts overdue work', await page.evaluate(() => /Overdue/.test(document.body.textContent)))
-  check('[workload 2.0] deadline lanes draw dated work with real progress fills', await page.evaluate(() => (
-    document.querySelectorAll('.lanes .lane-row').length >= 2
-    && !!document.querySelector('.lanes .lane-fill')
-    && !!document.querySelector('.lanes-today')
-  )))
-  check('[workload 2.0] every lane is a reachable, sized link', await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('.lane-row')]
-    return rows.length > 0 && rows.every((r) => r.tagName === 'A' && r.getBoundingClientRect().height >= 43)
+  check('workload renders seven day-by-day capacity cells', await page.evaluate(() => document.querySelectorAll('.workspace-days button').length === 7))
+  check('workload exposes available, committed and remaining', await page.evaluate(() => /Available/.test(document.body.textContent) && /Committed/.test(document.body.textContent)))
+  check('[workload] day selection and contributors remain reachable', await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('.workspace-days button')]
+    return rows.length === 7 && rows.every(r => r.getBoundingClientRect().height >= 43)
+  }))
+  check('[workload] contributors use original detail links', await page.evaluate(() => {
+    const links = [...document.querySelectorAll('.workspace-row-title')]
+    return links.every(r => /#\/(projects|assignments)\//.test(r.getAttribute('href')))
   }))
   await shot(page, '16e-workload')
   await overflowCheck(page, 'workload')
   await tapTargetCheck(page, 'workload')
 
-  await page.goto(`${BASE}/#/timeline`, { waitUntil: 'networkidle0' })
+  // the a1 completion above removed the only deadline due today — re-seed so
+  // the timeline check sees the fixture it was written against (a hash-only
+  // goto would not re-run the seeding init script, hence the blank hop)
+  await page.goto('about:blank')
+  await seedAndGoto(page, seededStateV4(), 'timeline', BASE)
   await sleep(800)
-  check('deadline timeline groups by day', await page.evaluate(() => document.querySelectorAll('.tl-group').length >= 3))
-  check('deadline timeline marks today', await page.evaluate(() => !!document.querySelector('.tl-day.is-today')))
+  check('deadline timeline groups by day', await page.evaluate(() => document.querySelectorAll('.workspace-deadline-group').length >= 2))
+  check('deadline timeline marks today', await page.evaluate(() => [...document.querySelectorAll('.workspace-deadline-group h3')].some(el => el.textContent === 'Today')))
   await shot(page, '16f-timeline')
   await overflowCheck(page, 'timeline')
 
@@ -1049,11 +1060,11 @@ console.log('\n— Desktop 1440×900 —')
   await sleep(800)
   check('desktop sidebar exposes the Work group', await page.evaluate(() => {
     const links = [...document.querySelectorAll('.sidebar-nav a')].map((a) => a.getAttribute('href'))
-    return ['#/projects', '#/assignments', '#/workload', '#/timeline'].every((h) => links.includes(h))
+    return links.includes('#/work')
   }))
-  check('desktop hides the mobile work tab bar', await page.evaluate(() => {
+  check('desktop exposes the same contextual Work navigation', await page.evaluate(() => {
     const t = document.querySelector('.tabbar')
-    return !t || getComputedStyle(t).display === 'none'
+    return !!t && getComputedStyle(t).display !== 'none'
   }))
   await shot(page, '20b-desktop-projects')
   await overflowCheck(page, 'desktop-projects')
@@ -1100,7 +1111,8 @@ console.log('\n— Desktop 1440×900 —')
   await page.keyboard.press('/')
   await sleep(600)
   check('"/" opens the search palette', await page.evaluate(() => !!document.querySelector('[role="dialog"]')))
-  await page.type('#global-search', 'thesis')
+  // Phase 2: '/' opens the Omni panel in search mode (#command-input)
+  await page.type('#command-input, #global-search', 'thesis')
   await sleep(700)
   check('search finds a project by name', await page.evaluate(() => /Thesis/.test(document.body.textContent)))
   await shot(page, '20k-desktop-search')
@@ -1178,8 +1190,7 @@ console.log('\n— Empty states —')
     }
     const ART_BY_ROUTE = {
       calendar: 'empty-calendar', week: 'empty-week', insights: 'empty-insights',
-      mind: 'empty-mind', goals: 'empty-goals', projects: 'empty-projects',
-      assignments: 'empty-assignments', workload: 'empty-workload',
+      mind: 'empty-mind', goals: 'empty-goals',
     }
     if (ART_BY_ROUTE[route]) {
       check(`[${route}] empty state carries its own art`, await page.evaluate((want) => {
@@ -1436,22 +1447,24 @@ console.log('\n— V4 spatial —')
   check('V4 nav: incoming screen is mounted under the camera group', cam)
   await sleep(700)
 
-  // 4 · projects spatial gallery
+  // 4 · projects spatial gallery is opt-in, never the default.
+  await clickByText(page, 'Gallery / spatial')
+  await sleep(600)
   const gallery = await page.evaluate(() => ({
     items: document.querySelectorAll('.gal-item').length,
     art: document.querySelectorAll('.gal-item .gal-art').length,
     grid: !!document.querySelector('.gal-grid'),
-    toggle: !!([...document.querySelectorAll('.seg-btn')].find((b) => b.textContent.trim() === 'Gallery')),
-    list: !!([...document.querySelectorAll('.seg-btn')].find((b) => b.textContent.trim() === 'List')),
+    toggle: !!([...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Gallery / spatial')),
+    list: !!([...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'List')),
   }))
   check('V4 gallery: every project is a floating plane with its own surface',
     gallery.grid && gallery.items > 0 && gallery.items === gallery.art && gallery.toggle && gallery.list,
     JSON.stringify(gallery))
   await shot(page, '24-v4-gallery')
-  await page.evaluate(() => [...document.querySelectorAll('.seg-btn')].find((b) => b.textContent.trim() === 'List')?.click())
+  await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'List')?.click())
   await sleep(500)
-  check('V4 gallery: List mode restores the classic rows', await page.evaluate(() => !!document.querySelector('.work-list')))
-  await page.evaluate(() => [...document.querySelectorAll('.seg-btn')].find((b) => b.textContent.trim() === 'Gallery')?.click())
+  check('V4 gallery: List mode restores the classic rows', await page.evaluate(() => !!document.querySelector('.workspace-list')))
+  await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Gallery / spatial')?.click())
   await sleep(400)
   const kb = await page.evaluate(() => {
     const link = document.querySelector('.gal-item a')
@@ -1476,21 +1489,22 @@ console.log('\n— V4 spatial —')
     JSON.stringify(atlas))
   await shot(page, '25-v4-atlas')
 
-  // 6 · assignments pressure band
+  // 6 · deliverables pressure — Phase 4 folded the V4 pressure band into the
+  // unified Work → Deliverables rows: every assignment states its deadline,
+  // its source-derived progress (labelled meter) and its deadline risk.
   await page.goto(`${BASE}/#/assignments`, { waitUntil: 'networkidle0' })
   await sleep(700)
   const press = await page.evaluate(() => {
-    const band = document.querySelector('.press-band')
+    const rows = [...document.querySelectorAll('.workspace-row[data-kind="assignment"]')]
     return {
-      band: !!band,
-      headline: /TIME PRESSURE/.test(band?.textContent || ''),
-      days: /DAYS LEFT/i.test(band?.textContent || ''),
-      ribbons: document.querySelectorAll('.pace-ribbon-track').length,
-      labelled: [...document.querySelectorAll('.pace-ribbon-track')].every((r) => /Actual \d+%.*expected by now/i.test(r.getAttribute('aria-label') || 'Actual') || (r.getAttribute('aria-label') || '').includes('Progress')),
+      rows: rows.length,
+      deadlines: rows.every((r) => /Due .+|No deadline/.test(r.querySelector('.workspace-meta')?.textContent || '')),
+      risks: rows.every((r) => /OVERDUE|CRITICAL|AT RISK|DUE SOON|No deadline risk|ON TRACK|SAFE/i.test(r.querySelector('.workspace-risk')?.textContent || '')),
+      labelled: rows.every((r) => /\d+% complete/.test(r.querySelector('.workspace-progress [aria-label]')?.getAttribute('aria-label') || '')),
     }
   })
-  check('V4 pressure: band states time left + expected-vs-actual per plane',
-    press.band && press.headline && press.days && press.ribbons > 0 && press.labelled,
+  check('V4 pressure: every deliverable states deadline, progress and risk',
+    press.rows > 0 && press.deadlines && press.risks && press.labelled,
     JSON.stringify(press))
   await shot(page, '26-v4-pressure')
 

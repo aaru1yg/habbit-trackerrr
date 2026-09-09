@@ -9,7 +9,6 @@ import Reveal from '../components/motion/Reveal.jsx'
 import { SpatialStage } from '../components/spatial/Depth.jsx'
 import { CardHead } from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
-import SearchPalette from '../components/layout/SearchPalette.jsx'
 import AdaptiveCommandCenter from '../components/today/AdaptiveCommandCenter.jsx'
 import PlanningPanel from '../components/today/PlanningPanel.jsx'
 import FocusMode from '../components/today/FocusMode.jsx'
@@ -22,7 +21,6 @@ const ExecutionPanels = lazy(() => import('../components/today/ExecutionPanels.j
 import { AdaptiveEmphasis, AdaptiveQuickActions, emphasisVars } from '../components/today/AdaptiveHome.jsx'
 import { homeEmphasis, preferencesOf } from '../lib/personalization.js'
 import { recoveryPlan } from '../lib/planning.js'
-import AiCoach from '../components/today/AiCoach.jsx'
 
 import { todayStr, prettyDate, prettyTime, greeting, weekDays, daysBetween, weekdayShort } from '../lib/dates.js'
 import { activeHabits, todayStats, dailyInsight, weeklyReview, topStreak,  routineStats, activeRoutines, trendSeries } from '../lib/stats.js'
@@ -36,11 +34,10 @@ import {
   IconSearch, IconMore,
 } from '../lib/icons.jsx'
 
-export default function TodayScreen({ onFire, onCapture }) {
+export default function TodayScreen({ onFire, onCapture, onSearch }) {
   const { state, dispatch } = useStore()
   const habitUI = useHabitUI()
   const today = todayStr()
-  const [searchOpen, setSearchOpen] = useState(false)
 
   const stats = todayStats(state)
   const habitsToday = activeHabits(state).filter((h) => isScheduled(h, today))
@@ -201,7 +198,7 @@ export default function TodayScreen({ onFire, onCapture }) {
           <p className="screen-sub">{prettyDate(today)}</p>
         </div>
         <div className="head-actions">
-          <button className="btn ghost icon" aria-label="Search" onClick={() => setSearchOpen(true)}><IconSearch size={18} /></button>
+          <button className="btn ghost icon" aria-label="Search" onClick={() => onSearch?.()}><IconSearch size={18} /></button>
           <Link to="settings" className="btn ghost icon" aria-label="Settings">
             <IconSettings />
           </Link>
@@ -225,7 +222,6 @@ export default function TodayScreen({ onFire, onCapture }) {
         <AdaptiveCommandCenter data={adaptive} onComplete={completeAdaptive} />
         <PlanningPanel state={state} now={new Date()} openTick={planTick} />
         <FocusMode state={state} dispatch={dispatch} now={new Date()} openTick={focusTick} />
-        {adaptive.next && <AiCoach state={state} facts={{ title: adaptive.next.item.label || adaptive.next.item.name, progress: adaptive.next.progress, expectedProgress: adaptive.next.risk?.id === 'AT RISK' ? 100 : undefined, risk: adaptive.next.risk?.id, summary: adaptive.next.reason, evidence: adaptive.next.reasons }} />}
         {recovery.keep.length > 0 && <section className="card pad recovery-panel"><CardHead title="Recovery plan"><span className="tiny muted">suggestion only</span></CardHead><p className="card-blurb">{recovery.explanation}</p><div className="recovery-groups"><div><strong>KEEP</strong>{recovery.keep.map(x=><span key={x.item.id}>{x.item.label||x.item.name}<small>{x.reasons?.join(' · ')||'Highest current risk'}</small></span>)}</div><div><strong>MOVE / DEFER</strong>{[...(recovery.move||[]),...(recovery.defer||[])].map(x=><span key={x.item.id}>{x.item.label||x.item.name}<small>Consider moving; it is less urgent than the keep group.</small></span>)}</div></div><p className="tiny muted">{recovery.validation.reason}</p></section>}
 
         {/* Today's priorities — what actually needs doing, in order */}
@@ -383,17 +379,25 @@ export default function TodayScreen({ onFire, onCapture }) {
           </Reveal>
         )}
 
-        {/* Missed days you can still log */}
+        {/* Missed days you can still log — one tap logs it here (Phase 5 §20);
+            the calendar remains the place to browse the full history. */}
         {overdue.length > 0 && (
           <Reveal as="section" variant="up" delay={60} className="card pad today-missed">
             <CardHead title="Missed recently">
-              <Link to="calendar" className="btn ghost sm">Log in calendar</Link>
+              <Link to="habits?view=calendar" className="btn ghost sm">Open calendar</Link>
             </CardHead>
             <div className="wrap-gap" style={{ gap: 6 }}>
               {overdue.map(({ habit, date }) => (
-                <Link key={`${habit.id}-${date}`} to="calendar" className="btn sm" style={{ borderRadius: 999 }}>
-                  {habit.name} · {date.slice(5).replace('-', '/')}
-                </Link>
+                <button
+                  key={`${habit.id}-${date}`}
+                  type="button"
+                  className="btn sm"
+                  style={{ borderRadius: 999 }}
+                  aria-label={`Log ${habit.name} for ${prettyDate(date)}`}
+                  onClick={() => dispatch({ type: 'TOGGLE_CHECKIN', habitId: habit.id, date })}
+                >
+                  <IconPlus size={13} aria-hidden="true" /> {habit.name} · {date.slice(5).replace('-', '/')}
+                </button>
               ))}
             </div>
           </Reveal>
@@ -426,7 +430,7 @@ export default function TodayScreen({ onFire, onCapture }) {
         {routinesToday.length > 0 && (
           <Reveal as="section" variant="up" delay={60} className="card pad">
             <CardHead title="Routines">
-              <Link to="library" className="btn ghost sm">Manage <IconChevronRight size={14} /></Link>
+              <Link to="habits?view=routines" className="btn ghost sm">Manage <IconChevronRight size={14} /></Link>
             </CardHead>
             <RoutineStrip date={today} />
           </Reveal>
@@ -457,7 +461,6 @@ export default function TodayScreen({ onFire, onCapture }) {
         />
       </Suspense>
 
-      <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
       </SpatialStage>
     </div>
   )

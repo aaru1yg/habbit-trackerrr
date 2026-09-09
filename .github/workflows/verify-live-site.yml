@@ -29,6 +29,10 @@ on:
         description: 'fixed (expect healthy behaviour) or reproduce (expect the historical bug — harness sanity)'
         required: true
         default: 'fixed'
+      habits_build:
+        description: 'Optional: full commit sha the public site must serve for the Habits public matrix (empty = whatever is live)'
+        required: false
+        default: ''
   pull_request:
     paths:
       - 'src/lib/cloud/**'
@@ -194,3 +198,78 @@ jobs:
           name: public-release-proof
           path: qa/shots/release/
           retention-days: 14
+
+  # Phase 5 §44 on the PUBLIC site: the same qa/habits-e2e.mjs journeys that
+  # gate the branch (11 scenarios per viewport) run against
+  # https://aaru1yg.github.io/habbit-trackerrr/ with a real sign-in as the
+  # pre-confirmed TEST_A account, at 390×844, 430×932 and 1440×900. Runs after
+  # `verify` so the shared account is never mutated by two jobs at once, and
+  # publishes API-readable "Habits public site <viewport>" check runs against
+  # the deployed commit.
+  habits-public:
+    # After `verify` finishes (shared account), whatever its verdict — the
+    # Habits matrix is independent evidence. Skipped only when `verify` was
+    # skipped (a non-main deployment) or for PR runs, which never see secrets.
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.verify.result != 'skipped' }}
+    needs: verify
+    name: Habits on the public site ${{ matrix.viewport }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        viewport: [390x844, 430x932, 1440x900]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Chromium runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libnspr4 libnss3
+      - name: Habits journeys against the public production site
+        env:
+          HABITS_QA_VIEWPORT: ${{ matrix.viewport }}
+          HABITS_QA_OUT: qa/shots/habits-public
+          REQUIRE_AUTH: '1'
+          EXPECT_BUILD_ID: ${{ github.event.workflow_run.head_sha || inputs.habits_build }}
+          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p qa/shots/habits-public
+          node qa/habits-e2e.mjs https://aaru1yg.github.io/habbit-trackerrr/ 2>&1 | tee qa/shots/habits-public/browser.log
+          exit "${PIPESTATUS[0]}"
+      - name: Publish API-readable public-site diagnostics
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QA_PROOF_DIR: qa/shots/habits-public
+          QA_PROOF_NAME: Habits public site
+          QA_PROOF_SCRIPT: qa/habits-e2e.mjs
+          QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
+          QA_PROOF_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: node qa/publish-browser-proof.mjs
+      - name: Upload public-site screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: habits-public-${{ matrix.viewport }}
+          path: qa/shots/habits-public/
+          retention-days: 14
+      - name: Publish result
+        if: always()
+        run: |
+          echo '## Habits on the public site — ${{ matrix.viewport }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat qa/shots/habits-public/browser.log >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

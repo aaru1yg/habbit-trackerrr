@@ -72,6 +72,10 @@ jobs:
           wait "$LAYOUT_PID"; LAYOUT=$?
           wait "$CONTRAST_PID"; CONTRAST=$?
           set -e
+          set +e
+          npm run test:e2e:work > qa/shots/workspace.log 2>&1
+          WORKSPACE=$?
+          set -e
           STATUS=0
           # Name the script that failed. The annotation filter below only
           # catches lines containing ✗/Error/FAIL, and qa/audit.mjs and
@@ -84,11 +88,12 @@ jobs:
               echo "::error::${1} exited ${3} — tail of ${2} follows"
             fi
           }
+          report "qa/workspace-e2e.mjs (Work journeys)" qa/shots/workspace.log "$WORKSPACE"
           report "qa/e2e.mjs (browser journeys)" qa/shots/e2e.log "$E2E"
           report "qa/release.mjs (release UI)" qa/shots/release.log "$RELEASE"
           report "qa/audit.mjs (layout/tap-target audit)" qa/shots/layout.log "$LAYOUT"
           report "qa/contrast.mjs (theme contrast)" qa/shots/contrast.log "$CONTRAST"
-          tail -n 35 qa/shots/{e2e,release,layout,contrast}.log
+          tail -n 35 qa/shots/{e2e,release,layout,contrast,workspace}.log
           exit "$STATUS"
 
       - name: Publish browser failure details

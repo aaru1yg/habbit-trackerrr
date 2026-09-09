@@ -889,31 +889,45 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await shot(page, '16j-goals')
   await overflowCheck(page, 'goals')
 
-  /* ---- Goals 2.0: the detail experience ---- */
+  /* ---- Goals 2.0 (Phase 6): outcome-first detail experience ---- */
   await page.goto(`${BASE}/#/goals/g-run`, { waitUntil: 'networkidle0' })
   await sleep(900)
-  check('[goal-detail] opens from the list route with its own visualization', await page.evaluate(() => (
-    !!document.querySelector('#goal-detail-screen .goal-hero .core-wrap')
-    && /Run a half marathon/.test(document.body.textContent)
+  check('[goal-detail] opens with outcome + health pill + compact progress core', await page.evaluate(() => (
+    /Run a half marathon/.test(document.querySelector('#goal-detail-screen .screen-title')?.textContent || '')
+    && !!document.querySelector('#goal-detail-screen .status-pill[aria-label^="Health:"]')
+    && !!document.querySelector('#goal-detail-screen .goal-hero .goal-core')
   )))
   check('[goal-detail] states the stage of the goal object', await page.evaluate(() => (
-    /building|momentum|foundation|near completion|reached/i.test(document.querySelector('#goal-detail-screen .core-caption')?.textContent || '')
+    /building|momentum|foundation|near completion|reached/i.test(document.querySelector('#goal-detail-screen .goal-hero')?.textContent || '')
   )))
-  check('[goal-detail] pace chart draws expected vs actual from real data', await page.evaluate(() => (
-    !!document.querySelector('#goal-detail-screen .chart-draw svg .chart-line')
-    && /Expected vs actual/.test(document.body.textContent)
-  )))
-  check('[goal-detail] analytics never invent: velocity/projection/consistency labelled', await page.evaluate(() => {
-    const facts = [...document.querySelectorAll('#goal-detail-screen .goal-fact')].map((f) => f.textContent).join(' ')
-    return /velocity/.test(facts) && /projected completion/.test(facts) && /consistency/.test(facts)
+  check('[goal-detail] progress + next milestone are above the fold before any large chart', await page.evaluate(() => {
+    const heads = [...document.querySelectorAll('#goal-detail-screen .card-title')].map(h => h.textContent.trim())
+    const next = heads.indexOf('Next milestone')
+    return next >= 0 && (heads.indexOf('Forecast') > next)
   }))
-  check('[goal-detail] milestone timeline shows reached + on-time evidence', await page.evaluate(() => (
-    document.querySelectorAll('#goal-detail-screen .ms-node').length === 3
-    && /on time|late/.test(document.querySelector('#goal-detail-screen .ms-node.is-done')?.textContent || '')
+  check('[goal-detail] analytics labelled honestly (progress basis + expected pace + consistency)', await page.evaluate(() => {
+    const t = document.querySelector('#goal-detail-screen .goal-hero')?.textContent || ''
+    return /progress basis/.test(t) && /expected today/.test(t) && /consistency/.test(t)
+  }))
+  check('[goal-detail] progress history is behind an expander, never full-bleed', await page.evaluate(() => (
+    !!document.querySelector('#goal-detail-screen .history-summary')
+    && !!document.querySelector('#goal-detail-screen details .history-body')
   )))
-  check('[goal-detail] linked work feeds the goal with live progress', await page.evaluate(() => (
-    !!document.querySelector('#goal-detail-screen .feed-row[href^="#/habits/"]')
+  check('[goal-detail] milestone rows show reached evidence (done state)', await page.evaluate(() => (
+    document.querySelectorAll('#goal-detail-screen .ms-row, #goal-detail-screen .goal-next-toggle').length >= 3
+    && document.querySelectorAll('#goal-detail-screen [aria-pressed="true"], #goal-detail-screen .ms-row.is-done').length >= 1
   )))
+  check('[goal-detail] forecast renders Current / Expected / Projected from the adaptive engine', await page.evaluate(() => {
+    const t = document.querySelector('#goal-detail-screen .adaptive-forecast')?.textContent || ''
+    return /Current/.test(t) && /Expected/.test(t) && /Projected/.test(t)
+  }))
+  check('[goal-detail] contributors name real linked work', await page.evaluate(() => (
+    document.querySelectorAll('#goal-detail-screen .contributor-row').length > 0
+  )))
+  check('[goal-detail] "This goal is fed by" lists the linked habit', await page.evaluate(() => {
+    const n = document.querySelector('#goal-detail-screen .feed-row[href^="#/habits/"] .feed-name')?.textContent.trim()
+    return n === 'Morning run'
+  }))
   await shot(page, '16k-goal-detail')
   await overflowCheck(page, 'goal-detail')
   await tapTargetCheck(page, 'goal-detail')
@@ -1474,9 +1488,14 @@ console.log('\n— V4 spatial —')
   })
   check('V4 gallery: plane content is keyboard-focusable (a11y §25)', kb)
 
-  // 5 · goals atlas — constellation of real links
+  // 5 · goals atlas — optional spatial exploration of real links (Phase 6:
+  // the list is the default; the Atlas mounts only when the user opts in).
   await page.goto(`${BASE}/#/goals`, { waitUntil: 'networkidle0' })
   await sleep(700)
+  check('V4 atlas: not mounted by default — list-first', await page.evaluate(() =>
+    !!document.querySelector('.goal-card') && !document.querySelector('.atlas-wrap')))
+  await clickByText(page, 'Atlas / Visual', 'button')
+  await sleep(900)
   const atlas = await page.evaluate(() => ({
     frames: document.querySelectorAll('.atlas-frame').length,
     nodes: document.querySelectorAll('.atlas-node').length,

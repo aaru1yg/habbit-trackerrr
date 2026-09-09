@@ -40,7 +40,7 @@ async function addHabit(name, opts = {}) {
   const form = await screen.findByRole('dialog')
   fireEvent.change(within(form).getByLabelText(/^Name/i), { target: { value: name } })
   if (opts.weekdays) {
-    fireEvent.click(within(form).getByRole('button', { name: /Specific days/i }))
+    fireEvent.click(within(form).getByRole('radio', { name: /Specific days/i }))
     for (const d of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']) {
       const btn = within(form).getByRole('button', { name: d })
       const wanted = opts.weekdays.includes(d)

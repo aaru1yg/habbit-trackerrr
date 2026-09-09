@@ -15,6 +15,7 @@ import {
 import { navigate } from '../lib/router.jsx'
 import InsightsDeepDive from './InsightsDeepDive.jsx'
 import { SegControl } from '../components/ui/controls.jsx'
+import { LoadingBlock } from '../components/ui/feedback.jsx'
 import { IconInsights, IconTrendUp, IconTrendDown, IconFlame } from '../lib/icons.jsx'
 import { habitPatterns } from '../lib/habitPatterns.js'
 
@@ -165,7 +166,7 @@ export default function InsightsScreen() {
         {view === 'deep' && <InsightsDeepDive state={state} />}
 
         {view === 'lab' && (
-          <Suspense fallback={<p className="empty-note">Loading the lab…</p>}>
+          <Suspense fallback={<LoadingBlock label="Loading the lab" />}>
             <AnalyticsLab />
           </Suspense>
         )}

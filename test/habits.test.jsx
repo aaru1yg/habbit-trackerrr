@@ -251,7 +251,7 @@ describe('active habits', () => {
     fireEvent.click(within(await screen.findByRole('dialog', { name: 'Journal' })).getByRole('button', { name: 'Edit' }))
     const edit = await screen.findByRole('dialog', { name: 'Edit habit' })
     fireEvent.change(within(edit).getByLabelText(/^Name/i), { target: { value: 'Evening journal' } })
-    fireEvent.click(within(edit).getByRole('button', { name: /Specific days/i }))
+    fireEvent.click(within(edit).getByRole('radio', { name: /Specific days/i }))
     fireEvent.change(within(edit).getByLabelText(/Reminder/i), { target: { value: '21:00' } })
     fireEvent.click(within(edit).getByRole('button', { name: /Save changes|Save/i }))
     await waitFor(() => {
@@ -481,7 +481,7 @@ describe('mobile structure and Omni', () => {
     await screen.findByLabelText('What do you need to do?')
     fireEvent.click(screen.getByRole('option', { name: /^Add habit/ }))
     const form = await screen.findByRole('dialog', { name: 'New habit' })
-    expect(within(form).getByRole('group', { name: 'Schedule type' })).toBeTruthy()
+    expect(within(form).getByRole('radiogroup', { name: 'Schedule type' })).toBeTruthy()
     expect(within(form).getByRole('button', { name: /Add habit/i })).toBeTruthy()
     // the Omni closed (after its exit animation) rather than stacking under the form
     await waitFor(() => expect(screen.queryByLabelText('What do you need to do?')).toBeNull())

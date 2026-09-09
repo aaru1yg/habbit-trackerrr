@@ -5,6 +5,7 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import useNow from '../lib/useNow.js'
+import { LoadingBlock } from '../components/ui/feedback.jsx'
 import { useStore } from '../store.jsx'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
@@ -169,7 +170,7 @@ export default function AssignmentDetailScreen({ id }) {
             </SectionCard>
 
             <SectionCard className="pad"><CardHead title="Forecast / pressure" /><DeadlinePressure pressure={assignmentPressure(assignment, now)} size="lg" /><p className="tiny muted">{tvw ? `${tvw.elapsedPct}% of time elapsed · ${tvw.workPct}% work completed` : 'Set an assigned date and deadline to compare expected and actual progress.'}</p><p className="tiny muted">{pace.requiredPace != null ? `${minutesLabel(pace.requiredPace)} per day required.` : pace.reason || 'Add an effort estimate to see the required pace.'}</p></SectionCard>
-            <details className="assignment-analytics" onToggle={e => { if (e.currentTarget.open) setAnalytics(true) }}><summary>Progress analytics and velocity</summary>{analytics && <Suspense fallback={<p role="status">Loading analytics…</p>}><AssignmentAnalytics assignment={assignment} now={now} /></Suspense>}</details>
+            <details className="assignment-analytics" onToggle={e => { if (e.currentTarget.open) setAnalytics(true) }}><summary>Progress analytics and velocity</summary>{analytics && <Suspense fallback={<LoadingBlock label="Loading analytics" />}><AssignmentAnalytics assignment={assignment} now={now} /></Suspense>}</details>
 
             <SectionCard className="pad">
               <CardHead title="Notes" />

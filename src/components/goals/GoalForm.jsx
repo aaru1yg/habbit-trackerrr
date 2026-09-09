@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useStore } from '../../store.jsx'
 import Sheet from '../ui/Sheet.jsx'
+import { Field, describedProps } from '../ui/fields.jsx'
 import { GOAL_AREAS } from '../../lib/goals.js'
 import { todayStr, isValidDayStr } from '../../lib/dates.js'
 import { IconPlus, IconTrash } from '../../lib/icons.jsx'
@@ -98,14 +99,17 @@ export function GoalFormSheet({ open, onClose, editing }) {
           </div>
         </div>
 
-        <div>
-          <label className="field-label" htmlFor="goal-target">Target date <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>(optional)</span></label>
-          <input id="goal-target" className="field" type="date" value={draft.targetDate || ''}
-            onChange={(e) => set('targetDate', e.target.value)} />
-          <p className="tiny muted" style={{ marginTop: 6 }}>
-            Without a target date there is no pace line — the goal still tracks progress, it just will not be judged.
-          </p>
-        </div>
+        <Field
+          id="goal-target"
+          label="Target date"
+          optional
+          hint="Without a target date there is no pace line — the goal still tracks progress, it just will not be judged."
+        >
+          {(p) => (
+            <input {...describedProps(p)} className="field" type="date" value={draft.targetDate || ''}
+              onChange={(e) => set('targetDate', e.target.value)} />
+          )}
+        </Field>
 
         <div>
           <label className="field-label">Milestones <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>(optional)</span></label>

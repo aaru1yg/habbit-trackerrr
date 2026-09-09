@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import { useToast } from '../ui/Toaster.jsx'
 import Sheet from '../ui/Sheet.jsx'
+import { Field, describedProps } from '../ui/fields.jsx'
 import { SegControl } from '../ui/controls.jsx'
 import { Meter } from '../work/WorkKit.jsx'
 import { activeHabits, routineStats, routineRate, isDone } from '../../lib/stats.js'
@@ -195,12 +196,12 @@ export function RoutineForm({ open, onClose, editing }) {
       }
     >
       <div className="stack" style={{ gap: 18 }}>
-        <div>
-          <label className="field-label" htmlFor="routine-name">Routine name</label>
-          <input id="routine-name" className="field" autoFocus value={name} maxLength={60}
-            placeholder="e.g. Morning reset" onChange={(e) => setName(e.target.value)} />
-          {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
-        </div>
+        <Field id="routine-name" label="Routine name" error={error || null}>
+          {(p) => (
+            <input {...describedProps(p)} className="field" autoFocus value={name} maxLength={60}
+              placeholder="e.g. Morning reset" onChange={(e) => setName(e.target.value)} />
+          )}
+        </Field>
 
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
           <legend className="field-label">Type</legend>

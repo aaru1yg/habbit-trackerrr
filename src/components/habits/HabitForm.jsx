@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import Sheet from '../ui/Sheet.jsx'
+import { Field, describedProps } from '../ui/fields.jsx'
+import { SegControl } from '../ui/controls.jsx'
 import { CATEGORIES, WEEKDAY_OPTIONS, categoryOf } from '../../lib/schedule.js'
 import { requestNotificationPermission, notificationState, notificationsSupported } from '../../lib/reminders.js'
 import { IconBell, IconBellOff } from '../../lib/icons.jsx'
@@ -84,20 +86,20 @@ export default function HabitForm({ open, onClose, editing }) {
       }
     >
       <div className="stack" style={{ gap: 18 }}>
-        <div>
-          <label className="field-label" htmlFor="habit-name">Name</label>
-          <input
-            id="habit-name"
-            className="field"
-            value={name}
-            maxLength={80}
-            placeholder="e.g. Read 10 pages"
-            autoFocus={!editing}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && save()}
-          />
-          {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
-        </div>
+        <Field id="habit-name" label="Name" error={error || null}>
+          {(p) => (
+            <input
+              {...describedProps(p)}
+              className="field"
+              value={name}
+              maxLength={80}
+              placeholder="e.g. Read 10 pages"
+              autoFocus={!editing}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && save()}
+            />
+          )}
+        </Field>
 
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
           <legend className="field-label">Category</legend>
@@ -120,10 +122,7 @@ export default function HabitForm({ open, onClose, editing }) {
 
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
           <legend className="field-label">Schedule</legend>
-          <div className="seg" role="group" aria-label="Schedule type">
-            <button type="button" aria-pressed={schedType === 'daily'} onClick={() => setSchedType('daily')}>Every day</button>
-            <button type="button" aria-pressed={schedType === 'weekdays'} onClick={() => setSchedType('weekdays')}>Specific days</button>
-          </div>
+          <SegControl label="Schedule type" value={schedType} onChange={setSchedType} options={[{ id: 'daily', label: 'Every day' }, { id: 'weekdays', label: 'Specific days' }]} />
           {schedType === 'weekdays' && (
             <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
               {WEEKDAY_OPTIONS.map((d) => (

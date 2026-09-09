@@ -12,6 +12,7 @@
 import { Suspense, lazy, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
+import { LoadingBlock } from '../components/ui/feedback.jsx'
 import { CardHead } from '../components/ui/SectionCard.jsx'
 import ProgressCore from '../components/ui/ProgressCore.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
@@ -246,7 +247,7 @@ export default function GoalDetailScreen({ id }) {
             linkOpen={linkOpen} onToggleLink={() => setLinkOpen((v) => !v)}
           />
           {atlasOpen && (
-            <Suspense fallback={<div className="card pad" style={{ minHeight: 120 }} role="status">Loading connections…</div>}>
+            <Suspense fallback={<div className="card pad" style={{ minHeight: 120 }}><LoadingBlock label="Loading connections" /></div>}>
               <GoalAtlas goals={[goal]} />
             </Suspense>
           )}

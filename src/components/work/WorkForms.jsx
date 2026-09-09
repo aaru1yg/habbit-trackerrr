@@ -6,6 +6,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import Sheet from '../ui/Sheet.jsx'
+import { Field, Toggle, describedProps } from '../ui/fields.jsx'
+import { SegControl } from '../ui/controls.jsx'
 import { AssignmentDeadlineField, ProjectDeadlineField } from './DeadlineField.jsx'
 import { QuickProgress } from './WorkKit.jsx'
 import { PRIORITIES, WORK_CATEGORIES } from '../../lib/work.js'
@@ -31,11 +33,7 @@ function PriorityPicker({ value, onChange }) {
   return (
     <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
       <legend className="field-label">Priority</legend>
-      <div className="seg" role="group" aria-label="Priority">
-        {PRIORITIES.map((p) => (
-          <button key={p.id} type="button" aria-pressed={value === p.id} onClick={() => onChange(p.id)}>{p.label}</button>
-        ))}
-      </div>
+      <SegControl label="Priority" value={value} onChange={onChange} options={PRIORITIES.map((p) => ({ id: p.id, label: p.label }))} />
     </fieldset>
   )
 }
@@ -130,14 +128,14 @@ export function ProjectForm({ open, onClose, editing }) {
       }
     >
       <div className="stack" style={{ gap: 18 }}>
-        <div>
-          <label className="field-label" htmlFor="project-name">Project</label>
-          <input id="project-name" className="field" autoFocus value={name} maxLength={90}
-            placeholder="e.g. Build portfolio website"
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
-          {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
-        </div>
+        <Field id="project-name" label="Project" error={error || null}>
+          {(p) => (
+            <input {...describedProps(p)} className="field" autoFocus value={name} maxLength={90}
+              placeholder="e.g. Build portfolio website"
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') save() }} />
+          )}
+        </Field>
 
         <div>
           <label className="field-label" htmlFor="project-start">Start date</label>
@@ -306,14 +304,14 @@ export function AssignmentForm({ open, onClose, editing, defaultProjectId = null
       }
     >
       <div className="stack" style={{ gap: 18 }}>
-        <div>
-          <label className="field-label" htmlFor="assignment-name">Assignment</label>
-          <input id="assignment-name" className="field" autoFocus value={name} maxLength={90}
-            placeholder="e.g. Submit DS assignment 3"
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && name.trim() && deadline) save() }} />
-          {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
-        </div>
+        <Field id="assignment-name" label="Assignment" error={error || null}>
+          {(p) => (
+            <input {...describedProps(p)} className="field" autoFocus value={name} maxLength={90}
+              placeholder="e.g. Submit DS assignment 3"
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && name.trim() && deadline) save() }} />
+          )}
+        </Field>
 
         <div>
           <label className="field-label" htmlFor="assignment-subject">
@@ -343,11 +341,9 @@ export function AssignmentForm({ open, onClose, editing, defaultProjectId = null
             placeholder={'Read the brief\nDraft outline\nFinal pass'}
             onChange={(e) => setSubtasks(e.target.value)} />
           {parsedSubs.length > 0 && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, minHeight: 44, cursor: 'pointer' }}>
-              <input type="checkbox" checked={useSubtasks} onChange={(e) => setUseSubtasks(e.target.checked)}
-                style={{ width: 20, height: 20, accentColor: 'var(--accent-1)', flex: 'none' }} />
-              <span className="tiny soft">Keep progress in sync with these {parsedSubs.length} subtasks</span>
-            </label>
+            <div style={{ marginTop: 10 }}>
+              <Toggle label={`Keep progress in sync with these ${parsedSubs.length} subtasks`} checked={useSubtasks} onChange={setUseSubtasks} />
+            </div>
           )}
         </div>
 

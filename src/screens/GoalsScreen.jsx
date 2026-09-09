@@ -22,6 +22,7 @@ import SectionCard from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { Meter, StatStrip, WorkEmpty } from '../components/work/WorkKit.jsx'
 import { SegControl } from '../components/ui/controls.jsx'
+import { LoadingBlock } from '../components/ui/feedback.jsx'
 import GoalFormSheet from '../components/goals/GoalForm.jsx'
 import { healthBadge } from '../components/goals/health.js'
 import {
@@ -202,7 +203,7 @@ export default function GoalsScreen() {
             )}
           </SectionCard>
         ) : view === 'atlas' && (filter === 'open' || filter === 'all') ? (
-          <Suspense fallback={<div className="card pad" style={{ minHeight: 180 }} role="status">Loading atlas…</div>}>
+          <Suspense fallback={<div className="card pad" style={{ minHeight: 180 }}><LoadingBlock label="Loading atlas" /></div>}>
             <GoalAtlas goals={ordered} />
           </Suspense>
         ) : (

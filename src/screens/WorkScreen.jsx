@@ -5,6 +5,8 @@ import useNow from '../lib/useNow.js'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { WorkTabs } from '../components/layout/Navigation.jsx'
 import { SegControl } from '../components/ui/controls.jsx'
+import { SearchField } from '../components/ui/fields.jsx'
+import { LoadingBlock } from '../components/ui/feedback.jsx'
 import { WorkItem } from '../components/entity/work.jsx'
 import { workWorkspace, workView, workHref, filterWork, deadlineGroups, FILTERS } from '../components/work/workViewModel.js'
 import { minutesLabel, prettyDate } from '../lib/dates.js'
@@ -43,7 +45,7 @@ export default function WorkScreen({ route = 'work' }) {
     {!model.rows.length ? <section className="card pad workspace-empty"><h2>Your work starts here.</h2><p>No active work. Add a deliverable or create a project to begin.</p><button className="btn primary" onClick={() => work.newAssignment()}>Create work</button></section> : <>
       {(view !== 'overview' || filteredOverview) && <div className="workspace-filters">
         <SegControl label="Filter work" value={filter} onChange={changeFilter} options={FILTERS.map(([id, label]) => ({ id, label }))} />
-        {['overview', 'deliverables', 'projects', 'deadlines'].includes(view) && <label className="workspace-search">Search work<input className="field" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Filter titles, tasks, notes…" /></label>}
+        {['overview', 'deliverables', 'projects', 'deadlines'].includes(view) && <div className="workspace-search"><SearchField label="Search work" value={search} onChange={setSearch} placeholder="Filter titles, tasks, notes…" /></div>}
         {horizon && <button className="btn ghost sm" onClick={() => navigate(workHref(view, filter))}>Clear horizon: {model.horizons.find(h => h.id === horizon)?.label || horizon}</button>}
       </div>}
       {(view === 'overview' || view === 'workload') && overloaded && <Overload day={overloaded} onPlan={setPlanning} />}
@@ -53,7 +55,7 @@ export default function WorkScreen({ route = 'work' }) {
       {view === 'workload' && <WorkloadView model={model} now={now} options={options} onPlan={setPlanning} />}
       {view === 'deadlines' && <DeadlinesView model={model} rows={filterWork(model.deadlines, options, model)} now={now} />}
     </>}
-    {planning && <Suspense fallback={<p role="status">Loading planning…</p>}><WorkPlanning mode={planning} onClose={() => setPlanning(null)} now={now} /></Suspense>}
+    {planning && <Suspense fallback={<LoadingBlock label="Loading planning" />}><WorkPlanning mode={planning} onClose={() => setPlanning(null)} now={now} /></Suspense>}
   </div>
 }
 
@@ -89,7 +91,7 @@ export function ProjectsView({ rows, now }) {
   const [showItems, setShowItems] = useState(false)
   const projects = rows.filter(r => r.kind === 'project')
   return <section aria-labelledby="projects-heading"><div className="workspace-section-head"><h2 id="projects-heading">Projects</h2><SegControl label="Project presentation" value={layout} onChange={setLayout} options={[{ id: 'list', label: 'List' }, { id: 'gallery', label: 'Gallery / spatial' }]} /></div>
-    {layout === 'gallery' ? <Suspense fallback={<p role="status">Loading gallery…</p>}><ProjectGallery rows={projects.map(r => ({ project: r.item, status: r.status }))} now={now} /></Suspense> : <Rows rows={projects} now={now} />}
+    {layout === 'gallery' ? <Suspense fallback={<LoadingBlock label="Loading gallery" />}><ProjectGallery rows={projects.map(r => ({ project: r.item, status: r.status }))} now={now} /></Suspense> : <Rows rows={projects} now={now} />}
     <details className="workspace-project-items" open={showItems || !projects.length} onToggle={e => setShowItems(e.currentTarget.open)}><summary>Project tasks and milestones</summary>{(showItems || !projects.length) && <Rows rows={rows.filter(r => ['project-task', 'milestone'].includes(r.kind))} now={now} />}</details>
   </section>
 }

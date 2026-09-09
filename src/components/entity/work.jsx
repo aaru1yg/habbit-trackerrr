@@ -9,6 +9,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import { useWorkUI } from '../work/WorkUIProvider.jsx'
+import { LoadingBlock } from '../ui/feedback.jsx'
 import { itemActions } from '../../lib/commandActions.js'
 import { minutesLabel, prettyDateTime } from '../../lib/dates.js'
 import { projectContext } from '../work/workViewModel.js'
@@ -104,7 +105,7 @@ export function WorkItem({ row, now }) {
       </div>
 
       {actionsOpen && (
-        <Suspense fallback={<p role="status">Loading actions…</p>}>
+        <Suspense fallback={<LoadingBlock label="Loading actions" />}>
           <ItemActionsSheet open onClose={() => setActionsOpen(false)} kind={kind} id={item.id} onAction={handleAction} />
         </Suspense>
       )}

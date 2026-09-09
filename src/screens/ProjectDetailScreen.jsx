@@ -7,6 +7,7 @@ import { Reorder, useDragControls, useReducedMotion } from 'framer-motion'
 import { useStore } from '../store.jsx'
 import useNow from '../lib/useNow.js'
 import { SegControl } from '../components/ui/controls.jsx'
+import { LoadingBlock } from '../components/ui/feedback.jsx'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
@@ -228,7 +229,7 @@ export default function ProjectDetailScreen({ id }) {
         {linkedAssignments.length > 0 && <section className="card pad"><CardHead title="Linked deliverables" /><div className="stack">{linkedAssignments.map(a => <a className="btn ghost" href={`#/assignments/${a.id}`} key={a.id}>{a.name}</a>)}</div></section>}
         <ProjectForecastCard project={project} now={now} />
         {tab === 'timeline' && <ProjectTimeline project={project} status={status} track={track} />}
-        {tab === 'analytics' && <Suspense fallback={<p role="status">Loading analytics…</p>}><ProjectAnalyticsDetail project={project} status={status} /></Suspense>}
+        {tab === 'analytics' && <Suspense fallback={<LoadingBlock label="Loading analytics" />}><ProjectAnalyticsDetail project={project} status={status} /></Suspense>}
             <div className="split">
               <SectionCard className="pad">
                 <CardHead title="Linked habits" />
@@ -263,7 +264,7 @@ export default function ProjectDetailScreen({ id }) {
                 />
               </SectionCard>
             </div>
-        <details className="project-visual-details" onToggle={e => { if (e.currentTarget.open) setVisual(true) }}><summary>Visual project track</summary>{visual && <Suspense fallback={<p role="status">Loading track…</p>}><ProjectTrack project={project} now={now} /></Suspense>}</details>
+        <details className="project-visual-details" onToggle={e => { if (e.currentTarget.open) setVisual(true) }}><summary>Visual project track</summary>{visual && <Suspense fallback={<LoadingBlock label="Loading track" />}><ProjectTrack project={project} now={now} /></Suspense>}</details>
       </div>
 
       {/* Desktop rail (§81): the facts, always visible next to the work.

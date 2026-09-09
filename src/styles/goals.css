@@ -1,0 +1,501 @@
+/* ============================================================
+   GOALS — Phase 6 outcome-first presentation layer.
+
+   Loaded (route-scoped) by GoalsScreen and GoalDetailScreen. It
+   refines the shared goal primitives from the visual system with
+   more restraint: list-first management, a compact hero, one
+   primary health state, and the spatial Atlas demoted to an
+   optional exploration mode. Only existing tokens are used.
+   ============================================================ */
+
+/* ---------- Workspace toolbar ---------- */
+#goals-screen .goals-head {
+  align-items: flex-start;
+}
+
+#goals-screen .goals-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+#goals-screen .goals-toolbar .seg {
+  flex-wrap: wrap;
+  width: fit-content;
+}
+
+.goals-view-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface-inset);
+}
+
+.goals-view-switch .seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  background: transparent;
+  border: 0;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+
+.goals-view-switch .seg-btn:hover { color: var(--text); }
+.goals-view-switch .seg-btn.active {
+  background: var(--surface-3);
+  color: var(--text);
+  box-shadow: var(--e-1);
+}
+
+/* Empty state secondary action */
+.goals-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: var(--space-1);
+}
+
+.goal-learn {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--r-md);
+  background: var(--surface-inset);
+  border: var(--bd-1) solid var(--border);
+}
+
+/* The bottom "how layers connect" accordion is quiet, collapsed by default. */
+details.goals-how {
+  padding: var(--space-15) var(--space-2);
+}
+.goals-how-summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  min-height: var(--touch);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.goals-how-summary::-webkit-details-marker { display: none; }
+.goals-how-summary::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--text-3);
+  border-bottom: 2px solid var(--text-3);
+  transform: rotate(-45deg);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+details[open].goals-how .goals-how-summary::before { transform: rotate(45deg); }
+details.goals-how .layer-chain { margin-top: var(--space-15); }
+
+/* ---------- Goal cards (list) ---------- */
+#goals-screen .goal-list {
+  display: grid;
+  gap: var(--space-15);
+}
+
+.goal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-15);
+  padding: var(--space-2);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: var(--bd-1) solid var(--border);
+  border-left: 3px solid var(--border-2);
+  box-shadow: var(--e-card), var(--e-hairline);
+  transition: border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-3) var(--ease-out), opacity var(--dur-3) var(--ease-out);
+}
+.goal-card:hover {
+  border-color: var(--border-2);
+  box-shadow: var(--e-card-hover), var(--e-hairline);
+}
+.goal-card[data-tone='good'] { border-left-color: var(--good); }
+.goal-card[data-tone='warn'] { border-left-color: var(--warn); }
+.goal-card[data-tone='bad'] { border-left-color: var(--bad); }
+.goal-card[data-tone='neutral'] { border-left-color: var(--border-2); }
+
+/* Reached goals recede so active goals lead the scan (§23). */
+.goal-card.is-reached {
+  background: color-mix(in srgb, var(--surface) 84%, var(--surface-inset));
+  box-shadow: none;
+}
+.goal-card.is-reached .goal-title { color: var(--text-2); }
+.goal-card.is-reached .goal-card-rail { background: var(--good); }
+
+/* Head: outcome on the left, big number on the right. */
+.goal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.goal-main { flex: 1; min-width: 0; }
+
+.goal-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+/* The one primary health state: a dot + word, tone mapped. */
+.health-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.health-pill[data-tone='good'] { color: var(--good); background: var(--good-soft); }
+.health-pill[data-tone='warn'] { color: var(--warn); background: var(--warn-soft); }
+.health-pill[data-tone='bad'] { color: var(--bad); background: var(--bad-soft); }
+.health-pill[data-tone='neutral'] { color: var(--text-2); background: var(--surface-2); }
+.health-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.goal-card.is-reached .health-pill[data-tone='good'] {
+  color: var(--text-2);
+  background: var(--surface-2);
+}
+
+.goal-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tr-title);
+  line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.goal-why { margin-top: 4px; color: var(--text-2); font-size: var(--fs-sm); line-height: var(--lh-body); }
+
+.goal-stat {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 64px;
+}
+.goal-pct {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6rem;
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tr-title);
+  line-height: 1;
+}
+.goal-reached-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--good);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.goal-progress { margin-top: 10px; }
+
+/* Metadata row: deadline · milestones · progress · health */
+.goal-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 1px;
+  margin: 0;
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--border);
+  overflow: hidden;
+}
+.goal-meta > div {
+  background: var(--surface-inset);
+  padding: 8px 12px;
+  min-width: 0;
+}
+.goal-meta dt {
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.goal-meta dd {
+  margin: 3px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.goal-meta dd[data-tone='bad'] { color: var(--bad); }
+.goal-meta dd[data-tone='warn'] { color: var(--warn); }
+.goal-meta dd[data-tone='good'] { color: var(--good); }
+
+/* Next milestone — a filled, clearly primary execution row. */
+.goal-next { padding-top: var(--space-1); }
+.goal-next-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.goal-next-row { display: flex; align-items: stretch; gap: 8px; }
+.goal-next-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--touch);
+  padding: 0 12px;
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-inset);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  text-align: left;
+  transition: border-color var(--dur-1) var(--ease-out), background var(--dur-1) var(--ease-out);
+}
+.goal-next-toggle:hover { background: var(--surface-2); border-color: var(--border-2); }
+.goal-next-toggle:focus-visible,
+.goals-view-switch .seg-btn:focus-visible,
+.goals-how-summary:focus-visible,
+.goals-empty-actions button:focus-visible,
+.goal-linkbar button:focus-visible,
+.goal-foot button:focus-visible,
+.goal-open-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.goal-next-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.goal-next-date { flex: none; color: var(--text-3); font-size: var(--fs-xs); }
+.goal-next-open { flex: none; color: var(--text-3); }
+.goal-open-btn { flex: none; align-self: center; }
+.empty-milestone { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.goal-linkbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding-top: var(--space-15);
+  border-top: var(--bd-1) solid var(--border);
+}
+
+.goal-reached-note { color: var(--text-2); font-size: var(--fs-sm); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 720px) {
+  .goal-head { gap: var(--space-15); }
+  .goal-title { font-size: 1.25rem; }
+  .goals-toolbar { align-items: stretch; flex-direction: column; }
+  .goals-toolbar .seg { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  .goals-view-switch { width: 100%; justify-content: stretch; }
+  .goals-view-switch .seg-btn { flex: 1; justify-content: center; }
+}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  #goals-screen .goal-card,
+  .goal-card,
+  .goal-next-toggle,
+  .goals-view-switch .seg-btn,
+  .goals-how-summary::before {
+    transition-duration: 1ms;
+  }
+}
+
+/* ============================================================
+   GOAL DETAIL — Phase 6.
+   ============================================================ */
+#goal-detail-screen .goal-detail-head .screen-title { font-size: var(--fs-display); }
+#goal-detail-screen .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--touch);
+  margin-bottom: 2px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+#goal-detail-screen .back-link:hover { color: var(--text); }
+#goal-detail-screen .back-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Primary action rail (manage) */
+.goal-detail-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 var(--space-15);
+}
+.goal-detail-actions .btn { margin: 0; }
+.goal-detail-actions.manage { gap: 8px; }
+.goal-detail-actions button:focus-visible,
+.history-summary:focus-visible,
+.ms-next-chip:focus-within,
+.contributor-row:focus-visible,
+.goal-next-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Responsive layout: single column on mobile in spec order; the forecast,
+   contributors and linked-work cards sit as a secondary column on desktop. */
+.goal-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+.goal-detail-main,
+.goal-detail-aside { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+@media (min-width: 1080px) {
+  .goal-detail-grid {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/* Compact hero: keep the spatial identity, shrink it so progress + next
+   milestone are visible without scrolling on a phone. */
+.goal-hero-compact { padding: var(--space-25) var(--space-2); }
+.goal-hero-compact .goal-hero-inner { gap: clamp(14px, 2.4vw, 24px); }
+.goal-hero-compact .goal-core { }
+.goal-hero-compact .goal-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1200px) {
+  .goal-hero-compact .goal-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* History / pace toggle */
+.history-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  cursor: pointer;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  min-height: var(--touch);
+}
+.history-summary::-webkit-details-marker { display: none; }
+.history-summary span:first-child { display: inline-flex; align-items: center; gap: 8px; }
+.history-body { margin-top: var(--space-15); padding-top: var(--space-15); border-top: var(--bd-1) solid var(--border); }
+
+/* Milestone groups */
+.ms-groups { display: grid; gap: var(--space-15); }
+.ms-group { display: grid; gap: 6px; }
+.ms-group-label {
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.ms-next-chip {
+  flex: none;
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-1-lift);
+  background: var(--accent-soft);
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+}
+.goal-next-row .tiny { white-space: nowrap; }
+
+/* Forecast */
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.forecast-grid span { padding: 10px; background: var(--surface-inset); border-radius: 10px; color: var(--text-2); font-size: var(--fs-xs); min-width: 0; }
+.forecast-grid strong { display: block; color: var(--text); margin-top: 4px; font-size: var(--fs-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.forecast-pace { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.forecast-pace span { background: var(--surface-inset); border-radius: 9px; padding: 8px 10px; display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.forecast-pace em { font-style: normal; color: var(--text-3); font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.05em; font-weight: var(--fw-bold); }
+.forecast-pace strong { color: var(--text); font-size: var(--fs-sm); }
+.forecast-why { margin-top: 8px; color: var(--text-2); font-size: var(--fs-sm); }
+
+/* Contributors */
+.contributor-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.contributor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--touch);
+  padding: 0 10px;
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  text-decoration: none;
+  color: var(--text);
+}
+.contributor-row:hover { border-color: var(--border-2); background: var(--surface-3); }
+.contributor-row strong { color: var(--text); font-weight: var(--fw-extrabold); }
+
+/* Inline atlas in detail is optional & compact */
+#goal-detail-screen .atlas-wrap { margin-top: 0; }
+
+/* Detail responsive */
+@media (max-width: 760px) {
+  .goal-hero-compact .goal-hero-inner { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .goal-hero-compact .goal-hero-copy { width: 100%; }
+  .forecast-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .forecast-grid { grid-template-columns: 1fr; }
+  .forecast-pace { grid-template-columns: 1fr; }
+  .goal-detail-actions.manage .btn { flex: 1 1 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #goal-detail-screen .goal-card,
+  #goal-detail-screen .goal-next-toggle,
+  #goal-detail-screen .history-summary,
+  #goal-detail-screen .contributor-row { transition-duration: 1ms; }
+}

@@ -24,14 +24,11 @@ if (PUBLIC && (!credentials.email || !credentials.password)) throw new Error('RE
 const KEEP = PUBLIC ? ['aaru.auth', 'aaru.habits.migration.v1'] : []
 const safe = (text) => [credentials.email, credentials.password].filter(Boolean).reduce((out, value) => out.replaceAll(value, '[redacted]'), String(text))
 mkdirSync(output, { recursive: true })
-const browser = await launch()
-const version = await browser.version()
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
-console.log(`Real browser: ${version}; commit: ${commit}; target: ${base}/ (${PUBLIC ? 'public site, real sign-in' : 'local build'})`)
 const viewports = [{ width: 390, height: 844, isMobile: true, hasTouch: true }, { width: 430, height: 932, isMobile: true, hasTouch: true }, { width: 1440, height: 900 }]
 const selected = viewports.filter(v => !process.env.GOALS_QA_VIEWPORT || process.env.GOALS_QA_VIEWPORT === `${v.width}x${v.height}`)
 if (!selected.length) throw new Error('Unknown GOALS_QA_VIEWPORT')
-const metadata = { commit, version, target: `${base}/`, mode: PUBLIC ? 'public' : 'local', viewports: [], results }
+const metadata = { commit, version: null, target: `${base}/`, mode: PUBLIC ? 'public' : 'local', viewports: [], results }
 
 // Production identity, read from the public origin itself: wait for Pages to
 // serve the expected commit, then require index.html + release.json to agree.
@@ -82,7 +79,17 @@ function goalsFixture() {
   return { ...base, projects: [...base.projects, project], assignments: [...base.assignments, assignment], goals }
 }
 
+let browser
 try {
+  // Launch inside the try: a runner that cannot start Chromium (the Goals
+  // public 390×844 job died right here on deploy 88fb857f — exit 1 after
+  // puppeteer's 30 s launch timeout) must still produce results.json, so the
+  // publish step can name the abort in a check run instead of failing with
+  // nothing attributable. The run still fails; it just fails with evidence.
+  // (Same fix qa/habits-e2e.mjs already carries.)
+  browser = await launch()
+  metadata.version = await browser.version()
+  console.log(`Real browser: ${metadata.version}; commit: ${commit}; target: ${base}/ (${PUBLIC ? 'public site, real sign-in' : 'local build'})`)
   if (PUBLIC) metadata.public = { url: `${base}/`, ...(await publicBuild()) }
   for (const viewport of selected) {
     const prefix = `${viewport.width}x${viewport.height}`
@@ -419,11 +426,16 @@ try {
   }
   report(PUBLIC ? 'Phase 6 Goals — PUBLIC production site, real Chromium' : 'Phase 6 Goals — CI Chromium proof')
 } catch (error) {
+  // An abort outside a scenario (site unreachable, browser launch failure,
+  // sign-in failure, wrong build) must never publish as "0 failed": record it
+  // as a failure first, so the finally below always leaves attributable
+  // evidence for the Checks-API publish step.
   results.fail++
   results.failures.push(`aborted: ${safe(error.stack || error.message)}`)
   metadata.error = safe(error.message)
+  if (!metadata.version) metadata.version = `browser never launched — ${safe(error.message)}`
   throw error
 } finally {
   writeFileSync(`${output}/results.json`, JSON.stringify(metadata, null, 2))
-  await browser.close()
+  await browser?.close()
 }

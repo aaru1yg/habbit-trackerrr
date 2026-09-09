@@ -37,7 +37,10 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
+  /* The app-wide touch contract (see .quick-action, .lab-tab): interactive
+     controls clear var(--touch, 44px). 38px broke the 390×844 / 430×932
+     tap-target guarantee the rest of the shell keeps. */
+  min-height: var(--touch, 44px);
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
@@ -92,7 +95,10 @@
   }
 
   .chart-series-button {
-    min-height: 40px;
+    /* Compact padding is fine, but the touch target itself must still clear
+       the 44px contract — this media query covers exactly the phone widths
+       where undersized targets are least acceptable. */
+    min-height: var(--touch, 44px);
     padding-inline: 9px;
   }
 

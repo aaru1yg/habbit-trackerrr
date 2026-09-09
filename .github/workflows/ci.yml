@@ -32,6 +32,16 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Same Chromium runtime libraries the Phase 4/5/6 browser QA workflows
+      # install. When no system Chrome is present the browser journey falls
+      # back to @sparticuz/chromium, which needs libnspr4/libnss3; without
+      # them the binary exits immediately and Puppeteer aborts after its 30 s
+      # launch timeout waiting for a never-appearing WebSocket endpoint.
+      - name: Chromium runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libnspr4 libnss3
+
       - name: Browser journeys and release UI checks
         run: |
           set -euo pipefail

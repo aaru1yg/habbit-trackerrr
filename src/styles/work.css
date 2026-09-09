@@ -72,9 +72,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.stat-cell[data-tone='good'] .v { color: var(--good); }
-.stat-cell[data-tone='warn'] .v { color: var(--warn); }
-.stat-cell[data-tone='bad'] .v { color: var(--bad); }
 
 /* ---------------- Status pill ---------------- */
 
@@ -100,9 +97,6 @@
   background: currentColor;
   flex: none;
 }
-.status-pill[data-tone='good'] { color: var(--good); background: var(--good-soft); }
-.status-pill[data-tone='warn'] { color: var(--warn); background: var(--warn-soft); }
-.status-pill[data-tone='bad'] { color: var(--bad); background: var(--bad-soft); }
 .status-pill[data-tone='neutral'] { color: var(--text-2); background: var(--surface-3); }
 
 .kind-tag {
@@ -154,7 +148,6 @@
 .work-card[data-tone='warn'] { --tone: var(--warn); }
 .work-card[data-tone='bad'] { --tone: var(--bad); }
 .work-card[data-tone='neutral'] { --tone: var(--border-2); }
-.work-card:hover { border-color: var(--border-2); background: var(--surface-2); }
 .work-card:active { transform: scale(0.995); }
 .work-card.is-done { opacity: 0.72; }
 
@@ -230,9 +223,6 @@
   background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
   transition: width var(--dur-slow) var(--ease-out);
 }
-.meter[data-tone='good'] > i { background: linear-gradient(90deg, color-mix(in srgb, var(--good) 70%, var(--accent-1)), var(--good)); }
-.meter[data-tone='warn'] > i { background: linear-gradient(90deg, color-mix(in srgb, var(--warn) 65%, var(--accent-1)), var(--warn)); }
-.meter[data-tone='bad'] > i { background: linear-gradient(90deg, color-mix(in srgb, var(--bad) 65%, var(--accent-1)), var(--bad)); }
 .meter.thin { height: 5px; }
 .meter.thick { height: 12px; }
 
@@ -347,11 +337,6 @@
   border: 2px solid var(--border-2);
   color: var(--text-3);
   flex: none;
-}
-.step[data-state='reached'] .step-dot {
-  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-  border-color: transparent;
-  color: var(--accent-ink);
 }
 .step[data-state='partial'] .step-dot { border-color: var(--accent-1); color: var(--accent-1-lift); }
 .step-name {
@@ -603,8 +588,6 @@
   background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
   transition: width var(--dur-slow) var(--ease-out);
 }
-.load-bars .lb-fill[data-level='2'] { background: linear-gradient(90deg, color-mix(in srgb, var(--warn) 70%, var(--accent-1)), var(--warn)); }
-.load-bars .lb-fill[data-level='3'] { background: linear-gradient(90deg, color-mix(in srgb, var(--bad) 70%, var(--accent-1)), var(--bad)); }
 .load-bars .lb-n {
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -713,17 +696,6 @@
   margin-top: 4px;
   font-size: var(--fs-xs);
   color: var(--text-3);
-}
-.status-select {
-  min-height: 30px;
-  padding: 0 8px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  font-family: inherit;
 }
 
 .check-box {
@@ -870,7 +842,6 @@
   min-width: 0;
 }
 .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.muted { color: var(--text-3); }
 .soft { color: var(--text-2); }
 .tiny { font-size: var(--fs-xs); }
 .hr { height: 1px; background: var(--border); border: 0; margin: var(--sp-3) 0; }
@@ -901,7 +872,6 @@
   font-weight: 550;
   transition: border-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
-.sidebar-search:hover { border-color: var(--border-2); color: var(--text-2); }
 .sidebar-search span { flex: 1; text-align: left; }
 .sidebar-search kbd {
   font-family: var(--font-body);
@@ -927,8 +897,6 @@
   text-decoration: none;
   margin-bottom: var(--sp-2);
 }
-.sidebar-settings:hover { background: var(--surface-2); color: var(--text); }
-.sidebar-settings[aria-current='page'] { background: var(--accent-soft); color: var(--text); }
 .sidebar-foot span { font-size: 0.6875rem; color: var(--text-3); line-height: 1.4; display: block; }
 
 .more-link {
@@ -983,22 +951,6 @@
   gap: var(--sp-4);
   flex-wrap: wrap;
 }
-
-.pace-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text-2);
-}
-.pace-note[data-tone='bad'] { color: var(--bad); background: var(--bad-soft); border-color: transparent; }
-.pace-note[data-tone='warn'] { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
-.pace-note[data-tone='good'] { color: var(--good); background: var(--good-soft); border-color: transparent; }
 
 /* ------------------------------------------------------------
    CALENDAR WORK MARKERS (§71) — deadlines show up in the habit

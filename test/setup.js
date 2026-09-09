@@ -1,4 +1,5 @@
 import { configure } from '@testing-library/react'
+import '@testing-library/jest-dom/vitest'
 
 /* Every screen, plus the command palette, the Analytics Lab and the execution
    panels, is React.lazy — so each findBy* is really waiting on a dynamic

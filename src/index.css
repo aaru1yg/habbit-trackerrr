@@ -17,6 +17,8 @@
 @import './styles/spatial.css';
 @import './styles/auth.css';
 @import './styles/adaptive.css';
+@import './styles/primitives.css';
+@import './styles/charts.css';
 
 .spinner {
   width: 28px;

@@ -545,3 +545,76 @@ html[data-theme='daylight'] {
   --cat-finance: #15803d;
   --cat-productivity: #0e7490;
 }
+
+/* ============================================================
+   V5 — COMPONENT / ACCENT / SERIES / GLOW / Z / SKELETON
+   Additive layer. Nothing above is redefined here; V5 components
+   resolve through these slots. Per-entity accents are set inline
+   by accent.js (see --ea-*); unset slots fall back to theme accent.
+   ============================================================ */
+:root {
+  /* ---- entity accent slots (accent.js fills --ea-base etc.) ---- */
+  --ea-base: var(--accent-1);
+  --ea-soft: var(--accent-soft);
+  --ea-muted: color-mix(in srgb, var(--accent-1) 38%, var(--surface));
+  --ea-strong: color-mix(in srgb, var(--accent-1) 72%, var(--text));
+  --ea-ink: var(--accent-ink);
+
+  /* ---- deterministic chart series (dash/shape in chartPalette.js) ---- */
+  --series-1: var(--c1);
+  --series-2: var(--c2);
+  --series-3: var(--c3);
+  --series-4: var(--c4);
+  --series-5: var(--c5);
+  --series-6: var(--c6);
+  --series-7: var(--c7);
+  --series-8: var(--c8);
+
+  /* ---- glow (OPT-IN only: primary progress + CTA moments) ---- */
+  --glow-1: 0 0 0 1px color-mix(in srgb, var(--accent-1) 55%, transparent),
+    0 6px 28px -6px color-mix(in srgb, var(--accent-1) 55%, transparent);
+  --glow-soft: 0 0 24px -8px color-mix(in srgb, var(--accent-2) 45%, transparent);
+
+  /* ---- z scale (single authority; nothing else invents z-index) ---- */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-nav: 30;
+  --z-fab: 40;
+  --z-pop: 55;
+  --z-sheet: 60;
+  --z-toast: 70;
+  --z-tip: 80;
+  --z-boot: 100;
+
+  /* ---- progress rings (sm = rows, md = cards, hero = moments) ---- */
+  --ring-sm: 40px;
+  --ring-md: 64px;
+  --ring-hero: 120px;
+
+  /* ---- skeleton shimmer ---- */
+  --skel-from: color-mix(in srgb, var(--text) 7%, transparent);
+  --skel-to: color-mix(in srgb, var(--text) 13%, transparent);
+
+  /* ---- focus (visible in every theme; --focus owns the hue) ---- */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--focus) 38%, transparent);
+
+  /* ---- component tokens (primitives resolve here, never raw px) ---- */
+  --btn-h-sm: 34px;
+  --btn-h-md: 42px;
+  --btn-h-lg: 50px;
+  --field-h: 44px;
+  --card-pad: var(--space-2);
+  --card-pad-lg: var(--space-3);
+  --row-min-h: 56px;
+  --row-gap: var(--space-1);
+  --seg-h: 38px;
+  --badge-h: 24px;
+  --meter-h: 6px;
+}
+
+html[data-theme='daylight'] {
+  /* daylight earns quieter light: same slots, honest values */
+  --glow-1: 0 0 0 1px color-mix(in srgb, var(--accent-1) 35%, transparent),
+    0 8px 24px -10px color-mix(in srgb, var(--accent-1) 40%, transparent);
+  --glow-soft: 0 0 20px -10px color-mix(in srgb, var(--accent-2) 35%, transparent);
+}

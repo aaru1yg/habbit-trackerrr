@@ -1,0 +1,61 @@
+/* ============================================================
+   CHARTS — V5 visualization system styles.
+   Charts are SVG (static, no animation to disable); the legend is
+   the keyboard path. Focus dims siblings via opacity attributes.
+   ============================================================ */
+
+.vchart-card { min-width: 0; }
+.vchart-sub { font-size: var(--fs-sm); color: var(--text-2); margin: -6px 0 var(--space-1); }
+.vchart { min-width: 0; }
+.vchart svg { display: block; }
+
+/* legend: swatch (hue + dash + shape) + label; never hue alone */
+.vlegend {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 0 0 var(--space-1);
+}
+.vlegend-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: var(--touch);
+  padding: 4px 12px 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font: 600 var(--fs-xs)/1 var(--font-body);
+  cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out),
+    opacity var(--dur-2) var(--ease-out);
+}
+.vlegend-item:hover { color: var(--text); border-color: var(--border-2); }
+.vlegend-item.active { color: var(--text); border-color: var(--focus); }
+.vlegend-item.dim { opacity: 0.5; }
+.vlegend-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.vlegend-label { white-space: nowrap; }
+.vlegend-reset {
+  min-height: var(--touch);
+  border: 0; background: none; color: var(--text-3);
+  font: 600 var(--fs-xs)/1 var(--font-body);
+  cursor: pointer; text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.vlegend-reset:hover { color: var(--text); }
+
+/* bullets */
+.vbullet { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vbullet + .vbullet { margin-top: var(--space-1); }
+.vbullet-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-1); }
+.vbullet-label { font: 600 var(--fs-xs)/1.3 var(--font-body); color: var(--text-2); }
+.vbullet-value { font: 700 var(--fs-body)/1 var(--font-num); color: var(--text); }
+.vbullet-target { font-size: var(--fs-micro); color: var(--text-3); }
+
+/* chart grids: primary + secondary hierarchy, never 12 equals */
+.vchart-grid { display: grid; gap: var(--space-2); grid-template-columns: 1fr; }
+@media (min-width: 900px) {
+  .vchart-grid.duo { grid-template-columns: 1.4fr 1fr; }
+  .vchart-grid.trio { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vlegend-item { transition: none; }
+}

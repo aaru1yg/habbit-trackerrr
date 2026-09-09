@@ -4,7 +4,7 @@ import { useStore } from '../../store.jsx'
 import { todayStr } from '../../lib/dates.js'
 import { scheduleLabel, categoryOf } from '../../lib/schedule.js'
 import { habitStreak } from '../../lib/stats.js'
-import HabitCheck from './HabitCheck.jsx'
+import HabitRing from './HabitRing.jsx'
 import AnimatedNumber from '../ui/AnimatedNumber.jsx'
 import Burst from '../motion/Burst.jsx'
 import { interactionFeedback } from '../../lib/motion.js'
@@ -101,9 +101,15 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
       </div>
 
       <motion.div
-        className={`habit-row ${done ? 'done' : ''}`}
+        className={`habit-row habit-card ${done ? 'done' : ''}`}
         data-category={habit.category || 'mind'}
-        style={{ x, position: 'relative' }}
+        style={{
+          x,
+          position: 'relative',
+          '--habit-color': `var(${cat.cssVar})`,
+          '--habit-soft': `color-mix(in srgb, var(${cat.cssVar}) 16%, transparent)`,
+          '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, white)`,
+        }}
         drag={editing || reduced ? false : 'x'}
         dragDirectionLock
         dragConstraints={{ left: -ACTIONS_W, right: 72 }}
@@ -127,7 +133,12 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
           style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, minHeight: 56, borderRadius: 14, padding: '2px 4px 2px 0', margin: '-2px -4px -2px 0' }}
         >
           <span style={{ position: 'relative', display: 'grid', placeItems: 'center', flex: 'none' }}>
-            <HabitCheck done={done} label={done ? 'Completed' : 'Not completed'} />
+            <HabitRing
+              done={done}
+              streak={streak}
+              size={48}
+              label={`${habit.name}: ${done ? 'completed today' : 'not completed today'}`}
+            />
             <Burst fire={burst} count={9} spread={30} size={4} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>

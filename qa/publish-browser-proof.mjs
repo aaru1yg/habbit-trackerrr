@@ -9,6 +9,8 @@
  *
  *   QA_PROOF_DIR=qa/shots/habits QA_PROOF_NAME="Habits visual evidence" \
  *   QA_PROOF_SCRIPT=qa/habits-e2e.mjs QA_PROOF_VIEWPORT=390x844 node qa/publish-browser-proof.mjs
+ * QA_PROOF_SHA (optional) attaches the check run to a specific commit — a
+ * workflow_run-triggered public verification reports against the deployed sha.
  */
 import { readFileSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
@@ -34,9 +36,9 @@ for (const file of readdirSync(dir).filter(f => f.startsWith(`${viewport}-`) && 
 }
 const output = {
   title: `Real Chromium ${viewport}: ${result.results.pass} passed / ${result.results.fail} failed`,
-  summary: `${result.version}\n\nTested commit: ${result.commit}\n\n[Full workflow evidence](https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID})\n\nOriginal PNGs are in the viewport artifact. JPEG annotation previews provide an API-only review fallback.`,
+  summary: `${result.version}\n\nTested commit: ${result.commit}${result.target ? `\n\nTarget: ${result.target} (${result.mode}${result.public ? `, serving ${result.public.commit}` : ''})` : ''}\n\n[Full workflow evidence](https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID})\n\nOriginal PNGs are in the viewport artifact. JPEG annotation previews provide an API-only review fallback.`,
   text: JSON.stringify({ ...result, images }),
 }
-const run = api(`repos/${repo}/check-runs`, 'POST', { name: `${name} ${viewport}`, head_sha: process.env.GITHUB_SHA, status: 'completed', conclusion: result.results.fail ? 'failure' : 'success', output: { ...output, annotations: annotations.slice(0, 50) } })
+const run = api(`repos/${repo}/check-runs`, 'POST', { name: `${name} ${viewport}`, head_sha: process.env.QA_PROOF_SHA || process.env.GITHUB_SHA, status: 'completed', conclusion: result.results.fail ? 'failure' : 'success', output: { ...output, annotations: annotations.slice(0, 50) } })
 for (let i = 50; i < annotations.length; i += 50) api(`repos/${repo}/check-runs/${run.id}`, 'PATCH', { output: { ...output, annotations: annotations.slice(i, i + 50) } })
 console.log(`Published ${result.results.fail} findings and ${images.length} CI screenshot previews in check ${run.id}.`)

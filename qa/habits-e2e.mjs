@@ -1,26 +1,67 @@
 /* Phase 5 final browser proof — Habits (§39-41, §44). Real production build,
- * persisted fixture, real Chromium, no mocked engines, no remote data, no
- * deployment. One CI matrix job per viewport (390×844, 430×932, 1440×900)
- * saves screenshots, browser version, DOM failures and results.json so the
- * counts are publishable through the Checks API even where runner logs and
- * artifacts are unreachable. Run locally:
- *   HABITS_QA_VIEWPORT=390x844 node qa/habits-e2e.mjs http://localhost:4173
+ * persisted fixture, real Chromium, no mocked engines, no deployment from
+ * here. One CI job per viewport (390×844, 430×932, 1440×900) saves
+ * screenshots, browser version, DOM failures and results.json so the counts
+ * are publishable through the Checks API even where runner logs and
+ * artifacts are unreachable.
+ *   Local / CI preview:
+ *     HABITS_QA_VIEWPORT=390x844 node qa/habits-e2e.mjs http://localhost:4173
+ *   Public production site (real sign-in with the pre-confirmed TEST_A
+ *   account; the fixture is seeded on the signed-in device exactly as
+ *   qa/release.mjs does, so nothing is mocked and no engine is bypassed):
+ *     REQUIRE_AUTH=1 EXPECT_BUILD_ID=<deployed sha> TEST_A_EMAIL=… TEST_A_PASSWORD=… \
+ *     HABITS_QA_VIEWPORT=390x844 node qa/habits-e2e.mjs https://aaru1yg.github.io/habbit-trackerrr/
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { launch, newPage, seedAndGoto, seededStateV4, check, report, results, sleep } from './helpers.mjs'
 
-const base = process.argv[2] || 'http://localhost:4173'
-const output = 'qa/shots/habits'
+const base = (process.argv[2] || 'http://localhost:4173').replace(/\/+$/, '')
+const output = process.env.HABITS_QA_OUT || 'qa/shots/habits'
+const PUBLIC = process.env.REQUIRE_AUTH === '1'
+const EXPECT = (process.env.EXPECT_BUILD_ID || '').trim()
+const credentials = { email: process.env.TEST_A_EMAIL?.trim(), password: process.env.TEST_A_PASSWORD }
+if (PUBLIC && (!credentials.email || !credentials.password)) throw new Error('REQUIRE_AUTH=1 needs the pre-confirmed TEST_A_EMAIL/TEST_A_PASSWORD; no partial pass.')
+// Public runs keep the real session and the remembered first-link choice across
+// fixture reloads; everything else in storage is reset exactly as in local runs.
+const KEEP = PUBLIC ? ['aaru.auth', 'aaru.habits.migration.v1'] : []
+const safe = (text) => [credentials.email, credentials.password].filter(Boolean).reduce((out, value) => out.replaceAll(value, '[redacted]'), String(text))
 mkdirSync(output, { recursive: true })
 const browser = await launch()
 const version = await browser.version()
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
-console.log(`Real browser: ${version}; commit: ${commit}`)
+console.log(`Real browser: ${version}; commit: ${commit}; target: ${base}/ (${PUBLIC ? 'public site, real sign-in' : 'local build'})`)
 const viewports = [{ width: 390, height: 844, isMobile: true, hasTouch: true }, { width: 430, height: 932, isMobile: true, hasTouch: true }, { width: 1440, height: 900 }]
 const selected = viewports.filter(v => !process.env.HABITS_QA_VIEWPORT || process.env.HABITS_QA_VIEWPORT === `${v.width}x${v.height}`)
 if (!selected.length) throw new Error('Unknown HABITS_QA_VIEWPORT')
-const metadata = { commit, version, viewports: [], results }
+const metadata = { commit, version, target: `${base}/`, mode: PUBLIC ? 'public' : 'local', viewports: [], results }
+
+/* Production identity, read from the public origin itself (same contract as
+   deploy.yml and qa/release.mjs): wait for Pages to serve the exact commit,
+   then require index.html, sw.js and release.json to agree on it. */
+async function publicBuild() {
+  const expectShort = EXPECT.slice(0, 7)
+  const stop = Date.now() + 8 * 60 * 1000
+  let live
+  for (;;) {
+    const response = await fetch(`${base}/release.json?verify=${Date.now()}`, { cache: 'no-store' }).catch(() => null)
+    if (response?.ok) live = await response.json()
+    if (!EXPECT || live?.buildId === expectShort) break
+    if (Date.now() >= stop) throw new Error(`Public site did not reach ${EXPECT}; still serving ${live?.commit || 'nothing'}`)
+    console.log(`Waiting for Pages to serve ${expectShort} (currently ${live?.buildId || 'unavailable'})…`)
+    await sleep(15000)
+  }
+  const html = await (await fetch(`${base}/?verify=${Date.now()}`, { cache: 'no-store' })).text()
+  const meta = html.match(/<meta name="build-id" content="([^"]+)"/)?.[1] || null
+  const sw = await (await fetch(`${base}/sw.js?verify=${Date.now()}`, { cache: 'no-store' })).text()
+  check('public index.html carries the deployed build-id meta', !!meta && (!EXPECT || meta === expectShort), `meta=${meta} expected=${expectShort || 'any'}`)
+  check('public sw.js is stamped with the same build', !!meta && sw.includes(`aaru-habits-v7-${meta}`))
+  check('public release.json names the same commit', !!live && live.buildId === meta && (!EXPECT || live.commit === EXPECT || live.commit.startsWith(EXPECT)), JSON.stringify(live && { commit: live.commit, buildId: live.buildId }))
+  if (results.fail) throw new Error('The public site is not serving the expected build; refusing to verify the wrong deployment.')
+  console.log(`Public build: ${live?.commit} (${meta}) at ${base}/`)
+  return { commit: live?.commit || null, buildId: meta }
+}
+let build = null
 
 const STORAGE_KEY = 'aaru.habits.v4'
 const dayStr = (d) => d.toLocaleDateString('en-CA')
@@ -32,11 +73,23 @@ const wdShort = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US',
 const FILTERS = '[role="group"][aria-label="Habit filters"]'
 
 try {
+  if (PUBLIC) {
+    build = await publicBuild()
+    metadata.public = { url: `${base}/`, ...build }
+  }
   for (const viewport of selected) {
     const prefix = `${viewport.width}x${viewport.height}`
-    const page = await newPage(browser, { ...viewport, deviceScaleFactor: 1 })
+    // A fresh browser context per viewport: clean storage, cache and (public)
+    // session, so each viewport proves the real sign-in path on its own.
+    const context = await browser.createBrowserContext()
+    const page = await newPage(context, { ...viewport, deviceScaleFactor: 1 })
     const evidence = { viewport: prefix, scenarios: [], consoleErrors: [], pageErrors: [], failedRequests: [] }
+    if (PUBLIC) evidence.publicSite = { signIns: 0, migrationPrompts: 0, cloudPulls: 0, serviceWorker: null }
     metadata.viewports.push(evidence)
+    // Every real cloud pull (GET user_state) the page performs — lets a public
+    // fixture reload wait for the first pull to settle instead of guessing.
+    const pulls = []
+    page.on('response', (res) => { if (res.request().method() === 'GET' && /\/rest\/v1\/user_state\b/.test(res.url())) pulls.push(res.status()) })
 
     const stored = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k)), STORAGE_KEY)
     const doneOn = async (id, date) => (await stored()).checkins[id]?.[date]?.done === true
@@ -72,6 +125,9 @@ try {
     }
     const byLabel = (label) => `[aria-label="${label.replace(/"/g, '\\"')}"]`
     const noDialog = async () => { await page.waitForFunction(() => !document.querySelector('[role="dialog"]')); await settle() }
+    // Exactly one dialog once the previous sheet's exit transition has finished
+    // (a loaded runner can still be animating it out when the next one mounts).
+    const oneDialog = () => page.waitForFunction(() => document.querySelectorAll('[role="dialog"]').length === 1, { timeout: 4000 }).then(() => true).catch(() => false)
     // Toasts (z-index 90, from main) layer above sheets (z-index 80, from main) and
     // stay ~4.5 s; wait them out before opening a sheet, as a user naturally would.
     const clearToast = async () => { await page.waitForFunction(() => !document.querySelector('.toast'), { timeout: 8000 }) }
@@ -110,18 +166,89 @@ try {
       }
       await capture(name)
     }
+    const exists = async (selector) => page.$(selector).then(Boolean).catch(() => false)
+    /* Public site only. The production service worker claims the first page
+       of a fresh profile and reloads it once (src/main.jsx controllerchange).
+       Warm the profile up with a plain visit first, so that one-off reload has
+       already happened before any credentials are typed; every later document
+       is controlled from birth and never reloads itself. */
+    const warmUp = async () => {
+      // The claim-time reload can interrupt this very navigation; that is the
+      // event being waited out, not a failure.
+      await page.goto(`${base}/`, { waitUntil: 'networkidle0' }).catch(() => {})
+      const stop = Date.now() + 15000
+      while (Date.now() < stop) {
+        await page.waitForNetworkIdle({ idleTime: 1500, timeout: 10000 }).catch(() => {})
+        const controlled = await page.evaluate(() => !('serviceWorker' in navigator) || !!navigator.serviceWorker.controller).catch(() => false)
+        if (controlled) break
+        await sleep(250)
+      }
+      await sleep(1500)
+      evidence.publicSite.serviceWorker = await page.evaluate(() => 'serviceWorker' in navigator ? navigator.serviceWorker.controller?.scriptURL || null : 'unsupported').catch(() => null)
+    }
+    const swSettled = async () => {
+      await page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {})
+      await page.waitForFunction(() => !('serviceWorker' in navigator) || !!navigator.serviceWorker.controller, { timeout: 10000 }).catch(() => {})
+    }
+    /* Public site only: the real auth screen, typed credentials, the real
+       sign-in request. Never a token injection, never a mocked session. */
+    const signIn = async () => {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          await swSettled()
+          if (!(await exists('#auth-email'))) return // session restored by the app itself
+          await page.waitForSelector('#auth-email', { visible: true, timeout: 20000 })
+          await page.type('#auth-email', credentials.email)
+          await page.type('#auth-password', credentials.password)
+          await click('.auth-submit')
+          await page.waitForFunction(() => !document.querySelector('#auth-email') && !document.querySelector('.auth-loading'), { timeout: 30000 })
+          evidence.publicSite.signIns++
+          return
+        } catch (error) {
+          if (attempt === 2) throw error
+          console.log(`  · sign-in attempt ${attempt} interrupted (${safe(error.message).split('\n')[0]}); retrying once`)
+        }
+      }
+    }
+    /* Public site only: let the first cloud pull of this document settle before
+       a scenario starts, so the migration prompt can never surface mid-journey.
+       When it does appear (a pre-existing account meeting freshly seeded device
+       data) resolve it the way a QA device does — keep the fixture just seeded —
+       through the real dialog; the app remembers the choice for later reloads. */
+    const settleCloud = async (seen) => {
+      await page.waitForFunction(() => document.querySelector('#auth-email') || (!document.querySelector('.auth-loading') && document.querySelector('main#content')), { timeout: 30000 })
+      await signIn()
+      const deadline = Date.now() + 20000
+      while (pulls.length === seen && Date.now() < deadline) await sleep(100)
+      evidence.publicSite.cloudPulls = pulls.length
+      await sleep(700)
+      if (await exists('#migrate-title')) {
+        const keep = await page.$('::-p-text(Keep my local data)')
+        if (!keep) throw new Error('Migration prompt without a "Keep my local data" choice')
+        await keep.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }))
+        await keep.click()
+        await page.waitForFunction(() => !document.querySelector('#migrate-title'), { timeout: 30000 })
+        evidence.publicSite.migrationPrompts++
+        await settle()
+      }
+    }
     const seed = async (state = seededStateV4(), route = 'habits', target = '#habits-screen') => {
       // A hash-only goto is same-document navigation: the init script never
       // runs. Leave the origin first so seedAndGoto creates a fresh document.
+      // Public: let a pending debounced cloud push finish before leaving, so an
+      // in-flight request is never torn down by the navigation itself.
+      if (PUBLIC) await page.waitForNetworkIdle({ idleTime: 1500, timeout: 20000 }).catch(() => {})
+      const seen = pulls.length
       await page.goto('about:blank')
-      await seedAndGoto(page, state, route, base)
+      await seedAndGoto(page, state, route, base, { keep: KEEP })
+      if (PUBLIC) await settleCloud(seen)
       await waitFor(target)
       await settle()
     }
     const scenario = async (name, run) => {
       const before = results.fail
       try { await run() } catch (error) {
-        check(`${prefix} ${name}: completes`, false, error.stack)
+        check(`${prefix} ${name}: completes`, false, safe(error.stack))
         await capture(`${name}-FAILED`).catch(() => {})
         writeFileSync(`${output}/${prefix}-${name}-FAILED.html`, await page.content())
         await page.keyboard.press('Escape').catch(() => {})
@@ -131,8 +258,14 @@ try {
 
     /* ---------------- §3-5, §32-33: workspace structure + rows ---------------- */
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }])
+    if (PUBLIC) await warmUp()
     await scenario('habits-workspace', async () => {
       await seed()
+      if (PUBLIC) {
+        const runtime = await page.evaluate(() => window.__BUILD_ID__)
+        check(`${prefix}: signed in through the real auth screen; the browser runtime is the deployed build`, evidence.publicSite.signIns >= 1 && runtime === build.buildId, JSON.stringify({ ...evidence.publicSite, runtime }))
+        check(`${prefix}: the signed-in device completed a real cloud pull before the journey started`, evidence.publicSite.cloudPulls >= 1, JSON.stringify(evidence.publicSite))
+      }
       check(`${prefix}: Habits title`, await page.$eval('main .screen-title', el => el.textContent.trim() === 'Habits'))
       check(`${prefix}: Habits is the active primary pillar`, !!(await page.$('nav[aria-label="Main"] a[aria-current="page"][href="#/habits"]')))
       const tabs = await page.$$eval('.habit-tabs a', els => els.map(a => [a.textContent.trim(), a.getAttribute('href'), a.getAttribute('aria-current')]))
@@ -205,7 +338,7 @@ try {
       await layout('action-sheet')
       await clickText('Edit', '[role="dialog"]')
       await waitFor('#habit-name')
-      check(`${prefix}: Edit opens the one shared HabitForm`, await page.$eval('#habit-form-title', el => el.textContent.trim() === 'Edit habit') && (await page.$$('[role="dialog"]')).length === 1)
+      check(`${prefix}: Edit opens the one shared HabitForm`, await page.$eval('#habit-form-title', el => el.textContent.trim() === 'Edit habit') && await oneDialog())
       await page.$eval('#habit-name', el => { el.focus(); el.select() })
       await page.keyboard.type('Read 25 pages')
       await layout('edit-form')
@@ -412,7 +545,7 @@ try {
       check(`${prefix}: Omni lists the Add habit command`, await page.$eval('[role="listbox"][aria-label="Commands"]', el => /Add habit/.test(el.textContent)))
       await page.keyboard.press('Enter')
       await waitFor('#habit-name'); await settle()
-      check(`${prefix}: Omni "Add habit" opens the shared HabitForm, not a second capture form`, await page.$eval('#habit-form-title', el => el.textContent.trim() === 'New habit') && (await page.$$('[role="dialog"]')).length === 1)
+      check(`${prefix}: Omni "Add habit" opens the shared HabitForm, not a second capture form`, await page.$eval('#habit-form-title', el => el.textContent.trim() === 'New habit') && await oneDialog())
       await page.keyboard.press('Escape'); await noDialog()
     })
 
@@ -430,13 +563,21 @@ try {
       await layout('reduced-motion')
     })
 
+    if (PUBLIC) await page.waitForNetworkIdle({ idleTime: 1500, timeout: 20000 }).catch(() => {})
     Object.assign(evidence, page._qa)
-    check(`${prefix}: zero console errors`, evidence.consoleErrors.length === 0, evidence.consoleErrors.join('\n'))
-    check(`${prefix}: zero uncaught exceptions`, evidence.pageErrors.length === 0, evidence.pageErrors.join('\n'))
-    check(`${prefix}: zero failed asset/network requests`, evidence.failedRequests.length === 0, evidence.failedRequests.join('\n'))
-    await page.close()
+    check(`${prefix}: zero console errors`, evidence.consoleErrors.length === 0, safe(evidence.consoleErrors.join('\n')))
+    check(`${prefix}: zero uncaught exceptions`, evidence.pageErrors.length === 0, safe(evidence.pageErrors.join('\n')))
+    check(`${prefix}: zero failed asset/network requests`, evidence.failedRequests.length === 0, safe(evidence.failedRequests.join('\n')))
+    await context.close()
   }
-  report('Phase 5 Habits — CI Chromium proof')
+  report(PUBLIC ? 'Phase 5 Habits — PUBLIC production site, real Chromium' : 'Phase 5 Habits — CI Chromium proof')
+} catch (error) {
+  // An abort outside a scenario (site unreachable, sign-in failure, wrong
+  // build) must never publish as "0 failed": record it as a failure first.
+  results.fail++
+  results.failures.push(`aborted: ${safe(error.stack || error.message)}`)
+  metadata.error = safe(error.message)
+  throw error
 } finally {
   writeFileSync(`${output}/results.json`, JSON.stringify(metadata, null, 2))
   await browser.close()

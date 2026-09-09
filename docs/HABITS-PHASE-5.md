@@ -211,6 +211,33 @@ cover the sheet's last row on a phone, so the proof waits for the toast to
 clear like a person would; and the "New habit" header button is not shown
 on the Routines tab by design.
 
+### 15.2 The same journeys on the PUBLIC production site (release)
+
+The release verdict is not the preview build — it is
+`https://aaru1yg.github.io/habbit-trackerrr/` after the merge deploys. The
+review sandbox cannot reach GitHub Pages at all, so the public proof runs on
+a GitHub-hosted runner, test-only:
+
+- `qa/habits-e2e.mjs` gained a public mode (`REQUIRE_AUTH=1`,
+  `EXPECT_BUILD_ID`, `TEST_A_*`, the public URL as argument). It first reads
+  the public origin itself — `release.json`, the `<meta name="build-id">` in
+  `index.html` and the `aaru-habits-v7-<sha>` stamp in `sw.js` must all name
+  the expected commit, waiting up to eight minutes for Pages — then, per
+  viewport in a fresh browser context, signs in through the real auth screen
+  as the pre-confirmed `TEST_A` account, seeds the fixture on that signed-in
+  device exactly as `qa/release.mjs` does (the session and the remembered
+  first-link choice survive the storage reset; a first-link prompt is
+  answered through the real dialog with "Keep my local data"), waits for the
+  real cloud pull, and only then runs the identical eleven scenarios. Two
+  extra checks per viewport prove the sign-in and that `window.__BUILD_ID__`
+  is the deployed build. Local mode is byte-for-byte the same journey.
+- `verify-live-site.yml` runs that matrix (`habits-public`, 390x844 /
+  430x932 / 1440x900, serial because they share the account) after the
+  existing `verify` job on every successful Pages deployment, and on
+  `workflow_dispatch`; results are published as **"Habits public site
+  \<viewport\>"** check runs on the deployed commit through
+  `qa/publish-browser-proof.mjs` (`QA_PROOF_SHA`).
+
 ## 16. Follow-up commit — CI gate green locally
 
 After the Phase 5 commit the full CI browser gate was replayed locally

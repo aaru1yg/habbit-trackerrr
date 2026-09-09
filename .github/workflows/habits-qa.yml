@@ -41,17 +41,21 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p qa/shots/habits
-          npm run preview -- --host 0.0.0.0 > qa/shots/habits/server.log 2>&1 &
+          npm run preview -- --host 0.0.0.0 --port 4173 --strictPort > qa/shots/habits/server.log 2>&1 &
           PREVIEW_PID=$!
           trap 'kill "$PREVIEW_PID"' EXIT
+          # A cold runner can take well over 30 s to bring the preview up; a
+          # readiness timeout here is infrastructure, not evidence. Wait up to
+          # 120 s and print the server log if it still is not serving.
           node --input-type=module -e '
-            for (let i = 0; i < 60; i++) {
-              try { if ((await fetch("http://localhost:4173/")).ok) process.exit(0) } catch {}
+            for (let i = 0; i < 240; i++) {
+              try { if ((await fetch("http://127.0.0.1:4173/")).ok) process.exit(0) } catch {}
               await new Promise(r => setTimeout(r, 500));
             }
             process.exit(1);
-          '
+          ' || { echo "::error::vite preview did not become ready on 4173"; cat qa/shots/habits/server.log; exit 1; }
           npm run test:e2e:habits 2>&1 | tee qa/shots/habits/browser.log
+          exit "${PIPESTATUS[0]}"
       - name: Publish API-readable Chromium diagnostics
         if: always()
         env:

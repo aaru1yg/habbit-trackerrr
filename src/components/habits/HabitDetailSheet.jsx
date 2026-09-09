@@ -5,7 +5,7 @@ import { scheduleLabel, categoryOf } from '../../lib/schedule.js'
 import { isScheduled } from '../../lib/schedule.js'
 import { todayStr, subDaysStr, weekdayInitial, prettyDate } from '../../lib/dates.js'
 import { habitStreak, habitBestStreak, habitRate, checkinOf } from '../../lib/stats.js'
-import AnimatedNumber from '../ui/AnimatedNumber.jsx'
+import { Metric } from '../ui/meta.jsx'
 import { CategoryIcon } from './HabitForm.jsx'
 import { IconPencil, IconArchive, IconTrash, IconBell, IconUndo } from '../../lib/icons.jsx'
 
@@ -58,18 +58,6 @@ export function Heatmap90({ habit }) {
   )
 }
 
-function Stat({ label, value, suffix }) {
-  return (
-    <div style={{ flex: 1, textAlign: 'center', padding: '10px 6px', borderRadius: 14, background: 'var(--surface-2)' }}>
-      <div className="stat-value tnum" style={{ fontSize: '1.25rem' }}>
-        <AnimatedNumber value={value} />
-        {suffix && <span style={{ fontSize: '0.9rem', color: 'var(--text-2)' }}>{suffix}</span>}
-      </div>
-      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2 }}>{label}</div>
-    </div>
-  )
-}
-
 export default function HabitDetailSheet({ habit, open, onClose, onEdit, onArchive, onDelete }) {
   const { state } = useStore()
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -98,12 +86,12 @@ export default function HabitDetailSheet({ habit, open, onClose, onEdit, onArchi
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <Stat label="current streak" value={streak} suffix={streak === 1 ? ' day' : ' days'} />
-          <Stat label="best streak" value={best} suffix={best === 1 ? ' day' : ' days'} />
+          <Metric label="Current streak" value={streak} sub={streak === 1 ? 'day' : 'days'} align="center" style={{ flex: 1 }} />
+          <Metric label="Best streak" value={best} sub={best === 1 ? 'day' : 'days'} align="center" style={{ flex: 1 }} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Stat label="30-day rate" value={rate30.rate == null ? 0 : Math.round(rate30.rate * 100)} suffix="%" />
-          <Stat label="total check-ins" value={totalDone} />
+          <Metric label="30-day rate" value={rate30.rate == null ? '—' : Math.round(rate30.rate * 100)} sub={rate30.rate == null ? 'no eligible days' : '%'} align="center" style={{ flex: 1 }} />
+          <Metric label="Total check-ins" value={totalDone} align="center" style={{ flex: 1 }} />
         </div>
 
         <div>

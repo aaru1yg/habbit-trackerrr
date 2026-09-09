@@ -43,11 +43,11 @@ export function Dot({ color = 'var(--text-3)', label }) {
  * Metric — one labelled number. delta: { dir: 'up'|'down'|'flat', text }.
  * The whole figure is one group with a text summary for screen readers.
  */
-export function Metric({ label, value, sub = null, delta = null, tone = 'neutral', align = 'start' }) {
+export function Metric({ label, value, sub = null, delta = null, tone = 'neutral', align = 'start', style = null }) {
   const summary = `${label}: ${value}${sub ? `, ${sub}` : ''}${delta ? `, ${delta.text}` : ''}`
   return (
     <div className="vmetric" data-tone={TONES.includes(tone) ? tone : 'neutral'} data-align={align}
-      role="group" aria-label={summary}>
+      role="group" aria-label={summary} style={style || undefined}>
       <span className="vmetric-label">{label}</span>
       <span className="vmetric-value tnum">{value}</span>
       {sub && <span className="vmetric-sub">{sub}</span>}

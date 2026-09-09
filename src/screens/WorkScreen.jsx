@@ -4,7 +4,7 @@ import { useRoute, navigate } from '../lib/router.jsx'
 import useNow from '../lib/useNow.js'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { WorkTabs } from '../components/layout/Navigation.jsx'
-import UniversalWorkRow from '../components/work/UniversalWorkRow.jsx'
+import { WorkItem } from '../components/entity/work.jsx'
 import { workWorkspace, workView, workHref, filterWork, deadlineGroups, FILTERS } from '../components/work/workViewModel.js'
 import { minutesLabel, prettyDate } from '../lib/dates.js'
 import '../styles/workspace.css'
@@ -13,7 +13,7 @@ const WorkPlanning = lazy(() => import('../components/work/WorkPlanning.jsx'))
 
 const time = value => value == null ? 'Not set' : minutesLabel(Math.abs(Math.round(value)))
 function Rows({ rows, now, empty = 'No work matches this view.' }) {
-  return rows.length ? <div className="workspace-list">{rows.map(row => <UniversalWorkRow key={row.key} row={row} now={now} />)}</div> : <p className="empty-note">{empty}</p>
+  return rows.length ? <div className="workspace-list">{rows.map(row => <WorkItem key={row.key} row={row} now={now} />)}</div> : <p className="empty-note">{empty}</p>
 }
 
 export default function WorkScreen({ route = 'work' }) {

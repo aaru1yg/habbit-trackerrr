@@ -1,6 +1,5 @@
 /* ============================================================
-   WORK ENTITY — WorkItem / ProjectCard / AssignmentCard /
-   MilestoneRow + WorkStatus (V5).
+   WORK ENTITY — WorkItem + WorkStatus (V5).
 
    One work DNA: status pill (engine label + tone, always with
    text), name, honest meta (due/effort/risk), progress meter,
@@ -11,9 +10,8 @@ import { lazy, Suspense, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import { useWorkUI } from '../work/WorkUIProvider.jsx'
 import { itemActions } from '../../lib/commandActions.js'
-import { minutesLabel } from '../../lib/dates.js'
-import { allTasks } from '../../lib/work.js'
-import { accentVars } from '../../lib/accent.js'
+import { minutesLabel, prettyDateTime } from '../../lib/dates.js'
+import { projectContext } from '../work/workViewModel.js'
 import { Badge, StatusPill } from '../ui/meta.jsx'
 import { Button } from '../ui/controls.jsx'
 import WorkFocus from '../work/WorkFocus.jsx'
@@ -35,7 +33,7 @@ export function WorkStatus({ status }) {
  * WorkItem — the universal work row. row: workViewModel row
  * ({ key, kind, item, status, href, risk, remainingMin, ... }).
  */
-export function WorkItem({ row }) {
+export function WorkItem({ row, now }) {
   const { dispatch } = useStore()
   const work = useWorkUI()
   const [actionsOpen, setActionsOpen] = useState(false)
@@ -43,6 +41,7 @@ export function WorkItem({ row }) {
   const { item, kind, status } = row
   const actions = itemActions(kind, item)
   const complete = actions.find((a) => a.id === 'complete')
+  const context = kind === 'project' ? projectContext(row, now) : null
 
   const handleAction = (action) => {
     if (action.focus) { setFocusOpen(true); return true }
@@ -69,13 +68,15 @@ export function WorkItem({ row }) {
         )}
         <div className="vwork-meta">
           <WorkStatus status={status} />
-          <span>{row.day ? `Due ${row.day}` : 'No deadline'}</span>
-          <span>{row.remainingMin == null ? 'Effort not estimated' : `${minutesLabel(Math.round(row.remainingMin))} left`}</span>
+          <span>{row.day ? `Due ${prettyDateTime(item.deadline)}` : 'No deadline'}</span>
+          <span>{row.remainingMin == null ? 'Effort not estimated' : `${minutesLabel(Math.round(row.remainingMin))} remaining`}</span>
+          <span className="vwork-risk" data-risk={row.risk}>{row.risk === 'SAFE' ? 'No deadline risk' : row.risk}</span>
         </div>
+        {context && <p className="tiny muted">{context.progress.done}/{context.progress.total} tasks · Projected completion: {context.forecast.projectedCompletion ? prettyDateTime(context.forecast.projectedCompletion) : 'Not enough history'}</p>}
       </div>
 
       <div className="vwork-progress">
-        <span className="vwork-pct tnum">{status.pct}%</span>
+        <span className="vwork-pct tnum">{status.pct}% complete</span>
         <span className="meter" role="img" aria-label={`${item.name}: ${status.pct}% complete`}>
           <i style={{ width: `${Math.max(0, Math.min(100, status.pct))}%` }} />
         </span>
@@ -109,81 +110,5 @@ export function WorkItem({ row }) {
       )}
       {focusOpen && <WorkFocus item={item} onClose={() => setFocusOpen(false)} />}
     </article>
-  )
-}
-
-/** ProjectCard — gallery/list card with accent scope. */
-export function ProjectCard({ project, status }) {
-  const tasks = allTasks(project)
-  const done = tasks.filter((t) => t.done).length
-  return (
-    <article className="vproj" style={accentVars(project.accent)} aria-label={`Project: ${project.name}`}>
-      <div className="vproj-top">
-        <a className="vproj-name" href={`#/projects/${project.id}`}>{project.name}</a>
-        <WorkStatus status={status} />
-      </div>
-      <div className="vproj-prog">
-        <span className="tnum">{status.pct}%</span>
-        <span className="meter" role="img" aria-label={`${project.name}: ${status.pct}% complete`}>
-          <i style={{ width: `${Math.max(0, Math.min(100, status.pct))}%` }} />
-        </span>
-      </div>
-      <p className="vproj-meta">
-        {tasks.length ? `${done} of ${tasks.length} tasks` : 'No tasks yet'}
-        {status.dueText ? ` · ${status.dueText}` : ''}
-      </p>
-    </article>
-  )
-}
-
-/** AssignmentCard — deliverable card with accent scope. */
-export function AssignmentCard({ assignment, status }) {
-  const subs = assignment.subtasks || []
-  const done = subs.filter((s) => s.done).length
-  const meta = subs.length
-    ? `${done} of ${subs.length} subtasks${status.dueText ? ` · ${status.dueText}` : ''}`
-    : (status.dueText || 'No deadline')
-  return (
-    <article className="vasgn" style={accentVars(assignment.accent)} aria-label={`Assignment: ${assignment.name}`}>
-      <div className="vasgn-top">
-        <a className="vasgn-name" href={`#/assignments/${assignment.id}`}>{assignment.name}</a>
-        <WorkStatus status={status} />
-      </div>
-      {assignment.subject && <p className="vasgn-subject">{assignment.subject}</p>}
-      <div className="vasgn-prog">
-        <span className="tnum">{status.pct}%</span>
-        <span className="meter" role="img" aria-label={`${assignment.name}: ${status.pct}% complete`}>
-          <i style={{ width: `${Math.max(0, Math.min(100, status.pct))}%` }} />
-        </span>
-      </div>
-      <p className="vasgn-meta">{meta}</p>
-    </article>
-  )
-}
-
-/** MilestoneRow — one milestone with its tasks summarized. */
-export function MilestoneRow({ milestone, onToggle, href }) {
-  const tasks = milestone.tasks || []
-  const done = tasks.filter((t) => t.done).length
-  return (
-    <div className={`vms${milestone.done ? ' is-done' : ''}`}>
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={!!milestone.done}
-        className="vms-check"
-        aria-label={`${milestone.done ? 'Reopen' : 'Complete'} milestone ${milestone.name}`}
-        onClick={onToggle}
-      >
-        <span className="vms-box" aria-hidden="true">{milestone.done ? '✓' : ''}</span>
-      </button>
-      <div className="vms-body">
-        {href ? <a className="vms-name" href={href}>{milestone.name}</a> : <span className="vms-name">{milestone.name}</span>}
-        <span className="vms-meta">
-          {tasks.length ? `${done} of ${tasks.length} tasks` : 'No tasks yet'}
-          {milestone.due ? ` · due ${milestone.due}` : ''}
-        </span>
-      </div>
-    </div>
   )
 }

@@ -6,7 +6,6 @@ import {
   Field, TextInput, SelectInput, Toggle, SearchField, ColorField, FormFooter, describedProps,
 } from '../src/components/ui/fields.jsx'
 import { Skeleton, LoadingBlock, ErrorNote, InlineEmpty } from '../src/components/ui/feedback.jsx'
-import { Tooltip, Popover } from '../src/components/ui/overlays.jsx'
 
 describe('controls', () => {
   it('Button renders variant/size, loading disables with busy state', () => {
@@ -135,21 +134,5 @@ describe('feedback', () => {
   it('InlineEmpty carries one action', () => {
     render(<InlineEmpty title="No goals yet" action={<button type="button">Create goal</button>} />)
     expect(screen.getByRole('button', { name: 'Create goal' })).toBeTruthy()
-  })
-})
-
-describe('overlays', () => {
-  it('Tooltip reveals its label on focus', () => {
-    render(<Tooltip label="More info"><button type="button">Hover me</button></Tooltip>)
-    fireEvent.focus(screen.getByRole('button', { name: 'Hover me' }))
-    expect(screen.getByRole('tooltip', { name: 'More info' })).toBeTruthy()
-  })
-
-  it('Popover opens and closes with Escape', () => {
-    render(<Popover label="Menu" trigger={<button type="button">Open</button>}><button type="button">Item</button></Popover>)
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }))
-    expect(screen.getByRole('dialog', { name: 'Menu' })).toBeTruthy()
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('dialog', { name: 'Menu' })).toBeNull()
   })
 })

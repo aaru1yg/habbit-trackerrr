@@ -273,36 +273,6 @@
 .vempty-title { font: 700 var(--fs-body)/1.4 var(--font-body); color: var(--text); margin: 0; }
 .vempty-sub { font-size: var(--fs-sm); color: var(--text-2); margin: 0; max-width: 40ch; }
 
-/* ---------------- Tooltip / Popover ---------------- */
-
-.vtip-anchor { position: relative; display: inline-flex; }
-.vtip {
-  position: absolute; z-index: var(--z-tip);
-  bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  background: var(--surface-3); color: var(--text);
-  border: 1px solid var(--border-2); border-radius: 8px;
-  font: 500 var(--fs-xs)/1.4 var(--font-body);
-  padding: 6px 10px; white-space: nowrap; max-width: 260px;
-  box-shadow: var(--e-2);
-  animation: vfade var(--dur-2) var(--ease-out);
-}
-.vtip[data-pos='bottom'] { bottom: auto; top: calc(100% + 8px); }
-@keyframes vfade { from { opacity: 0; } }
-
-.vpop-anchor { position: relative; display: inline-flex; }
-.vpop {
-  position: absolute; z-index: var(--z-pop);
-  top: calc(100% + 8px);
-  min-width: 220px; max-width: min(320px, 80vw);
-  background: var(--surface-solid, var(--surface));
-  border: 1px solid var(--border-2); border-radius: var(--r-md);
-  box-shadow: var(--e-3);
-  padding: var(--space-1);
-  animation: vfade var(--dur-2) var(--ease-out);
-}
-.vpop[data-align='end'] { right: 0; }
-.vpop[data-align='start'] { left: 0; }
-
 /* ---------------- Coarse-pointer touch floors ---------------- */
 
 @media (pointer: coarse) {
@@ -318,5 +288,4 @@
   .vbtn-spin { animation-duration: 1.6s; }
   .vbtn:active { transform: none; }
   .vcolor-swatch:hover { transform: none; }
-  .vtip, .vpop { animation: none; }
 }

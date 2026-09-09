@@ -696,10 +696,10 @@ console.log('\n— Projects & celebration (mobile) —')
   await sleep(500)
   const ptxt = await page.evaluate(() => document.body.textContent)
   check('projects dashboard shows real task math (3 of 5 = 60%)', ptxt.includes('60%'))
-  check('projects are tagged as their own kind', await page.evaluate(() => document.querySelectorAll('.workspace-row[data-kind="project"]').length >= 2))
+  check('projects are tagged as their own kind', await page.evaluate(() => document.querySelectorAll('.vwork[data-kind="project"]').length >= 2))
   check('status engine reports real states (at risk + completed)', /AT RISK|CRITICAL|OVERDUE/.test(ptxt) && /Completed/.test(ptxt))
   check('project rows surface deterministic work risk', await page.evaluate(() => {
-    const pills = [...document.querySelectorAll('.workspace-row[data-kind="project"] .workspace-risk')].map((e) => e.textContent.trim())
+    const pills = [...document.querySelectorAll('.vwork[data-kind="project"] .vwork-risk')].map((e) => e.textContent.trim())
     return pills.length >= 2 && pills.every(Boolean)
   }))
   check('projects dashboard shows deadline countdowns', /\dd left|days left|Due/i.test(ptxt))
@@ -791,10 +791,10 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await seedAndGoto(page, seededStateV4(), 'assignments', BASE)
   await sleep(500)
   const atxt = await page.evaluate(() => document.body.textContent)
-  check('assignments are their own system (ASSIGNMENT tags)', await page.evaluate(() => document.querySelectorAll('.workspace-row[data-kind="assignment"]').length >= 2))
+  check('assignments are their own system (ASSIGNMENT tags)', await page.evaluate(() => document.querySelectorAll('.vwork[data-kind="assignment"]').length >= 2))
   check('assignment due today is called out', /Due /i.test(atxt))
   check('assignment urgency states are real (urgent + overdue)', /CRITICAL/.test(atxt) && /OVERDUE/.test(atxt))
-  check('deliverables lead with deadline, effort and progress', await page.evaluate(() => !!document.querySelector('.workspace-meta') && !!document.querySelector('.workspace-progress')))
+  check('deliverables lead with deadline, effort and progress', await page.evaluate(() => !!document.querySelector('.vwork-meta') && !!document.querySelector('.vwork-progress')))
   await shot(page, '16-assignments')
   await overflowCheck(page, 'assignments')
   await tapTargetCheck(page, 'assignments')
@@ -846,7 +846,7 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
     return rows.length === 7 && rows.every(r => r.getBoundingClientRect().height >= 43)
   }))
   check('[workload] contributors use original detail links', await page.evaluate(() => {
-    const links = [...document.querySelectorAll('.workspace-row-title')]
+    const links = [...document.querySelectorAll('.vwork-title')]
     return links.every(r => /#\/(projects|assignments)\//.test(r.getAttribute('href')))
   }))
   await shot(page, '16e-workload')
@@ -1514,12 +1514,12 @@ console.log('\n— V4 spatial —')
   await page.goto(`${BASE}/#/assignments`, { waitUntil: 'networkidle0' })
   await sleep(700)
   const press = await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('.workspace-row[data-kind="assignment"]')]
+    const rows = [...document.querySelectorAll('.vwork[data-kind="assignment"]')]
     return {
       rows: rows.length,
-      deadlines: rows.every((r) => /Due .+|No deadline/.test(r.querySelector('.workspace-meta')?.textContent || '')),
-      risks: rows.every((r) => /OVERDUE|CRITICAL|AT RISK|DUE SOON|No deadline risk|ON TRACK|SAFE/i.test(r.querySelector('.workspace-risk')?.textContent || '')),
-      labelled: rows.every((r) => /\d+% complete/.test(r.querySelector('.workspace-progress [aria-label]')?.getAttribute('aria-label') || '')),
+      deadlines: rows.every((r) => /Due .+|No deadline/.test(r.querySelector('.vwork-meta')?.textContent || '')),
+      risks: rows.every((r) => /OVERDUE|CRITICAL|AT RISK|DUE SOON|No deadline risk|ON TRACK|SAFE/i.test(r.querySelector('.vwork-risk')?.textContent || '')),
+      labelled: rows.every((r) => /\d+% complete/.test(r.querySelector('.vwork-progress [aria-label]')?.getAttribute('aria-label') || '')),
     }
   })
   check('V4 pressure: every deliverable states deadline, progress and risk',

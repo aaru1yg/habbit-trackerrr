@@ -14,7 +14,7 @@ import { HBarList } from '../components/charts/workCharts.jsx'
 const ProjectTrack = lazy(() => import('../components/work/ProjectTrack.jsx'))
 const ProjectAnalyticsDetail = lazy(() => import('../components/work/ProjectAnalyticsDetail.jsx'))
 import { useRoute } from '../lib/router.jsx'
-import UniversalWorkRow from '../components/work/UniversalWorkRow.jsx'
+import { WorkItem } from '../components/entity/work.jsx'
 import { workWorkspace } from '../components/work/workViewModel.js'
 import '../styles/workspace.css'
 import {
@@ -168,7 +168,7 @@ export default function ProjectDetailScreen({ id }) {
           )}
         </SectionCard>
 
-        <section className="project-next-work"><h2>Next work</h2>{nextWork ? <UniversalWorkRow row={nextWork} now={now} /> : <p className="empty-note">{status.complete ? 'All work complete.' : 'Add a task below to make the next step clear.'}</p>}</section>
+        <section className="project-next-work"><h2>Next work</h2>{nextWork ? <WorkItem row={nextWork} now={now} /> : <p className="empty-note">{status.complete ? 'All work complete.' : 'Add a task below to make the next step clear.'}</p>}</section>
 
         {/* Milestones */}
         {track.length > 0 && (

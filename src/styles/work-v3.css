@@ -1,0 +1,109 @@
+/* HABIT OS V3 · WORK capacity composition */
+
+.work-capacity-visual {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border-color: color-mix(in srgb, var(--accent-1) 22%, var(--border));
+  background:
+    radial-gradient(75% 125% at 0% 0%, color-mix(in srgb, var(--accent-1) 10%, transparent), transparent 68%),
+    var(--surface);
+}
+
+.work-capacity-visual.is-compact {
+  padding-block: 18px;
+}
+
+.work-capacity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.work-capacity-head h3 {
+  margin-top: 4px;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+}
+
+.chart-series-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 6px;
+}
+
+.chart-series-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  transition: color var(--dur-2) var(--ease-out), background var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
+}
+
+.chart-series-button:hover,
+.chart-series-button:focus-visible {
+  color: var(--text);
+  border-color: var(--border-2);
+}
+
+.chart-series-button.is-active {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--border-2);
+}
+
+.chart-series-button i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.work-capacity-visual .trend-chart {
+  margin: 2px -4px -2px;
+}
+
+.work-capacity-visual .trend-chart svg {
+  min-height: 148px;
+}
+
+.chart-summary {
+  max-width: 100%;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  line-height: 1.5;
+}
+
+@media (max-width: 620px) {
+  .work-capacity-head {
+    display: block;
+  }
+
+  .chart-series-toggle {
+    justify-content: start;
+    margin-top: 12px;
+  }
+
+  .chart-series-button {
+    min-height: 40px;
+    padding-inline: 9px;
+  }
+
+  .chart-summary {
+    max-height: 3.2em;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-series-button {
+    transition-duration: 1ms;
+  }
+}

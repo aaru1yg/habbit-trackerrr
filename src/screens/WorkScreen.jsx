@@ -7,6 +7,7 @@ import { WorkTabs } from '../components/layout/Navigation.jsx'
 import UniversalWorkRow from '../components/work/UniversalWorkRow.jsx'
 import { workWorkspace, workView, workHref, filterWork, deadlineGroups, FILTERS } from '../components/work/workViewModel.js'
 import { minutesLabel, prettyDate } from '../lib/dates.js'
+import WorkCapacitySeries from '../components/work/WorkCapacitySeries.jsx'
 import '../styles/workspace.css'
 const ProjectGallery = lazy(() => import('../components/work/ProjectGallery.jsx'))
 const WorkPlanning = lazy(() => import('../components/work/WorkPlanning.jsx'))
@@ -67,6 +68,7 @@ export function WorkOverview({ model, now, onPlan }) {
       <a href={`#/${workHref('deadlines', 'soon', '7')}`}><span>Due soon</span><strong>{model.horizons[3].count}</strong><small>Next 7 days</small></a>
       <a href={`#/${workHref('overview', 'active')}`}><span>Active work</span><strong>{model.active.length}</strong><small>Across your workspace</small></a>
     </div>
+    <WorkCapacitySeries rows={model.load} compact />
     <section className="workspace-active"><div className="workspace-section-head"><h2>Active work</h2><div role="group" aria-label="Work status"><button className="btn ghost sm" aria-pressed={filter === 'active'} onClick={() => setFilter('active')}>Active</button><button className="btn ghost sm" aria-pressed={filter === 'completed'} onClick={() => setFilter('completed')}>Completed</button></div></div>
       {model.next && filter === 'active' && <p className="tiny muted workspace-next">Suggested next: <a href={`#/${model.next.item.kind === 'project' ? 'projects' : 'assignments'}/${model.next.item.id}`}>{model.next.item.name}</a></p>}
       <Rows rows={visible} now={now} empty={filter === 'completed' ? 'No completed work yet.' : 'No active work. Your commitments are clear.'} />
@@ -106,6 +108,7 @@ export function WorkloadView({ model, now, options, onPlan }) {
   const day = model.load.find(d => d.date === selected) || model.load[0]
   const contributors = new Set(day.items.map(item => `${item.kind === 'project task' ? 'project-task' : item.kind === 'goal/project milestone' ? 'milestone' : item.kind}:${item.id}`))
   return <section aria-labelledby="workload-heading"><div className="workspace-section-head"><h2 id="workload-heading">Workload</h2><button className="btn ghost" onClick={() => onPlan('plan')}>Plan</button></div><p>Can your capacity cover your commitments?</p><p className="tiny muted">{prettyDate(day.date)} · existing deadline-based estimates, not a scheduled time budget. Unestimated work is not counted as effort.</p><Capacity day={day} />{day.availableMin == null && <p><a className="workspace-capacity-link" href="#/settings">Set daily capacity in Settings</a> to see remaining room.</p>}
+    <WorkCapacitySeries rows={model.load} />
     <h3>Day-by-day load</h3><div className="workspace-days" role="group" aria-label="Workload day">{model.load.map(d => <button key={d.date} className="btn ghost" aria-pressed={day.date === d.date} onClick={() => setSelected(d.date)}><strong>{d.label}</strong><span>{time(d.committedMin)} committed</span><small>{d.availableMin == null ? 'Capacity not set' : `${time(d.remainingMin)} ${d.overloaded ? 'over capacity' : 'remaining'}`}</small></button>)}</div>
     <h3>Contributors</h3><Rows rows={filterWork(model.rows.filter(r => contributors.has(r.key)), options, model)} now={now} empty="No matching work lands on this day." />
   </section>

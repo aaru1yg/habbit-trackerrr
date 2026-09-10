@@ -15,7 +15,9 @@ name: V3 final visual QA
 
 on:
   push:
-    branches: [arena/01a087c7-habbit-trackerrr]
+    branches:
+      - arena/01a087c7-habbit-trackerrr
+      - arena/01a08afb-habbit-trackerrr
   workflow_dispatch:
 
 permissions:

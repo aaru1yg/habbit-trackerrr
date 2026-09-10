@@ -60,6 +60,11 @@ async function contrastCheck(page, label) {
       let m = c.match(/\d+(\.\d+)?/g)
       if (!m) return null
       let [r, g, b] = m.slice(0, 3).map(Number)
+      // Chrome computes color-mix() to color(srgb r g b) with 0–1 floats; read
+      // them as channel ratios (the same normalisation parseColor applies),
+      // otherwise a light accent tint is measured as near-black and every
+      // dark-theme chip is falsely reported at ~1.4:1.
+      if (c.startsWith('color(')) { r *= 255; g *= 255; b *= 255 }
       const n = [r, g, b].map((v) => {
         v /= 255
         return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)

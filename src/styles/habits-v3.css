@@ -1,0 +1,128 @@
+/* HABIT OS V3 · HABITS / CALENDAR / DETAIL */
+
+.hrow-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hrow-identity .hrow-name {
+  min-width: 0;
+  flex: 1;
+}
+
+.hrow-identity .habit-ring {
+  background: color-mix(in srgb, var(--habit-soft) 72%, transparent);
+  border-radius: 50%;
+}
+
+.habits-screen[data-view='active'] .habit-list-view {
+  gap: 14px;
+}
+
+.habits-screen[data-view='active'] .filter-bar {
+  padding: 5px;
+  border-color: color-mix(in srgb, var(--accent-1) 18%, var(--border));
+  background: color-mix(in srgb, var(--surface-2) 88%, var(--bg-deep));
+}
+
+.habits-screen[data-view='active'] .hrow {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--habit-color, var(--accent-1)) 18%, var(--border));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--habit-color, var(--accent-1)) 6%, transparent), transparent 58%),
+    var(--surface);
+}
+
+.habits-screen[data-view='active'] .hrow.is-done {
+  border-color: color-mix(in srgb, var(--habit-color, var(--good)) 34%, var(--border));
+}
+
+/* Calendar is data-dense by design: contrast and rhythm do the work, not
+   decorative 3D. */
+.cal-view,
+.week-view,
+.habit-detail {
+  --data-surface: color-mix(in srgb, var(--surface) 94%, var(--bg-deep));
+}
+
+.cal-controls,
+.week-nav {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--data-surface);
+  box-shadow: var(--e-1), var(--e-hairline);
+}
+
+.calendar-matrix-card {
+  border-color: color-mix(in srgb, var(--accent-1) 16%, var(--border));
+}
+
+.cal-title {
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  letter-spacing: var(--tr-title);
+}
+
+.cal-cell.today,
+.cal-dens.is-today {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-2) 58%, transparent);
+}
+
+.cal-name {
+  background: linear-gradient(90deg, var(--surface-2), var(--surface));
+}
+
+.cal-summary,
+.week-hero,
+.habit-now {
+  border-color: color-mix(in srgb, var(--accent-1) 22%, var(--border));
+  background:
+    radial-gradient(85% 130% at 0% 0%, color-mix(in srgb, var(--accent-1) 9%, transparent), transparent 70%),
+    var(--surface);
+}
+
+.habit-now-inner {
+  align-items: center;
+}
+
+.habit-now-streak {
+  position: relative;
+  min-width: 118px;
+}
+
+.habit-now-streak .habit-ring {
+  margin-bottom: 9px;
+  --habit-color: var(--cat-mind);
+  --habit-soft: var(--accent-soft);
+  --habit-strong: var(--accent-1-lift);
+}
+
+.habit-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.habit-detail-title .habit-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+@media (max-width: 559px) {
+  .hrow-identity {
+    align-items: flex-start;
+  }
+
+  .hrow-identity .habit-ring {
+    margin-top: 3px;
+  }
+
+  .habit-now-streak {
+    min-width: 100px;
+  }
+}

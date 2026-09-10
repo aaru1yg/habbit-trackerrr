@@ -195,3 +195,47 @@ describe('honesty in the UI', () => {
     await waitFor(() => expect(screen.getByText(/cadence, not completion/)).toBeTruthy())
   })
 })
+
+/* ------------------------------------------------------------ */
+describe('trajectory chart (V3 final visual QA regression)', () => {
+  /* The Lab once passed name/tone/dashed to LineSeries, which reads
+     label/color/dash. Actual and Expected rendered as two identical solid
+     accent lines and the hover tooltip showed ": 33%" with no series name.
+     These tests pin the readable Actual-vs-Expected language. */
+  const openTrajectory = async () => {
+    await openLab()
+    fireEvent.click(screen.getByRole('tab', { name: 'Trajectory' }))
+    await screen.findByText('Performance trajectory')
+    return waitFor(() => {
+      const svg = document.querySelector('.lab-trajectory .trend-chart svg')
+      expect(svg).toBeTruthy()
+      return svg
+    })
+  }
+
+  it('draws Actual as a solid accent line and Expected as a muted dashed line', async () => {
+    const svg = await openTrajectory()
+    const strokes = [...svg.querySelectorAll('path')].map(p => ({
+      stroke: p.getAttribute('stroke'),
+      dash: p.getAttribute('stroke-dasharray'),
+    }))
+    const actual = strokes.find(s => s.stroke === 'var(--accent-2)')
+    const expected = strokes.find(s => s.stroke === 'var(--text-3)')
+    expect(actual).toBeTruthy()
+    expect(actual.dash).toBeNull()
+    expect(expected).toBeTruthy()
+    expect(expected.dash).toBe('4 5')
+  })
+
+  it('names each series in the selected-point tooltip', async () => {
+    const svg = await openTrajectory()
+    const hits = svg.querySelectorAll('rect[fill="transparent"]')
+    expect(hits.length).toBeGreaterThan(1)
+    fireEvent.click(hits[Math.floor(hits.length / 2)])
+    await waitFor(() => {
+      const texts = [...svg.querySelectorAll('text')].map(t => t.textContent)
+      expect(texts.some(t => /^Actual: /.test(t))).toBeTruthy()
+      expect(texts.some(t => /^Expected: /.test(t))).toBeTruthy()
+    })
+  })
+})

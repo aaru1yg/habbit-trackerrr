@@ -1,0 +1,135 @@
+/* HABIT OS V3 · WORK capacity composition */
+
+.work-capacity-visual {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border-color: color-mix(in srgb, var(--accent-1) 22%, var(--border));
+  background:
+    radial-gradient(75% 125% at 0% 0%, color-mix(in srgb, var(--accent-1) 10%, transparent), transparent 68%),
+    var(--surface);
+}
+
+.work-capacity-visual.is-compact {
+  padding-block: 18px;
+}
+
+.work-capacity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.work-capacity-head h3 {
+  margin-top: 4px;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+}
+
+.chart-series-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 6px;
+}
+
+.chart-series-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  /* The app-wide touch contract (see .quick-action, .lab-tab): interactive
+     controls clear var(--touch, 44px). 38px broke the 390×844 / 430×932
+     tap-target guarantee the rest of the shell keeps. */
+  min-height: var(--touch, 44px);
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  transition: color var(--dur-2) var(--ease-out), background var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out);
+}
+
+.chart-series-button:hover,
+.chart-series-button:focus-visible {
+  color: var(--text);
+  border-color: var(--border-2);
+}
+
+.chart-series-button.is-active {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--border-2);
+}
+
+.chart-series-button i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.work-capacity-visual .trend-chart {
+  margin: 2px -4px -2px;
+}
+
+/* Under 760px the overview collapses to a single flex column. On phones the
+   pre-existing overload banner + summary already claim the first screen, and
+   this 390px-tall chart pushed the Active work list below the fold
+   (top=942px at 390×844 / 430×932 — the e2e fold guarantee allows 764/852).
+   Keep the chart on the Overview, directly after the Active work list, by
+   flex order; DOM (and therefore tab/reading order) is untouched, and the
+   desktop grid keeps the chart in its original position. */
+@media (max-width: 760px) {
+  .workspace-overview > .work-capacity-visual {
+    order: 1;
+  }
+
+  .workspace-overview > .workspace-attention,
+  .workspace-overview > .workspace-horizon,
+  .workspace-overview > .workspace-capacity,
+  .workspace-overview > .workspace-recent {
+    order: 2;
+  }
+}
+
+.work-capacity-visual .trend-chart svg {
+  min-height: 148px;
+}
+
+.chart-summary {
+  max-width: 100%;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  line-height: 1.5;
+}
+
+@media (max-width: 620px) {
+  .work-capacity-head {
+    display: block;
+  }
+
+  .chart-series-toggle {
+    justify-content: start;
+    margin-top: 12px;
+  }
+
+  .chart-series-button {
+    /* Compact padding is fine, but the touch target itself must still clear
+       the 44px contract — this media query covers exactly the phone widths
+       where undersized targets are least acceptable. */
+    min-height: var(--touch, 44px);
+    padding-inline: 9px;
+  }
+
+  .chart-summary {
+    max-height: 3.2em;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-series-button {
+    transition-duration: 1ms;
+  }
+}

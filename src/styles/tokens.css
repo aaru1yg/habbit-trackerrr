@@ -135,6 +135,7 @@
   --border-1: var(--border);       /* hairline border colour */
   --surface-1: var(--surface);     /* stacked surface colour  */
   --hairline: var(--border);       /* subtle divider line    */
+  --line: var(--border);            /* legacy form / adaptive divider */
 }
 
 /* ============================================================

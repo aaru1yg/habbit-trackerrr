@@ -1,0 +1,278 @@
+/* ============================================================
+   HABIT OS V3 · TODAY
+   One command surface, one habit completion language, one quiet
+   layer of contextual work. This file is presentation-only: the
+   existing adaptive, planning and schedule engines remain the source
+   of every value rendered here.
+   ============================================================ */
+
+.today-stage > .sp-cam > .stack {
+  gap: clamp(14px, 1.7vw, 20px);
+}
+
+.today-hero-v3 {
+  border-color: color-mix(in srgb, var(--accent-1) 22%, var(--border));
+  background:
+    radial-gradient(90% 130% at 6% 42%, color-mix(in srgb, var(--accent-1) 12%, transparent), transparent 68%),
+    radial-gradient(75% 100% at 96% 0%, color-mix(in srgb, var(--accent-2) 8%, transparent), transparent 64%),
+    var(--surface);
+}
+
+.today-hero-v3 .today-hero-copy {
+  max-width: 56ch;
+}
+
+.today-hero-v3 .today-summary strong {
+  font-size: clamp(1.5rem, 3.2vw, 2.25rem);
+}
+
+/* The decision object is the first surface after the hero. */
+.adaptive-next {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--accent-1) 34%, var(--border));
+  background:
+    radial-gradient(72% 150% at 0% 0%, color-mix(in srgb, var(--accent-1) 14%, transparent), transparent 72%),
+    var(--surface);
+  box-shadow: var(--e-2), var(--e-hairline);
+}
+
+.adaptive-next::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent-1));
+}
+
+.adaptive-next .card-head {
+  position: relative;
+  z-index: 1;
+}
+
+.today-stage .today-next-main {
+  align-items: end;
+}
+
+.today-stage .today-next-main h2 {
+  margin: 5px 0 7px;
+  font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+  letter-spacing: var(--tr-title);
+  text-wrap: balance;
+}
+
+.today-stage .adaptive-next .today-reason {
+  max-width: 58ch;
+  line-height: var(--lh-body);
+}
+
+.today-stage .adaptive-next .today-actions .btn.primary {
+  min-width: 112px;
+}
+
+.today-stage .adaptive-next .today-why {
+  border-color: var(--border);
+}
+
+.adaptive-priorities,
+.adaptive-capacity {
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg-deep));
+}
+
+.today-stage .today-capacity-grid span {
+  border: 1px solid var(--border);
+  background: var(--surface-inset);
+}
+
+.today-work-count {
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* HabitCard / HabitRing — one accent per habit, derived from the
+   category token and never a screen-specific hex value. */
+.habit-card {
+  --habit-color: var(--accent-1);
+  --habit-soft: var(--accent-soft);
+  --habit-strong: var(--accent-1-lift);
+  background:
+    linear-gradient(90deg, var(--habit-soft), transparent 55%),
+    var(--surface-inset);
+  border-color: color-mix(in srgb, var(--habit-color) 20%, var(--border));
+}
+
+.habit-card::before {
+  background: var(--habit-color);
+  opacity: 0.94;
+}
+
+.habit-card:hover {
+  border-color: color-mix(in srgb, var(--habit-color) 48%, var(--border-2));
+  background:
+    linear-gradient(90deg, var(--habit-soft), transparent 65%),
+    var(--surface-inset);
+}
+
+.habit-card.done {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--habit-color) 18%, transparent), transparent 64%),
+    var(--good-soft);
+  border-color: color-mix(in srgb, var(--habit-color) 44%, var(--border));
+}
+
+.habit-ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  color: var(--habit-strong, var(--accent-1-lift));
+}
+
+.habit-ring svg {
+  transform: rotate(-90deg);
+}
+
+.habit-ring-track {
+  stroke: color-mix(in srgb, var(--habit-color) 18%, var(--track));
+}
+
+.habit-ring-progress {
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--habit-color) 30%, transparent));
+}
+
+.habit-ring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  font-weight: var(--fw-extrabold);
+  line-height: 1;
+}
+
+.habit-ring-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--habit-color) 58%, var(--text-3));
+}
+
+.habit-ring.is-done .habit-ring-center {
+  color: var(--habit-color);
+}
+
+.habit-ring-streak {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  min-height: 18px;
+  padding: 0 4px;
+  border: 2px solid var(--surface-inset);
+  border-radius: var(--r-pill);
+  background: var(--habit-color);
+  color: var(--bg-deep);
+  font-size: 10px;
+  font-weight: var(--fw-extrabold);
+}
+
+/* Daylight's saturated category pills need full-white ink: the shared
+   --bg-deep off-white (#e9e8e3) lands at 4.4:1 on the deepest greens. */
+[data-theme='daylight'] .habit-ring-streak {
+  color: #fff;
+}
+
+.habit-card .habit-meta {
+  gap: 7px;
+}
+
+.habit-card .habit-meta .chip {
+  color: var(--habit-strong);
+  border-color: color-mix(in srgb, var(--habit-color) 32%, var(--border));
+  background: var(--habit-soft);
+}
+
+.today-section .habit-card .habit-name {
+  font-size: 1rem;
+}
+
+.today-section .habit-card.done .habit-name {
+  color: var(--text-2);
+}
+
+/* Contextual surfaces stay visually secondary to Today's work. */
+.today-timeline,
+.today-goals,
+.today-priorities,
+.today-insight,
+.today-missed {
+  border-color: color-mix(in srgb, var(--border-2) 70%, transparent);
+}
+
+.today-timeline .card-head,
+.today-goals .card-head,
+.today-priorities .card-head {
+  margin-bottom: 12px;
+}
+
+@media (min-width: 960px) {
+  .today-stage > .sp-cam > .stack {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    align-items: start;
+  }
+
+  .today-stage > .sp-cam > .stack > .today-hero,
+  .today-stage > .sp-cam > .stack > .adaptive-next,
+  .today-stage > .sp-cam > .stack > .quick-actions,
+  .today-stage > .sp-cam > .stack > .adaptive-emphasis,
+  .today-stage > .sp-cam > .stack > .adaptive-priorities,
+  .today-stage > .sp-cam > .stack > .adaptive-capacity,
+  .today-stage > .sp-cam > .stack > .today-section,
+  .today-stage > .sp-cam > .stack > .today-goals,
+  .today-stage > .sp-cam > .stack > .today-missed {
+    grid-column: 1 / -1;
+  }
+
+  .today-stage > .sp-cam > .stack > .today-priorities,
+  .today-stage > .sp-cam > .stack > .today-timeline,
+  .today-stage > .sp-cam > .stack > .today-insight {
+    grid-column: auto;
+  }
+
+  .today-stage .today-next-main {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 0.45fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .today-work-count {
+    display: none;
+  }
+
+  .today-stage .today-next-main {
+    display: block;
+  }
+
+  .today-stage .today-meta {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .today-stage .today-capacity-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .habit-ring-progress {
+    filter: none;
+  }
+}

@@ -214,10 +214,15 @@ function TrajectoryView({ state, now }) {
   if (!entities.length) return <NotEnough text="Create a goal, project, assignment or habit to see a trajectory." />
 
   const series = traj?.past?.length
-    ? [{ id: 'actual', name: 'Actual', points: traj.past.map((r) => ({ date: r.day || r.date, value: r.pct })), tone: 'accent' }]
+    ? [{ id: 'actual', label: 'Actual', color: 'var(--accent-2)', points: traj.past.map((r) => ({ date: r.day || r.date, value: r.pct })) }]
     : []
   if (traj?.expected?.length) {
-    series.push({ id: 'expected', name: 'Expected', points: traj.expected.map((r) => ({ date: r.day || r.date, value: r.pct })), tone: 'muted', dashed: true })
+    // LineSeries reads label/color/dash (the contract every other caller
+    // passes). The previous name/tone/dashed props were dead, so Actual and
+    // Expected rendered the same solid accent line and the tooltip showed
+    // an empty label — the pace chart's muted dashed expectation is the
+    // established Actual-vs-Expected language, so match it here.
+    series.push({ id: 'expected', label: 'Expected', color: 'var(--text-3)', dash: '4 5', points: traj.expected.map((r) => ({ date: r.day || r.date, value: r.pct })) })
   }
 
   return (

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Reorder } from 'framer-motion'
 import { useStore } from '../store.jsx'
 import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
-import HabitRow from '../components/habits/HabitRow.jsx'
+import HabitCard from '../components/habits/HabitCard.jsx'
 import RoutineStrip from '../components/habits/RoutineStrip.jsx'
 import TodayHero from '../components/today/TodayHero.jsx'
 import Reveal from '../components/motion/Reveal.jsx'
@@ -217,9 +217,10 @@ export default function TodayScreen({ onFire, onCapture, onSearch }) {
           week={week}
         />
 
+        {/* The one decision surface leads the page; secondary actions stay quiet. */}
+        <AdaptiveCommandCenter data={adaptive} onComplete={completeAdaptive} />
         <AdaptiveQuickActions now={new Date()} onFocus={() => setFocusTick((t) => t + 1)} onPlan={() => setPlanTick((t) => t + 1)} onCapture={onCapture} />
         <AdaptiveEmphasis emphasis={emphasis} />
-        <AdaptiveCommandCenter data={adaptive} onComplete={completeAdaptive} />
         <PlanningPanel state={state} now={new Date()} openTick={planTick} />
         <FocusMode state={state} dispatch={dispatch} now={new Date()} openTick={focusTick} />
         {recovery.keep.length > 0 && <section className="card pad recovery-panel"><CardHead title="Recovery plan"><span className="tiny muted">suggestion only</span></CardHead><p className="card-blurb">{recovery.explanation}</p><div className="recovery-groups"><div><strong>KEEP</strong>{recovery.keep.map(x=><span key={x.item.id}>{x.item.label||x.item.name}<small>{x.reasons?.join(' · ')||'Highest current risk'}</small></span>)}</div><div><strong>MOVE / DEFER</strong>{[...(recovery.move||[]),...(recovery.defer||[])].map(x=><span key={x.item.id}>{x.item.label||x.item.name}<small>Consider moving; it is less urgent than the keep group.</small></span>)}</div></div><p className="tiny muted">{recovery.validation.reason}</p></section>}
@@ -297,7 +298,8 @@ export default function TodayScreen({ onFire, onCapture, onSearch }) {
 
         {/* Today's habits */}
         <Reveal as="section" variant="depth" delay={90} className="card pad today-section sp-depth lane-mid">
-          <CardHead title="What needs to be done">
+          <CardHead title="Today’s work">
+            <span className="today-work-count tnum">{stats.done}/{stats.total} complete</span>
             <button className="btn sm" onClick={habitUI.openAdd}>
               <IconPlus size={15} /> Add
             </button>
@@ -328,7 +330,7 @@ export default function TodayScreen({ onFire, onCapture, onSearch }) {
                 as="ul"
               >
                 {habitsToday.map((h) => (
-                  <HabitRow
+                  <HabitCard
                     key={h.id}
                     habit={h}
                     onDetail={habitUI.openDetail}

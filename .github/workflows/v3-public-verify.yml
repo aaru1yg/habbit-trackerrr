@@ -1,12 +1,10 @@
 name: V3 public production verification
 
 # One-shot V3 RELEASE verification — GitHub-hosted Chromium against the PUBLIC
-# GitHub Pages deployment (never localhost). Dispatched manually with the
-# production merge commit pinned:
-#
-#   gh workflow run v3-public-verify.yml \
-#     --ref arena/01a08b66-habbit-trackerrr \
-#     -f production_sha=<merge-commit-sha>
+# GitHub Pages deployment (never localhost). Runs automatically when pushed to
+# the release session branch (workflows API lookup is default-branch-only, so
+# dispatch-by-name cannot address a session-branch-only workflow), pinned to
+# the production merge commit below. Also dispatchable by ID if needed.
 #
 # Steps: (1) poll the live site until its build-id meta matches the pinned
 # production commit (fails loudly on mismatch — the deployed bytes must be
@@ -19,11 +17,15 @@ name: V3 public production verification
 # to main. Nothing is deployed from here.
 
 on:
+  push:
+    branches: [arena/01a08b66-habbit-trackerrr]
+    paths: [.github/workflows/v3-public-verify.yml]
   workflow_dispatch:
     inputs:
       production_sha:
         description: 'Production merge commit the live site must serve (full SHA)'
-        required: true
+        required: false
+        default: '7cbdab9d583f5bc9841d6d87b9c8683f1ca29370'
 
 permissions:
   contents: read
@@ -101,7 +103,7 @@ jobs:
           QA_PROOF_NAME: V3 public production evidence
           QA_PROOF_SCRIPT: qa/v3-final-visual.mjs
           QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
-          QA_PROOF_SHA: ${{ inputs.production_sha }}
+          QA_PROOF_SHA: ${{ inputs.production_sha || '7cbdab9d583f5bc9841d6d87b9c8683f1ca29370' }}
         run: node qa/publish-browser-proof.mjs
       - name: Upload Chromium evidence
         if: always()

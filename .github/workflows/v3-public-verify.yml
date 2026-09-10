@@ -20,12 +20,7 @@ on:
   push:
     branches: [arena/01a08b66-habbit-trackerrr]
     paths: [.github/workflows/v3-public-verify.yml]
-  workflow_dispatch:
-    inputs:
-      production_sha:
-        description: 'Production merge commit the live site must serve (full SHA)'
-        required: false
-        default: '7cbdab9d583f5bc9841d6d87b9c8683f1ca29370'
+  workflow_dispatch: # manual re-run of the same pinned verification (SHA is hardcoded below)
 
 permissions:
   contents: read
@@ -39,7 +34,7 @@ jobs:
     steps:
       - name: Assert the public site serves the production commit
         env:
-          PRODUCTION_SHA: ${{ inputs.production_sha }}
+          PRODUCTION_SHA: 7cbdab9d583f5bc9841d6d87b9c8683f1ca29370
         run: |
           set -euo pipefail
           SHORT="$(echo "$PRODUCTION_SHA" | cut -c1-7)"
@@ -71,11 +66,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.production_sha }}
+          ref: 7cbdab9d583f5bc9841d6d87b9c8683f1ca29370
       - name: Confirm harness checkout is the production commit
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${{ inputs.production_sha }}"
+          test "$(git rev-parse HEAD)" = "7cbdab9d583f5bc9841d6d87b9c8683f1ca29370"
           echo "harness commit: $(git rev-parse --short=7 HEAD) (production pin confirmed)"
       - uses: actions/setup-node@v4
         with:
@@ -103,7 +98,7 @@ jobs:
           QA_PROOF_NAME: V3 public production evidence
           QA_PROOF_SCRIPT: qa/v3-final-visual.mjs
           QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
-          QA_PROOF_SHA: ${{ inputs.production_sha || '7cbdab9d583f5bc9841d6d87b9c8683f1ca29370' }}
+          QA_PROOF_SHA: 7cbdab9d583f5bc9841d6d87b9c8683f1ca29370
         run: node qa/publish-browser-proof.mjs
       - name: Upload Chromium evidence
         if: always()

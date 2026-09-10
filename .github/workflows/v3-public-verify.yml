@@ -8,10 +8,11 @@ name: V3 public production verification
 #
 # Steps: (1) poll the live site until its build-id meta matches the pinned
 # production commit (fails loudly on mismatch — the deployed bytes must be
-# provably built from the merge commit); (2) run the MERGED
-# qa/v3-final-visual.mjs battery (checked out AT the production commit)
-# against https://aaru1yg.github.io/habbit-trackerrr/ at 390×844, 430×932
-# and 1440×900; (3) publish per-viewport check runs + artifacts.
+# provably built from the merge commit); (2) run the V3 battery
+# (qa/v3-public-visual.mjs: the merged qa/v3-final-visual.mjs battery,
+# byte-identical, plus the real TEST_A sign-in the deployed AuthGate requires)
+# against https://aaru1yg.github.io/habbit-trackerrr/ at 390x844, 430x932
+# and 1440x900; (3) publish per-viewport check runs + artifacts.
 #
 # Release tooling only — lives on the release session branch, never merged
 # to main. Nothing is deployed from here.
@@ -19,13 +20,20 @@ name: V3 public production verification
 on:
   push:
     branches: [arena/01a08b66-habbit-trackerrr]
-    paths: [.github/workflows/v3-public-verify.yml]
+    paths: [.github/workflows/v3-public-verify.yml, qa/v3-public-visual.mjs]
   workflow_dispatch: # manual re-run of the same pinned verification (SHA is hardcoded below)
 
 permissions:
   contents: read
   checks: write
 
+
+# The battery signs in as the shared pre-confirmed TEST_A account (the only
+# way through the deployed AuthGate), so this workflow serializes with every
+# other live-account consumer exactly like verify-live-site.yml does.
+concurrency:
+  group: live-qa-shared-accounts
+  cancel-in-progress: false
 jobs:
   build-id:
     name: Live build identity
@@ -58,9 +66,10 @@ jobs:
     name: Public Chromium ${{ matrix.viewport }}
     needs: build-id
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         viewport: [390x844, 430x932, 1440x900]
     steps:
@@ -72,6 +81,14 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "7cbdab9d583f5bc9841d6d87b9c8683f1ca29370"
           echo "harness commit: $(git rev-parse --short=7 HEAD) (production pin confirmed)"
+      - name: Overlay the session-branch public driver
+        run: |
+          set -euo pipefail
+          git fetch origin arena/01a08b66-habbit-trackerrr --depth 1
+          git show FETCH_HEAD:qa/v3-public-visual.mjs > qa/v3-public-visual.mjs
+          node --check qa/v3-public-visual.mjs
+          grep -q 'Release tooling only' qa/v3-public-visual.mjs
+          echo "public driver overlaid onto the production harness checkout"
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -85,10 +102,13 @@ jobs:
         env:
           V3_QA_VIEWPORT: ${{ matrix.viewport }}
           V3_QA_OUT: qa/shots/v3public
+          REQUIRE_AUTH: '1'
+          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
         run: |
           set -euo pipefail
           mkdir -p qa/shots/v3public
-          node qa/v3-final-visual.mjs https://aaru1yg.github.io/habbit-trackerrr 2>&1 | tee qa/shots/v3public/browser.log
+          node qa/v3-public-visual.mjs https://aaru1yg.github.io/habbit-trackerrr 2>&1 | tee qa/shots/v3public/browser.log
           exit "${PIPESTATUS[0]}"
       - name: Publish API-readable Chromium diagnostics
         if: always()
@@ -96,7 +116,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           QA_PROOF_DIR: qa/shots/v3public
           QA_PROOF_NAME: V3 public production evidence
-          QA_PROOF_SCRIPT: qa/v3-final-visual.mjs
+          QA_PROOF_SCRIPT: qa/v3-public-visual.mjs
           QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
           QA_PROOF_SHA: 7cbdab9d583f5bc9841d6d87b9c8683f1ca29370
         run: node qa/publish-browser-proof.mjs

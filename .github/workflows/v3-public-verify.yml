@@ -1,0 +1,117 @@
+name: V3 public production verification
+
+# One-shot V3 RELEASE verification — GitHub-hosted Chromium against the PUBLIC
+# GitHub Pages deployment (never localhost). Dispatched manually with the
+# production merge commit pinned:
+#
+#   gh workflow run v3-public-verify.yml \
+#     --ref arena/01a08b66-habbit-trackerrr \
+#     -f production_sha=<merge-commit-sha>
+#
+# Steps: (1) poll the live site until its build-id meta matches the pinned
+# production commit (fails loudly on mismatch — the deployed bytes must be
+# provably built from the merge commit); (2) run the MERGED
+# qa/v3-final-visual.mjs battery (checked out AT the production commit)
+# against https://aaru1yg.github.io/habbit-trackerrr/ at 390×844, 430×932
+# and 1440×900; (3) publish per-viewport check runs + artifacts.
+#
+# Release tooling only — lives on the release session branch, never merged
+# to main. Nothing is deployed from here.
+
+on:
+  workflow_dispatch:
+    inputs:
+      production_sha:
+        description: 'Production merge commit the live site must serve (full SHA)'
+        required: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build-id:
+    name: Live build identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Assert the public site serves the production commit
+        env:
+          PRODUCTION_SHA: ${{ inputs.production_sha }}
+        run: |
+          set -euo pipefail
+          SHORT="$(echo "$PRODUCTION_SHA" | cut -c1-7)"
+          echo "expecting live build-id: $SHORT (full: $PRODUCTION_SHA)"
+          # The Pages CDN can lag the deployment event by a few minutes; poll
+          # up to ~10 minutes for the expected build-id.
+          for i in $(seq 1 120); do
+            HTML="$(curl -fsSL --max-time 30 'https://aaru1yg.github.io/habbit-trackerrr/')" || { sleep 5; continue; }
+            LIVE="$(echo "$HTML" | grep -o '<meta name="build-id" content="[^"]*"' | head -1 || true)"
+            if [ "$((i % 12))" = "1" ]; then echo "attempt $i: $LIVE"; fi
+            if echo "$LIVE" | grep -q "content=\"$SHORT\""; then
+              echo "live build identity OK: $LIVE (attempt $i)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::public site is not serving build $SHORT after ~10 minutes (last seen: $LIVE)"
+          exit 1
+
+  browser:
+    name: Public Chromium ${{ matrix.viewport }}
+    needs: build-id
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        viewport: [390x844, 430x932, 1440x900]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.production_sha }}
+      - name: Confirm harness checkout is the production commit
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ inputs.production_sha }}"
+          echo "harness commit: $(git rev-parse --short=7 HEAD) (production pin confirmed)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Chromium runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libnspr4 libnss3
+      - name: V3 battery against the PUBLIC production site
+        env:
+          V3_QA_VIEWPORT: ${{ matrix.viewport }}
+          V3_QA_OUT: qa/shots/v3public
+        run: |
+          set -euo pipefail
+          mkdir -p qa/shots/v3public
+          node qa/v3-final-visual.mjs https://aaru1yg.github.io/habbit-trackerrr 2>&1 | tee qa/shots/v3public/browser.log
+          exit "${PIPESTATUS[0]}"
+      - name: Publish API-readable Chromium diagnostics
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QA_PROOF_DIR: qa/shots/v3public
+          QA_PROOF_NAME: V3 public production evidence
+          QA_PROOF_SCRIPT: qa/v3-final-visual.mjs
+          QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
+          QA_PROOF_SHA: ${{ inputs.production_sha }}
+        run: node qa/publish-browser-proof.mjs
+      - name: Upload Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-public-chromium-${{ matrix.viewport }}
+          path: qa/shots/v3public/
+          retention-days: 14
+      - name: Publish result
+        if: always()
+        run: |
+          echo '## Public Chromium ${{ matrix.viewport }}' >> "$GITHUB_STEP_SUMMARY"
+          cat qa/shots/v3public/browser.log >> "$GITHUB_STEP_SUMMARY" || true

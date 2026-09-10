@@ -40,7 +40,9 @@ function HabitRowLine({ row, onMore, onFire }) {
       style={{
         '--habit-color': `var(${cat.cssVar})`,
         '--habit-soft': `color-mix(in srgb, var(${cat.cssVar}) 16%, transparent)`,
-        '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, white)`,
+        /* Blend toward var(--text) (not white) so the strong accent stays
+           readable as text in daylight too — see HabitRow. */
+        '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, var(--text))`,
       }}
     >
       <div className="hrow-main">
@@ -49,7 +51,7 @@ function HabitRowLine({ row, onMore, onFire }) {
           style={{
             '--habit-color': `var(${cat.cssVar})`,
             '--habit-soft': `color-mix(in srgb, var(${cat.cssVar}) 16%, transparent)`,
-            '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, white)`,
+            '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, var(--text))`,
           }}
         >
           <HabitRing done={done} streak={streak} size={38} label={`${habit.name}: ${done ? 'completed today' : 'not completed today'}`} />

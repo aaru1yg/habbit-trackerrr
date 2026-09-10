@@ -108,7 +108,12 @@ export default function HabitRow({ habit, onDetail, onArchive, onDelete, onFire 
           position: 'relative',
           '--habit-color': `var(${cat.cssVar})`,
           '--habit-soft': `color-mix(in srgb, var(${cat.cssVar}) 16%, transparent)`,
-          '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, white)`,
+          /* "Strong" must read as TEXT on the card surface in every theme, so it
+             blends toward var(--text): near-white in the dark themes (the old
+             white mix), near-black in daylight — the same trick --accent-1-lift
+             uses. Mixing toward plain white left the daylight chips and ring
+             figures at ~2.8:1 against the light card. */
+          '--habit-strong': `color-mix(in srgb, var(${cat.cssVar}) 82%, var(--text))`,
         }}
         drag={editing || reduced ? false : 'x'}
         dragDirectionLock

@@ -182,6 +182,12 @@
   font-weight: var(--fw-extrabold);
 }
 
+/* Daylight's saturated category pills need full-white ink: the shared
+   --bg-deep off-white (#e9e8e3) lands at 4.4:1 on the deepest greens. */
+[data-theme='daylight'] .habit-ring-streak {
+  color: #fff;
+}
+
 .habit-card .habit-meta {
   gap: 7px;
 }

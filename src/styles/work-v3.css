@@ -73,6 +73,26 @@
   margin: 2px -4px -2px;
 }
 
+/* Under 760px the overview collapses to a single flex column. On phones the
+   pre-existing overload banner + summary already claim the first screen, and
+   this 390px-tall chart pushed the Active work list below the fold
+   (top=942px at 390×844 / 430×932 — the e2e fold guarantee allows 764/852).
+   Keep the chart on the Overview, directly after the Active work list, by
+   flex order; DOM (and therefore tab/reading order) is untouched, and the
+   desktop grid keeps the chart in its original position. */
+@media (max-width: 760px) {
+  .workspace-overview > .work-capacity-visual {
+    order: 1;
+  }
+
+  .workspace-overview > .workspace-attention,
+  .workspace-overview > .workspace-horizon,
+  .workspace-overview > .workspace-capacity,
+  .workspace-overview > .workspace-recent {
+    order: 2;
+  }
+}
+
 .work-capacity-visual .trend-chart svg {
   min-height: 148px;
 }

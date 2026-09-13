@@ -9,7 +9,7 @@ import { useStore } from '../store.jsx'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
-import { StatusPill, KindTag, MeterRow, QuickProgress, DeadlineHero, WorkEmpty } from '../components/work/WorkKit.jsx'
+import { StatusPill, KindTag, QuickProgress, WorkEmpty } from '../components/work/WorkKit.jsx'
 import DeadlinePressure from '../components/work/DeadlinePressure.jsx'
 import { AssignmentDeadlineField } from '../components/work/DeadlineField.jsx'
 import WorkFocus from '../components/work/WorkFocus.jsx'
@@ -91,42 +91,81 @@ export default function AssignmentDetailScreen({ id }) {
 
   return (
     <div className="screen" id="assignment-detail">
-      <header className="screen-head">
-        <div style={{ minWidth: 0 }}>
-          <a href="#/work?view=deliverables" className="back-link" aria-label="Back to deliverables">
-            <IconChevronLeft size={16} /> Deliverables
-          </a>
-          <div className="wrap-gap" style={{ gap: 8, marginTop: 6 }}>
-            <KindTag kind="assignment">Assignment</KindTag>
-            <StatusPill status={status} />
-            {assignment.priority === 'high' && <span className="chip tag-bad" style={{ minHeight: 22 }}>High priority</span>}
+      <section className="dlv" style={{maxWidth:'100%'}}>
+        <header className="dlv__head">
+          <div style={{minWidth:0}}>
+            <a href="#/work?view=deliverables" className="dlv__eyebrow" style={{display:'inline-flex',alignItems:'center',gap:4,textDecoration:'none',color:'var(--text-3)'}}>
+              <IconChevronLeft size={14} /> Work
+            </a>
+            <div style={{display:'inline-flex',gap:6,marginTop:6,flexWrap:'wrap'}}>
+              <KindTag kind="assignment">Assignment</KindTag>
+              <StatusPill status={status} />
+              {assignment.priority === 'high' && <span className="chip tag-bad" style={{minHeight:22}}>High priority</span>}
+            </div>
+            <h1 className="dlv__title" style={{marginTop:4,overflowWrap:'anywhere',fontSize:'1.75rem'}}>{assignment.name}</h1>
+            {assignment.subject && <p className="dlv__sub">{assignment.subject}{status.hasDeadline ? <> · <b>Deadline:</b> {prettyDateTime(assignment.deadline)}</> : ''}{project?.name ? ` · ${project.name}` : ''}</p>}
           </div>
-          <h1 className="screen-title" style={{ marginTop: 6, overflowWrap: 'anywhere' }}>{assignment.name}</h1>
-          <p className="screen-sub">
-            {[assignment.subject, status.hasDeadline ? `Due ${prettyDateTime(assignment.deadline)}` : 'No deadline', project?.name].filter(Boolean).join(' · ')}
+          <div className="wo__head-actions-inline">
+            <button className="btn ghost icon" aria-label="Edit assignment" onClick={() => work.editAssignment(assignment)}><IconPencil size={17} /></button>
+            <button className="btn ghost icon" style={{color:'var(--bad)'}} aria-label="Delete assignment" onClick={remove}><IconTrash size={17} /></button>
+          </div>
+        </header>
+
+        <div className="dlv__snap" aria-label="Assignment snapshot">
+          {[
+            { label: 'Progress', value: `${status.pct ?? 0}%`, tone: status.complete ? 'good' : (status.tone === 'danger' || status.id === 'overdue' || status.id === 'urgent') ? 'bad' : status.tone === 'warning' ? 'warn' : null },
+            { label: status.complete ? 'Completed' : (status.hasDeadline ? (status.daysLeft === 0 ? 'Due today' : `${status.daysLeft ?? 0}d left`) : 'No deadline'), value: status.complete ? shortDate(dayOf(assignment.completedAt||now)) : (status.hasDeadline ? prettyDateTime(assignment.deadline) : 'Set deadline'), tone: status.complete ? 'good' : status.id === 'overdue' ? 'bad' : status.id === 'urgent' || status.daysLeft === 0 ? 'bad' : status.tone === 'warning' ? 'warn' : null },
+            { label: 'Subtasks', value: subs.length ? `${subsDone}/${subs.length}` : '—', tone: subs.length>0 && subsDone===subs.length ? 'good' : null },
+            { label: 'Estimate', value: Number(assignment.estimateMin) ? minutesLabel(assignment.estimateMin) : '—', tone: null },
+          ].map((s,i) => <span key={i} className={['dlv__pill', s.tone?`is-${s.tone}`:''].join(' ').trim()} style={{cursor:'default'}}>
+            <span className="dlv__pill-val tnum">{s.value}</span>
+            <span className="dlv__pill-label">{s.label}</span>
+          </span>)}
+        </div>
+
+        {/* One visual: progress + pace rail (same visual language as Project Detail) */}
+        <section className="dlv__pulse" aria-label="Assignment progress vs pace">
+          <p className="dlv__pulse-cap">
+            <span className="tiny muted">Progress</span>
+            <span className="tiny" style={{display:'inline-flex',gap:'var(--sp-3)',flexWrap:'wrap'}}>
+              <span style={{color:'var(--text-3)'}}><i style={{display:'inline-block',width:10,height:3,background:'var(--accent-1)',borderRadius:2,verticalAlign:'middle',marginRight:4}}/>Progress</span>
+              {status.hasDeadline && status.elapsedPct != null && <span style={{color:'var(--text-3)'}}><i style={{display:'inline-block',width:10,height:0,borderTop:'2px dashed var(--text-3)',verticalAlign:'middle',marginRight:4}}/>Pace</span>}
+              {!status.complete && (status.id==='overdue' || status.id==='urgent' || (status.daysLeft != null && status.daysLeft <= 1)) && <span style={{color: status.id==='overdue' ? 'var(--bad)' : 'var(--warn)'}}><i style={{display:'inline-block',width:8,height:8,borderRadius:2,background: status.id==='overdue'?'var(--bad)':'var(--warn)',marginRight:4,verticalAlign:'middle'}}/>{status.countdown || 'Due now'}</span>}
+            </span>
           </p>
-        </div>
-        <div className="head-actions">
-          <button className="btn ghost icon" aria-label="Edit assignment" onClick={() => work.editAssignment(assignment)}><IconPencil size={17} /></button>
-          <button className="btn ghost icon" style={{ color: 'var(--bad)' }} aria-label="Delete assignment" onClick={remove}><IconTrash size={17} /></button>
-        </div>
-      </header>
+          <div style={{position:'relative',height:14,background:'var(--surface-2)',borderRadius:'6px',overflow:'hidden'}} role="img" aria-label={`Progress ${status.pct??0}%`}>
+            <div style={{width:`${Math.min(100,status.pct??0)}%`,height:'100%',background: status.complete?'var(--good)': (status.tone==='danger' || status.id==='overdue') ? 'var(--bad)' : 'var(--accent-1)',borderRadius:'6px',transition:'width .2s ease'}}/>
+            {status.hasDeadline && status.elapsedPct != null && <div style={{position:'absolute',top:-2,bottom:-2,left:`${Math.min(100,Math.max(0,status.elapsedPct))}%`,width:2,background:'var(--text-3)'}} title="Time elapsed pace"/>}
+          </div>
+          <p className="tiny muted" style={{marginTop:8,lineHeight:1.6}}>
+            {100 - (status.pct??0)}% remains{Number(assignment.estimateMin) > 0 ? <> · ~{minutesLabel(Math.round(assignment.estimateMin * (1 - (status.pct??0)/100)))} estimated remaining</> : ' · Effort not estimated'}{subs.length ? <> · {subsDone}/{subs.length} subtasks complete</> : ''}.
+          </p>
+          <details className="assignment-progress-controls" style={{marginTop:10}}><summary>Update progress</summary><QuickProgress value={progress.mode === 'subtasks' ? progress.pct : assignment.progress} onChange={pct => work.setAssignmentProgress(assignment, pct)} label={progress.mode === 'subtasks' ? 'Progress (synced with subtasks)' : 'Progress'} /></details>
+        </section>
 
+        {/* Needs attention when real risk present */}
+        {!status.complete && (status.id === 'overdue' || status.id === 'urgent' || (status.behind != null && status.behind > 15)) && <section className="dlv__focus" style={{borderLeft:'3px solid var(--bad)',marginBottom:'var(--sp-4)'}} aria-label="Needs attention">
+          <p className="dlv__eyebrow" style={{color:'var(--bad)'}}>Needs attention</p>
+          <p className="tiny" style={{margin:'4px 0 0'}}>
+            {status.id === 'overdue' ? 'Past due.' : status.id === 'urgent' ? 'Due today.' : `Behind pace by ${status.behind} points.`}
+            {' '}Start a focus session or extend the deadline.
+          </p>
+        </section>}
+      </section>
+
+      <section className="assignment-next-action" style={{marginBottom:'var(--sp-4)'}}>
+        {status.hasDeadline && <p className="tiny" style={{margin:'0 0 var(--sp-2)',color: status.id==='overdue'?'var(--bad)':'var(--text-2)'}}><b>Deadline:</b> {prettyDateTime(assignment.deadline)} · {status.countdown}</p>}
+        <h2 style={{font:'var(--fw-semibold) var(--fs-sm)/1 var(--font-family)',textTransform:'uppercase',letterSpacing:'.08em',color:'var(--text-2)',margin:'0 0 var(--sp-2)'}}>Next action</h2>
+        <p style={{margin:'0 0 var(--sp-2)'}}>{status.complete ? 'Work complete.' : subs.find(s => !s.done)?.name || 'Make progress on this deliverable.'}</p>
+        <div style={{display:'inline-flex',gap:'var(--sp-2)',flexWrap:'wrap'}}>
+          {!status.complete && <button className="btn primary" onClick={() => setFocus(true)}>Start Focus</button>}
+          {project && <a className="btn ghost" href={`#/projects/${project.id}`}>Project: {project.name}</a>}
+        </div>
+      </section>
+      {focus && <WorkFocus item={{ ...assignment, kind: 'assignment' }} onClose={() => setFocus(false)} />}
+
+      <div className="detail-layout">
       <div className="stack">
-        <SectionCard className="pad assignment-detail-hero">
-          <CardHead title="Deadline"><StatusPill status={status} /></CardHead>
-          <p>{status.hasDeadline ? prettyDateTime(assignment.deadline) : 'No deadline set'}</p>
-          <DeadlineHero status={status} />
-          <h2 className="assignment-progress-heading">Progress</h2>
-          <MeterRow pct={status.pct} tone={status.tone} pace={status.elapsedPct} />
-          <p className="tiny muted">{100 - status.pct}% remains{Number(assignment.estimateMin) > 0 ? ` · ~${minutesLabel(Math.round(assignment.estimateMin * (1 - status.pct / 100)))} estimated remaining` : ' · Effort not estimated'}{subs.length ? ` · ${subsDone}/${subs.length} subtasks complete` : ''}</p>
-          <details className="assignment-progress-controls"><summary>Update progress</summary><QuickProgress value={progress.mode === 'subtasks' ? progress.pct : assignment.progress} onChange={pct => work.setAssignmentProgress(assignment, pct)} label={progress.mode === 'subtasks' ? 'Progress (synced with subtasks)' : 'Progress'} /></details>
-        </SectionCard>
-        <section className="assignment-next-action"><h2>Next action</h2><p>{status.complete ? 'Work complete.' : subs.find(s => !s.done)?.name || 'Make progress on this deliverable.'}</p>{!status.complete && <button className="btn primary" onClick={() => setFocus(true)}>Start Focus</button>}{project && <a className="btn ghost" href={`#/projects/${project.id}`}>Project: {project.name}</a>}</section>
-        {focus && <WorkFocus item={{ ...assignment, kind: 'assignment' }} onClose={() => setFocus(false)} />}
-
-        <div className="detail-layout">
-          <div className="stack">
             {/* Subtasks */}
             <SectionCard className="pad">
               <CardHead title="Subtasks">
@@ -243,7 +282,6 @@ export default function AssignmentDetailScreen({ id }) {
             )}
           </div>
         </div>
-      </div>
     </div>
   )
 }

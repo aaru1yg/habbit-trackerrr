@@ -157,13 +157,13 @@ describe('Goal detail — outcome-first', () => {
     render(<StoreProvider><App /></StoreProvider>)
     await screen.findByRole('heading', { level: 1, name: 'Write a novella' })
     const detail = document.getElementById('goal-detail-screen')
-    // progress + health come before any large chart
+    // next milestone + trajectory come before linked-work rail
     expect(detail.textContent.indexOf('Finish a draft')).toBeGreaterThan(-1)
-    expect(detail.textContent.indexOf('View progress history')).toBeGreaterThan(-1)
-    // forecast surfaces the deterministic risk
-    expect(detail.textContent).toContain('ON TRACK')
-    // contributors + "fed by"
-    expect(detail.textContent).toContain('This goal is fed by')
+    expect(detail.textContent.indexOf('Trajectory')).toBeGreaterThan(-1)
+    // forecast uses unified health vocab
+    expect(detail.textContent).toContain('On track')
+    // contributors rail
+    expect(detail.textContent).toContain('What feeds this goal')
   })
 
   it('completes the next milestone from detail using the existing engine', async () => {

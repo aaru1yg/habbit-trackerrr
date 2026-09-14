@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store.jsx'
 import { useRoute, navigate, canonicalParent } from './lib/router.jsx'
 import { ToastProvider, useToast } from './components/ui/Toaster.jsx'
@@ -10,7 +10,17 @@ import PointerLight from './components/motion/PointerLight.jsx'
 import WorldLayer from './components/spatial/WorldLayer.jsx'
 import BootSequence from './components/spatial/BootSequence.jsx'
 import { applySpatialMode } from './lib/spatial.js'
-import { BottomNav, Sidebar, MoreSheet } from './components/layout/Navigation.jsx'
+/* Step 2 shell replaces the old sidebar/bottom nav. The legacy navigation
+   component still exports WorkTabs and BrandMark used by existing screens
+   and boot — those are left untouched. */
+import ShellSidebar from './components/shell/ShellSidebar.jsx'
+import ShellMobileNav from './components/shell/ShellMobileNav.jsx'
+import ShellTopBar from './components/shell/ShellTopBar.jsx'
+import ShellMore from './components/shell/ShellMore.jsx'
+import PageContainer from './components/shell/PageContainer.jsx'
+import { pageTitle, resolveActivePillar } from './components/shell/nav.js'
+import './components/shell/shell.css'
+
 /* The Omni Panel carries search, capture, commands and coach routing. It is
    lazy-loaded so the global interaction does not inflate the initial shell. */
 const OmniPanel = lazy(() => import('./components/shell/OmniPanel.jsx'))
@@ -37,10 +47,32 @@ const HabitsScreen = lazy(() => import('./screens/HabitsScreen.jsx'))
 const HabitDetailScreen = lazy(() => import('./screens/HabitDetailScreen.jsx'))
 const AchievementsScreen = lazy(() => import('./screens/AchievementsScreen.jsx'))
 
+/* DEV-ONLY primitive showcase (Step 1B visual proof). */
+const PrimitiveShowcase = import.meta.env.DEV
+  ? lazy(() => import('./components/primitives/Showcase.jsx'))
+  : null
+const WorkFoundationShowcase = import.meta.env.DEV
+  ? lazy(() => import('./components/work/WorkFoundationShowcase.jsx'))
+  : null
+
 const ROUTES = [
   'today', 'work', 'calendar', 'week', 'insights', 'mind', 'goals', 'library', 'settings',
   'projects', 'assignments', 'workload', 'timeline', 'record', 'habits', 'achievements',
 ]
+const DEV_ROUTES = import.meta.env.DEV ? ['__primitives'] : []
+
+function useIsMobile() {
+  const [m, setM] = useState(() => typeof window === 'undefined' ? false : window.matchMedia('(max-width: 767px)').matches)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 767px)')
+    const onChange = () => setM(mq.matches)
+    mq.addEventListener?.('change', onChange)
+    window.addEventListener('resize', onChange)
+    return () => { mq.removeEventListener?.('change', onChange); window.removeEventListener('resize', onChange) }
+  }, [])
+  return m
+}
 
 function ScreenFallback() {
   return (
@@ -53,14 +85,19 @@ function ScreenFallback() {
 export default function App() {
   const { state, dispatch } = useStore()
   const { route, param, query } = useRoute()
+  const isMobile = useIsMobile()
   const [fire, setFire] = useState(0)
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine !== false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [omniOpen, setOmniOpen] = useState(false)
   const [omniMode, setOmniMode] = useState('command')
 
-  // V4: publish the device's spatial tier once, keep it honest on change.
-  useEffect(() => applySpatialMode(), [])
+  useEffect(() => { applySpatialMode() }, [])
+
+  useEffect(() => {
+    document.body.classList.add('has-new-shell')
+    return () => document.body.classList.remove('has-new-shell')
+  }, [])
 
   useEffect(() => {
     const on = () => setOnline(true)
@@ -73,15 +110,12 @@ export default function App() {
     }
   }, [])
 
-  /* '/' opens search and ⌘K / Ctrl+K opens the command center, anywhere
-     except inside a field or an open dialog. Both share one guard so the
-     two shortcuts can never fight over the same keystroke. */
+  /* Global keyboard shortcuts: ⌘K / Ctrl+K = Omni command, '/' = search. */
   useEffect(() => {
     const inAField = () => {
       const el = document.activeElement
       if (!el) return true
       const isField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable
-      // a field left focused inside a sheet that is animating out does not count
       const lingering = el.closest?.('[role="dialog"]') && !isSheetOpen()
       return isField && el.isConnected && !lingering
     }
@@ -90,7 +124,6 @@ export default function App() {
       const wantsSearch = e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey
       if (!wantsCommand && !wantsSearch) return
       if (isSheetOpen()) return
-      // ⌘K is a chord, so it works from inside a field; '/' does not.
       if (wantsSearch && inAField()) return
       e.preventDefault()
       setOmniMode(wantsCommand ? 'command' : 'search')
@@ -100,25 +133,29 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Close the More sheet when the route changes.
   useEffect(() => { setMoreOpen(false) }, [route, param])
 
-  /* Adaptive layer: one honest record per screen the user actually opens.
-     Guarded by a ref so a re-render (or a StrictMode double-invoke) never
-     inflates the count, and restricted to real routes so a stray hash is
-     not recorded as behaviour. */
   const lastVisited = useRef(null)
   useEffect(() => {
-    if (!ROUTES.includes(route) || lastVisited.current === route) return
+    const knownRoutes = [...ROUTES, ...DEV_ROUTES]
+    if (!knownRoutes.includes(route) || lastVisited.current === route) return
     lastVisited.current = route
-    dispatch({ type: 'RECORD_SIGNAL', signal: 'screen-visit', target: route })
+    if (!DEV_ROUTES.includes(route)) {
+      dispatch({ type: 'RECORD_SIGNAL', signal: 'screen-visit', target: route })
+    }
   }, [route, dispatch])
 
-  // Keep the log bounded: drop behaviour older than the window, once a session.
   useEffect(() => { dispatch({ type: 'PRUNE_SIGNALS', days: 180 }) }, [dispatch])
 
   const onFire = useCallback(() => setFire((f) => f + 1), [])
   const closeOmni = useCallback(() => setOmniOpen(false), [])
+  const openOmni = useCallback((mode = 'command') => { setOmniMode(mode); setOmniOpen(true) }, [])
+  const openSearch = useCallback(() => openOmni('search'), [openOmni])
+
+  const active = ROUTES.includes(route) ? canonicalParent(route) : 'today'
+  const activePillar = resolveActivePillar(route)
+  const view = query?.view || null
+  const title = useMemo(() => pageTitle(route, view), [route, view])
 
   if (!state.profile.onboarded) {
     return (
@@ -131,88 +168,143 @@ export default function App() {
     )
   }
 
-  const active = ROUTES.includes(route) ? canonicalParent(route) : 'today'
-  const view = query?.view || null
+  // Step 4G-3: pick an explicit content-width family per route.
+  const pageSize = (() => {
+    if (route === 'today') return 'narrow'
+    if (route === 'work' || route === 'projects' || route === 'assignments' || route === 'workload' || route === 'timeline') return 'workspace'
+    if (route === 'goals') return param ? 'detail' : 'workspace'
+    if (route === 'habits') {
+      if (param) return 'detail'
+      if (view === 'calendar') return 'wide'
+      if (view === 'week') return 'workspace'
+      if (view === 'routines') return 'narrow'
+      return 'workspace'
+    }
+    return undefined
+  })()
+
+  const isDevShowcase = import.meta.env.DEV && (route === '__primitives' || route === '__work-foundation')
+  const isWorkFoundation = import.meta.env.DEV && route === '__work-foundation'
 
   return (
     <>
       <Backdrop />
-      {/* V4: the ambient environment sits under the whole app; the boot
-          cinematic runs once per session above everything (skippable,
-          reduced-motion aware). Neither holds data — see docs/V4-AUDIT.md. */}
+      {/* V4: ambient/boot layers continue to run; the shell sits above Backdrop
+          and below sheets/dialogs. PointerLight is retained for parity but
+          visually subtle. */}
       <WorldLayer />
       <BootSequence />
       <PointerLight />
-      <Sidebar route={active} name={state.profile.name} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} />
-      {!online && (
-        <div className="offline-pill" role="status">
-          <IconOffline size={14} /> Offline — changes still save on this device
-        </div>
-      )}
 
-      <ToastProvider>
-        <UnlockWatcher />
-        <WorkUIProvider>
-          <HabitUIProvider onFire={onFire}>
-            <main id="content" style={{ position: 'relative' }}>
-              {/* Route change = camera travel, not a swap (spec §8): the screen
-                  rises ~90px out of depth in 420ms. Keyed so any route/param
-                  change re-plays it; reduced motion disables it in CSS. */}
-              <div key={`${active}${param ? `/${param}` : ''}`} className="route-cam">
-                <Suspense fallback={<ScreenFallback />}>
-                  {active === 'today' && <TodayScreen onFire={onFire} onCapture={() => { setOmniMode('create'); setOmniOpen(true) }} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} />}
-                  {route === 'work' && <WorkScreen />}
-                  {/* Legacy habit routes keep working and render the same
-                      workspace views as their canonical habits?view= form. */}
-                  {route === 'calendar' && <HabitsScreen view="calendar" ymParam={param} />}
-                  {route === 'week' && <HabitsScreen view="week" />}
-                  {route === 'insights' && (view === 'mind' ? <MindScreen /> : view === 'record' ? <RecordScreen /> : view === 'achievements' ? <AchievementsScreen route="achievements" /> : <InsightsScreen />)}
-                  {route === 'mind' && <MindScreen />}
-                  {route === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
-                  {route === 'library' && <HabitsScreen view="active" />}
-                  {route === 'record' && <RecordScreen />}
-                  {route === 'settings' && <SettingsScreen />}
-                  {route === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <WorkScreen route="projects" />)}
-                  {route === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <WorkScreen route="assignments" />)}
-                  {route === 'workload' && <WorkScreen route="workload" />}
-                  {route === 'timeline' && <WorkScreen route="timeline" />}
-                  {route === 'achievements' && <AchievementsScreen route="achievements" />}
-                  {route === 'habits' && (param ? <HabitDetailScreen id={param} /> : <HabitsScreen view={view || 'active'} />)}
+      <div className="app-root">
+        {!isMobile && (
+          <ShellSidebar
+            route={route}
+            name={state.profile.name}
+            onSearch={openSearch}
+            onOmni={() => openOmni('command')}
+          />
+        )}
+
+        <div className="app-main">
+          <ShellTopBar
+            title={title}
+            isMobile={isMobile}
+            onSearch={openSearch}
+            onOmni={() => openOmni('command')}
+          />
+
+          {!online && (
+            <div className="app-offline" role="status">
+              <IconOffline size={14} /> Offline — changes still save on this device
+            </div>
+          )}
+
+          <ToastProvider>
+            <UnlockWatcher />
+            <WorkUIProvider>
+              <HabitUIProvider onFire={onFire}>
+                <main id="content">
+                  <PageContainer key={`${activePillar}${param ? `/${param}` : ''}`} className={isDevShowcase ? 'app-page--showcase' : ''} size={isWorkFoundation ? 'workspace' : pageSize}>
+                    {/* Legacy route-cam travel animation is preserved on
+                        this wrapper so existing screens still transition. */}
+                    <div className="route-cam">
+                      <Suspense fallback={<ScreenFallback />}>
+                        {active === 'today' && <TodayScreen onFire={onFire} onCapture={() => openOmni('create')} onSearch={openSearch} />}
+                        {route === 'work' && <WorkScreen />}
+                        {route === 'calendar' && <HabitsScreen view="calendar" ymParam={param} />}
+                        {route === 'week' && <HabitsScreen view="week" />}
+                        {route === 'insights' && (view === 'mind' ? <MindScreen /> : view === 'record' ? <RecordScreen /> : view === 'achievements' ? <AchievementsScreen route="achievements" /> : <InsightsScreen />)}
+                        {route === 'mind' && <MindScreen />}
+                        {route === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
+                        {route === 'library' && <HabitsScreen view="active" />}
+                        {route === 'record' && <RecordScreen />}
+                        {route === 'settings' && <SettingsScreen />}
+                        {route === 'projects' && (param ? <ProjectDetailScreen id={param} /> : <WorkScreen route="projects" />)}
+                        {route === 'assignments' && (param ? <AssignmentDetailScreen id={param} /> : <WorkScreen route="assignments" />)}
+                        {route === 'workload' && <WorkScreen route="workload" />}
+                        {route === 'timeline' && <WorkScreen route="timeline" />}
+                        {route === 'achievements' && <AchievementsScreen route="achievements" />}
+                        {route === 'habits' && (param ? <HabitDetailScreen id={param} /> : <HabitsScreen view={view || 'active'} />)}
+                        {isDevShowcase && route === '__primitives' && PrimitiveShowcase && <PrimitiveShowcase />}
+                        {isWorkFoundation && WorkFoundationShowcase && <WorkFoundationShowcase />}
+                      </Suspense>
+                    </div>
+                  </PageContainer>
+                </main>
+
+                {/* Screen-specific contextual FABs are retained temporarily
+                    (new shell Omni is the canonical global entry, but legacy
+                    screens still reference these anchors during the rebuild). */}
+                <Fab route={route} onCapture={() => openOmni('create')} />
+
+                <Suspense fallback={null}>
+                  <OmniPanel open={omniOpen} onClose={closeOmni} initialMode={omniMode} route={active} />
                 </Suspense>
-              </div>
-            </main>
+              </HabitUIProvider>
+            </WorkUIProvider>
 
-            <Fab route={route} onCapture={() => { setOmniMode('create'); setOmniOpen(true) }} />
-            <Suspense fallback={null}>
-              <OmniPanel open={omniOpen} onClose={closeOmni} initialMode={omniMode} route={active} />
-            </Suspense>
-          </HabitUIProvider>
-        </WorkUIProvider>
+            <Confetti fire={fire} count={90} origin={{ x: 0.5, y: 0.35 }} />
 
-        {/* completion confetti (auto-disabled under reduced motion) */}
-        <Confetti fire={fire} count={90} origin={{ x: 0.5, y: 0.35 }} />
+            <MigrationDialog />
+            <ReminderScheduler />
+          </ToastProvider>
+        </div>
+      </div>
 
-        <MigrationDialog />
-        <ReminderScheduler />
-      </ToastProvider>
-
-      <BottomNav route={active} onMore={() => setMoreOpen(true)} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} onCapture={() => { setOmniMode('create'); setOmniOpen(true) }} />
-      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} route={active} onSearch={() => { setOmniMode('search'); setOmniOpen(true) }} />
+      {isMobile && (
+        <ShellMobileNav
+          route={route}
+          onCapture={() => openOmni('command')}
+          onMore={() => setMoreOpen(true)}
+        />
+      )}
+      <ShellMore
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        onSearch={openSearch}
+        onOmni={() => openOmni('command')}
+      />
     </>
   )
 }
 
 /* ------------------------------------------------------------
-   FAB — context aware, but Add Habit is always ONE tap away on
-   the habit screens (§11). It sits above the bottom nav, inside
-   the safe area, and screens reserve bottom padding for it.
+   FAB — contextual legacy floaters. These are TEMPORARY during
+   the shell migration; screens still expect them. Omni is the
+   canonical entry, but per-screen quick-adds remain functional.
    ------------------------------------------------------------ */
 function Fab({ route, onCapture }) {
   const habitUI = useHabitUI()
   const workUI = useWorkUI()
   const [open, setOpen] = useState(false)
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
 
   useEffect(() => { setOpen(false) }, [route])
+
+  // On mobile the nav already has Omni; skip the old floater to avoid
+  // two overlapping buttons. Desktop keeps the legacy + button.
+  if (isMobile) return null
 
   if (route === 'work') return <div className="fab-stack"><button className="btn primary floating" style={{ position: 'static' }} onClick={onCapture} aria-label="Create work with quick capture"><IconPlus size={22} /></button></div>
 
@@ -288,8 +380,6 @@ function ReminderScheduler() {
           if (!shown) toast.show(`Reminder: ${h.name}`)
         }
       }
-      // Deadline alerts: one per tick (most urgent first) so opening the app
-      // never fires a burst of toasts. Each item alerts once per day.
       if (s.profile?.workReminders) {
         const due = checkWorkReminders(s, { thresholdHours: s.profile.workReminderHours || 24 })
           .sort((a, b) => (a.status.hoursLeft ?? 0) - (b.status.hoursLeft ?? 0))

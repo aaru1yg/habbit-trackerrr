@@ -1,155 +1,146 @@
 /* ============================================================
-   GOALS — the outcome layer. Phase 6.
+   GOALS OVERVIEW (Step 6B) — long arcs, not rings.
 
-   This screen answers, within seconds:
-     WHAT am I trying to achieve?
-     HOW far along am I?
-     IS it healthy?
-     WHAT is the next milestone?
+   The list is the dominant surface. Each goal is read as:
+   area + health → title → why → trajectory strip (actual vs
+   expected pace, today marker, milestone dots, projected finish)
+   → snapshot pills → next milestone → actions.
 
-   Default view is the LIST of structured goal cards. The spatial
-   Goal Atlas is not the first thing you must parse — it is an
-   optional "Atlas / Visual" exploration mode, lazy-loaded so goal
-   management never pays for 3D/constellation rendering.
-
-   All numbers are derived by the existing engines (goals.js,
-   goalAnalytics.js, adaptive.js). Nothing here re-implements them.
+   All numbers come from goals.js / goalAnalytics.js / adaptive.js.
+   Nothing is fabricated. The GoalAtlas stays lazy + opt-in.
    ============================================================ */
 import { Suspense, lazy, useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard from '../components/ui/SectionCard.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
-import { Meter, StatStrip, WorkEmpty } from '../components/work/WorkKit.jsx'
+import { WorkEmpty } from '../components/work/WorkKit.jsx'
 import GoalFormSheet from '../components/goals/GoalForm.jsx'
-import { healthBadge } from '../components/goals/health.js'
 import {
-  areaOf, goalProgress, goalHealth, goalPace, nextMilestone, goalTodayActions, openGoals,
+  areaOf, goalProgress, goalHealth, goalPace, nextMilestone, openGoals,
 } from '../lib/goals.js'
-import { habitRate, habitStreak, activeHabits } from '../lib/stats.js'
-import { projectProgress } from '../lib/work.js'
-import { todayStr, subDaysStr, prettyDate, dayOf, isValidDayStr } from '../lib/dates.js'
+import { goalAnalytics } from '../lib/goalAnalytics.js'
+import { goalForecast } from '../lib/adaptive.js'
+import { todayStr, prettyDate, dayOf, isValidDayStr } from '../lib/dates.js'
 import { Link } from '../lib/router.jsx'
 import {
-  IconGoals, IconPlus, IconPencil, IconTrash, IconCheck, IconLink, IconFlame,
-  IconChevronRight, IconTarget, IconArchive, IconLayers,
+  IconGoals, IconPlus, IconPencil, IconTrash, IconCheck,
+  IconChevronRight, IconTarget, IconArchive, IconLayers, IconTrendUp,
 } from '../lib/icons.jsx'
 import '../styles/goals.css'
 
-/* The spatial GoalAtlas stays (Phase 6 §9) but only mounts when the user
-   opts into it — lazy so the standard list never renders it. */
 const GoalAtlas = lazy(() => import('../components/goals/GoalAtlas.jsx'))
+
+/* Canonical health vocabulary (one presentation layer).
+   Tones: good / warn / bad / neutral / complete. */
+const HEALTH_LABEL = {
+  complete: { text: 'Completed', tone: 'good' },
+  overdue:  { text: 'Overdue', tone: 'bad' },
+  risk:     { text: 'At risk', tone: 'warn' },
+  ahead:    { text: 'Ahead', tone: 'good' },
+  onTrack:  { text: 'On track', tone: 'neutral' },
+  safe:     { text: 'No date', tone: 'neutral' },
+}
+function goalHealthLabel(state, goal, { now = new Date() } = {}) {
+  const h = goalHealth(state, goal, { now })
+  if (goal.status === 'completed' || h.prog?.pct >= 100) return HEALTH_LABEL.complete
+  if (h.daysLeft != null && h.daysLeft < 0) return HEALTH_LABEL.overdue
+  if (!goal.targetDate) return HEALTH_LABEL.safe
+  if (h.tone === 'warn') return HEALTH_LABEL.risk
+  if (h.tone === 'good') return HEALTH_LABEL.ahead
+  return HEALTH_LABEL.onTrack
+}
 
 export default function GoalsScreen() {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const today = todayStr()
-  const from = subDaysStr(today, 29)
   const [filter, setFilter] = useState('open')
   const [view, setView] = useState('list')
   const [form, setForm] = useState({ open: false, editing: null })
-  const [linksFor, setLinksFor] = useState(null)
   const [learnOpen, setLearnOpen] = useState(false)
 
-  const reached = useMemo(
-    () => (state.goals || []).filter((g) => !g.archived && (g.status === 'completed' || goalProgress(state, g).pct >= 100)),
-    [state],
-  )
-  const goals = (state.goals || []).filter((g) => !g.archived)
-  const open = useMemo(() => openGoals(state), [state])
+  const goalsAll = useMemo(() => (state.goals || []).filter((g) => !g.archived), [state])
+  const reachedList = useMemo(() => goalsAll.filter((g) => g.status === 'completed' || goalProgress(state, g).pct >= 100), [goalsAll, state])
+  const openList = useMemo(() => openGoals(state), [state])
+
+  const rows = useMemo(() => openList.map((g) => ({ goal: g, ...goalHealth(state, g, { now: new Date() }) })), [openList, state])
+  const atRisk = rows.filter((r) => r.tone === 'bad' || r.tone === 'warn')
 
   const shown = useMemo(() => {
-    if (filter === 'reached') return reached
-    if (filter === 'all') return goals
-    if (filter === 'risk') {
-      return open.filter((g) => ['warn', 'bad'].includes(healthBadge(state, g).tone))
-    }
-    return open
-  }, [filter, reached, goals, open, state])
+    if (filter === 'reached') return reachedList
+    if (filter === 'all') return goalsAll
+    if (filter === 'risk') return openList.filter((g) => ['warn', 'bad'].includes(goalHealth(state, g, { now: new Date() }).tone))
+    return openList
+  }, [filter, reachedList, goalsAll, openList, state])
 
   const ordered = useMemo(() => {
     const priority = filter === 'risk'
     return [...shown].sort((a, b) => {
-      // Deterministic: risk view pushes the most urgent first; otherwise deadline.
       if (priority) {
-        const ra = healthBadge(state, a).tone === 'bad' ? 0 : 1
-        const rb = healthBadge(state, b).tone === 'bad' ? 0 : 1
+        const ra = goalHealth(state, a).tone === 'bad' ? 0 : 1
+        const rb = goalHealth(state, b).tone === 'bad' ? 0 : 1
         if (ra !== rb) return ra - rb
       }
+      const aReached = a.status === 'completed' || goalProgress(state, a).pct >= 100
+      const bReached = b.status === 'completed' || goalProgress(state, b).pct >= 100
+      if (aReached !== bReached) return aReached ? 1 : -1
       const ad = isValidDayStr(a.targetDate) ? a.targetDate : '9999-99-99'
       const bd = isValidDayStr(b.targetDate) ? b.targetDate : '9999-99-99'
       return ad.localeCompare(bd) || a.title.localeCompare(b.title)
     })
   }, [shown, state, filter])
 
+  const next = useMemo(() => {
+    for (const g of openList) {
+      const m = nextMilestone(g)
+      if (m) return { goal: g, milestone: m }
+    }
+    return null
+  }, [openList])
+
   const remove = (goal) => {
     dispatch({ type: 'DELETE_GOAL', id: goal.id })
-    toast.show(`Deleted “${goal.title}”`, {
+    toast.show(`Deleted "${goal.title}"`, {
       duration: 6000,
       actionLabel: 'Undo',
       onAction: () => dispatch({ type: 'RESTORE_GOAL', goal }),
     })
   }
-
   const archive = (goal) => {
     dispatch({ type: 'UPDATE_GOAL', id: goal.id, patch: { archived: true, status: 'archived' } })
-    toast.show(`Archived “${goal.title}”`, {
+    toast.show(`Archived "${goal.title}"`, {
       duration: 6000,
       actionLabel: 'Undo',
       onAction: () => dispatch({ type: 'UPDATE_GOAL', id: goal.id, patch: { archived: false, status: 'active' } }),
     })
   }
 
-  const nextMilestoneRow = useMemo(() => {
-    for (const g of open) {
-      const m = nextMilestone(g)
-      if (m) return { goal: g, milestone: m }
-    }
-    return null
-  }, [open])
-
-  const summary = useMemo(() => {
-    const avg = open.length ? Math.round(open.reduce((n, g) => n + goalProgress(state, g).pct, 0) / open.length) : null
-    const atRisk = open.filter((g) => ['warn', 'bad'].includes(healthBadge(state, g).tone)).length
-    return { open: open.length, reached: reached.length, all: goals.length, avg, atRisk }
-  }, [open, reached, goals, state])
-
   const tabs = [
-    { id: 'open', label: `Open (${summary.open})` },
-    { id: 'risk', label: `At risk (${summary.atRisk})` },
-    { id: 'reached', label: `Reached (${summary.reached})` },
-    { id: 'all', label: `All (${summary.all})` },
+    { id: 'open', label: 'Active', count: openList.length },
+    { id: 'risk', label: 'Needs attention', count: atRisk.length },
+    { id: 'reached', label: 'Completed', count: reachedList.length },
+    { id: 'all', label: 'All', count: goalsAll.length },
   ]
 
-  const cells = [
-    { label: 'Open goals', value: summary.open, note: summary.open === 1 ? 'active' : 'active' },
-    {
-      label: 'Average progress',
-      value: summary.avg == null ? '—' : summary.avg,
-      note: summary.avg == null ? 'no open goals' : 'across open goals',
-      tone: summary.avg != null && summary.avg < 50 ? undefined : undefined,
-    },
-    {
-      label: 'Next milestone',
-      value: nextMilestoneRow && isValidDayStr(nextMilestoneRow.milestone.targetDate)
-        ? `${Math.max(0, Math.round((new Date(`${nextMilestoneRow.milestone.targetDate}T00:00`) - new Date(`${today}T00:00`)) / 86400000))}d`
-        : '—',
-      note: nextMilestoneRow ? nextMilestoneRow.milestone.name : 'none set',
-      small: true,
-    },
-    { label: 'Reached', value: summary.reached, note: 'all time', tone: summary.reached ? 'good' : undefined },
+  const snapshot = [
+    { label: 'Active', value: openList.length, tone: openList.length ? undefined : undefined },
+    { label: 'Attention', value: atRisk.length, tone: atRisk.length ? 'warn' : undefined },
+    { label: 'Healthy', value: openList.length - atRisk.length, tone: openList.length - atRisk.length > 0 ? 'good' : undefined },
+    { label: 'Completed', value: reachedList.length, tone: reachedList.length ? 'good' : undefined },
   ]
 
   return (
     <div className="screen" id="goals-screen">
-      <header className="screen-head goals-head">
-        <div>
-          <h1 className="screen-title">Goals</h1>
-          <p className="screen-sub">
-            The outcomes you care about — how far along each one is, whether it is healthy, and what comes next.
+      <header className="wo__head" style={{ alignItems: 'flex-start' }}>
+        <div className="wo__head-main">
+          <p className="wo__eyebrow">Goals</p>
+          <h1 className="screen-title" style={{ fontSize: 'clamp(1.6rem, 2.6vw, 2.1rem)' }}>Goals</h1>
+          <p className="screen-sub" style={{ maxWidth: 640 }}>
+            The long-term outcomes you are moving toward. Each arc shows where you are against where you planned to be — and what comes next.
           </p>
         </div>
-        <div className="head-actions">
+        <div className="wo__head-actions">
           <button className="btn primary" onClick={() => setForm({ open: true, editing: null })}>
             <IconPlus size={16} /> New goal
           </button>
@@ -157,25 +148,37 @@ export default function GoalsScreen() {
       </header>
 
       <div className="stack">
-        <StatStrip cells={cells} />
+        <div className="dlv__snap" role="group" aria-label="Goal snapshot">
+          {snapshot.map((c) => (
+            <div key={c.label} className={`dlv__pill${c.tone ? ` is-${c.tone}` : ''}`} style={{ cursor: 'default' }}>
+              <span className="dlv__pill-val tnum">{c.value}</span>
+              <span className="dlv__pill-label">{c.label}</span>
+            </div>
+          ))}
+          {next && isValidDayStr(next.milestone.targetDate) && (
+            <div className="dlv__pill" style={{ cursor: 'default' }}>
+              <span className="dlv__pill-val">{next.milestone.name}</span>
+              <span className="dlv__pill-label">Next · {prettyDate(next.milestone.targetDate)}</span>
+            </div>
+          )}
+        </div>
 
-        <div className="goals-toolbar">
+        <div className="wo__toolbar">
           <div className="seg" role="tablist" aria-label="Goal filters">
             {tabs.map((t) => (
               <button key={t.id} type="button" role="tab" aria-selected={filter === t.id}
                 className={`seg-btn${filter === t.id ? ' active' : ''}`} onClick={() => setFilter(t.id)}>
-                {t.label}
+                {t.label} <span className="count">{t.count}</span>
               </button>
             ))}
           </div>
-
-          {goals.length > 0 && (filter === 'open' || filter === 'all') && (
+          {goalsAll.length > 0 && (
             <div className="goals-view-switch" role="group" aria-label="Goals view">
               <button type="button" className={`seg-btn${view === 'list' ? ' active' : ''}`} aria-pressed={view === 'list'} onClick={() => setView('list')}>
-                <IconLayers size={15} /> List
+                <IconTrendUp size={15} /> Trajectories
               </button>
               <button type="button" className={`seg-btn${view === 'atlas' ? ' active' : ''}`} aria-pressed={view === 'atlas'} onClick={() => setView('atlas')}>
-                <IconTarget size={15} /> Atlas / Visual
+                <IconLayers size={15} /> Atlas
               </button>
             </div>
           )}
@@ -183,64 +186,52 @@ export default function GoalsScreen() {
 
         {ordered.length === 0 ? (
           <SectionCard>
-            {goals.length === 0 ? (
+            {goalsAll.length === 0 ? (
               <>
-                <EmptyState
-                  art="art/empty-goals.webp"
-                  icon={<IconTarget size={40} />}
-                  title="No goals yet"
-                >
-                  A goal is the outcome you are actually after. Add one, break it into milestones, then link the habits and projects that move it.
+                <EmptyState art="art/empty-goals.webp" icon={<IconTarget size={40} />} title="What are you moving toward?">
+                  A goal is an outcome with a horizon. Add one, set a target date, mark the milestones along the way, then link the habits and work that move it.
                 </EmptyState>
                 <div className="goals-empty-actions">
-                  <button className="btn primary" onClick={() => setForm({ open: true, editing: null })}><IconPlus size={16} /> Set your first goal</button>
+                  <button className="btn primary" onClick={() => setForm({ open: true, editing: null })}>
+                    <IconPlus size={16} /> Set your first goal
+                  </button>
                   <button type="button" className="btn ghost" onClick={() => setLearnOpen((v) => !v)} aria-expanded={learnOpen}>
                     Learn how goals work
                   </button>
                 </div>
                 {learnOpen && (
-                  <div className="goal-learn">
-                    <GoalHowItWorks />
-                  </div>
+                  <div className="goal-learn"><GoalHowItWorks /></div>
                 )}
               </>
             ) : (
               <WorkEmpty icon={<IconGoals size={40} />} title="Nothing here">
                 {filter === 'reached'
-                  ? 'Reached goals land here once their outcome is complete.'
+                  ? 'Completed goals land here once they are reached.'
                   : filter === 'risk'
-                    ? 'No open goals are at risk right now.'
+                    ? 'No open goals need attention right now.'
                     : 'Add a goal to see it in this view.'}
               </WorkEmpty>
             )}
           </SectionCard>
-        ) : view === 'atlas' && (filter === 'open' || filter === 'all') ? (
-          <Suspense fallback={<div className="card pad" style={{ minHeight: 180 }} role="status">Loading atlas…</div>}>
+        ) : view === 'atlas' ? (
+          <Suspense fallback={<div className="card pad" style={{ minHeight: 220 }} role="status">Loading atlas…</div>}>
             <GoalAtlas goals={ordered} />
           </Suspense>
         ) : (
-          <div className="goal-list" aria-label={filter === 'reached' ? 'Reached goals' : 'Active goals'}>
-            {ordered.map((goal, i) => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                index={i}
-                today={today}
-                from={from}
-                onEdit={(g) => setForm({ open: true, editing: g })}
-                onArchive={archive}
-                onDelete={remove}
-                onLinks={(g) => setLinksFor((cur) => (cur === g.id ? null : g.id))}
-                linksOpen={linksFor === goal.id}
+          <div className="goal-list" aria-label={filter === 'reached' ? 'Completed goals' : 'Active goals'}>
+            {ordered.map((g) => (
+              <GoalRow key={g.id} goal={g} today={today}
+                onEdit={() => setForm({ open: true, editing: g })}
+                onArchive={() => archive(g)}
+                onDelete={() => remove(g)}
               />
             ))}
           </div>
         )}
 
-        {/* the role of each layer — kept minimal and only when goals exist */}
-        {goals.length > 0 && (
-          <details className="goals-how card pad" open={false}>
-            <summary className="goals-how-summary">How the layers connect</summary>
+        {goalsAll.length > 0 && (
+          <details className="goals-how card pad">
+            <summary className="goals-how-summary">How goals connect to habits and work</summary>
             <GoalHowItWorks />
           </details>
         )}
@@ -260,8 +251,8 @@ function GoalHowItWorks() {
     <div className="layer-chain">
       {[
         { label: 'Goal', note: 'the outcome and why it matters' },
-        { label: 'Milestones', note: 'the checkpoints along the way' },
-        { label: 'Projects · Assignments', note: 'the work with a deadline' },
+        { label: 'Milestones', note: 'checkpoints along the arc' },
+        { label: 'Projects · Assignments', note: 'work with a deadline' },
         { label: 'Habits', note: 'what you repeat, daily or weekly' },
       ].map((l, i) => (
         <div key={l.label} className="layer-step">
@@ -277,283 +268,271 @@ function GoalHowItWorks() {
 }
 
 /* ------------------------------------------------------------
-   GOAL CARD — Phase 6 hierarchy: NAME → PROGRESS → DEADLINE /
-   HEALTH → NEXT MILESTONE → ACTION. Clear primary/secondary
-   emphasis; reached goals recede.
+   GOAL ROW — trajectory-first list item.
    ------------------------------------------------------------ */
-function GoalCard({ goal, today, from, onEdit, onArchive, onDelete, onLinks, linksOpen }) {
+function GoalRow({ goal, today, onEdit, onArchive, onDelete }) {
   const { state, dispatch } = useStore()
   const now = new Date()
-  const badge = healthBadge(state, goal, { now })
-  const reached = badge.reached
-  const health = goalHealth(state, goal, { now })
+  const area = areaOf(goal.area)
+  const health = goalHealthLabel(state, goal, { now })
   const prog = goalProgress(state, goal, { now })
   const pace = goalPace(goal, { now })
-  const area = areaOf(goal.area)
+  const analytics = goalAnalytics(state, goal, { days: 30, now })
+  const forecast = goalForecast(state, goal, { now })
+  const ms = goal.milestones || []
+  const msDone = ms.filter((m) => m.done).length
   const next = nextMilestone(goal)
-  const doneMilestones = (goal.milestones || []).filter((m) => m.done).length
-  const totalMilestones = (goal.milestones || []).length
-  const actions = goalTodayActions(state, goal, { date: today })
-  const pending = actions.filter((a) => !a.done)
+  const isReached = health.tone === 'good' && health.text === 'Completed'
+  const daysLeft = isValidDayStr(goal.targetDate)
+    ? Math.round((new Date(`${goal.targetDate}T12:00`) - now) / 86400000)
+    : null
 
-  const linkedHabits = (goal.linkedHabitIds || [])
-    .map((id) => (state.habits || []).find((h) => h.id === id))
-    .filter(Boolean)
-  const linkedProjects = (goal.linkedProjectIds || [])
-    .map((id) => (state.projects || []).find((p) => p.id === id))
-    .filter(Boolean)
-  const allHabits = activeHabits(state)
-  const openProjects = (state.projects || []).filter((p) => !p.archived && !p.completedAt)
-  const openAssignments = (state.assignments || []).filter((a) => !a.archived && !a.completedAt)
-  const linkedAssignments = (goal.linkedAssignmentIds || [])
-    .map((id) => (state.assignments || []).find((a) => a.id === id))
-    .filter(Boolean)
+  // Trajectory mini-chart geometry.
+  const actual = analytics.actual || []
+  const expected = analytics.expected || []
+  const daysLeftHorizon = !isReached && forecast.projectedCompletion
+    ? Math.max(0, Math.round((new Date(`${forecast.projectedCompletion}T12:00`) - now) / 86400000))
+    : null
+  const projectionDays = (daysLeftHorizon != null && forecast.reason === 'projected') ? Math.min(daysLeftHorizon, 21) : 0
+  const windowEnd = pace?.end || goal.targetDate
+  const windowStart = pace?.start || goal.startDate
+  const hasWindow = windowStart && windowEnd && windowEnd >= windowStart
+  const projPct = isReached ? 100 : prog.pct
+  const expectedToday = pace?.expected ?? null
+  const behind = (expectedToday != null) ? expectedToday - projPct : null
 
-  const toggleHabit = (habitId) => {
-    const on = (goal.linkedHabitIds || []).includes(habitId)
-    dispatch({ type: 'UPDATE_GOAL', id: goal.id, patch: { linkedHabitIds: on ? goal.linkedHabitIds.filter((x) => x !== habitId) : [...(goal.linkedHabitIds || []), habitId] } })
-  }
-  const toggleProject = (projectId) => {
-    const on = (goal.linkedProjectIds || []).includes(projectId)
-    dispatch({ type: 'UPDATE_GOAL', id: goal.id, patch: { linkedProjectIds: on ? goal.linkedProjectIds.filter((x) => x !== projectId) : [...(goal.linkedProjectIds || []), projectId] } })
-  }
-  const toggleAssignment = (aid) => {
-    const on = (goal.linkedAssignmentIds || []).includes(aid)
-    dispatch({ type: 'UPDATE_GOAL', id: goal.id, patch: { linkedAssignmentIds: on ? goal.linkedAssignmentIds.filter((x) => x !== aid) : [...(goal.linkedAssignmentIds || []), aid] } })
-  }
-
-  const daysLeft = badge.daysLeft
-  const deadlineText = reached
-    ? `Reached ${goal.completedAt ? prettyDate(dayOf(goal.completedAt)) : ''}`.trim()
+  // Snapshot pills (compact, real).
+  const dueText = isReached
+    ? (goal.completedAt ? prettyDate(dayOf(goal.completedAt)) : 'Reached')
     : daysLeft == null
-      ? (goal.targetDate ? `Target ${prettyDate(goal.targetDate)}` : 'No target date')
-      : daysLeft < 0
-        ? `${Math.abs(daysLeft)}d past target`
-        : daysLeft === 0
-          ? 'Target is today'
-          : `Target ${prettyDate(goal.targetDate)} · ${daysLeft}d left`
+      ? (goal.targetDate ? prettyDate(goal.targetDate) : 'No date')
+      : daysLeft < 0 ? `${Math.abs(daysLeft)}d late`
+      : daysLeft === 0 ? 'Due today'
+      : `${daysLeft}d left`
+
+  const momentum = (() => {
+    if (isReached) return { text: 'Completed', tone: 'good' }
+    if (forecast.reason === 'stalled') return { text: 'Stalled', tone: 'bad' }
+    if (behind != null) {
+      if (behind > 15) return { text: `Slowing · ${behind}pts behind`, tone: 'warn' }
+      if (behind < -10) return { text: `Ahead · ${Math.abs(behind)}pts`, tone: 'good' }
+    }
+    if (analytics.velocity?.perWeek > 0) return { text: `${analytics.velocity.perWeek}pts/wk`, tone: 'neutral' }
+    return { text: 'Getting started', tone: 'neutral' }
+  })()
 
   return (
-    <article className={`goal-card${reached ? ' is-reached' : ''}`} data-tone={reached ? 'good' : badge.tone} aria-label={`Goal ${goal.title}`}>
-      <div className="goal-head">
-        <div className="goal-main">
-          <div className="goal-eyebrow" aria-hidden="false">
-            <span className="chip">
+    <article className={`goal-row${isReached ? ' is-done' : ''}`} data-tone={health.tone} data-area={goal.area}
+      aria-label={`Goal ${goal.title}`}
+      style={{ borderLeftColor: `var(${area.cssVar})` }}>
+      <div className="goal-row__head">
+        <div className="goal-row__titleblock">
+          <div className="goal-row__eyebrow">
+            <span className="chip" style={{ color: `var(${area.cssVar})` }}>
               <span className="dot" style={{ background: `var(${area.cssVar})` }} />
               {area.label}
             </span>
-            <span className={`health-pill${reached ? '' : ` status-pill`}`} data-tone={badge.tone} aria-label={`Health: ${badge.text}`}>
-              {badge.text}
-            </span>
+            <span className="status-pill" data-tone={health.tone}>{health.text}</span>
           </div>
-
-          <h2 className="goal-title">
-            <Link to={`goals/${goal.id}`} className="goal-title-link">
-              {goal.title}
-            </Link>
+          <h2 className="goal-row__title">
+            <Link to={`goals/${goal.id}`} className="goal-row__link">{goal.title}</Link>
           </h2>
-          {goal.why && !reached && <p className="goal-why">{goal.why}</p>}
-
-          {!reached && (
-            <div className="goal-progress">
-              <Meter
-                pct={prog.pct}
-                tone={health.tone}
-                pace={pace ? pace.expected : null}
-                label={`${goal.title}: ${prog.pct}% complete${pace ? `, expected pace ${pace.expected}%` : ''}`}
-              />
-            </div>
-          )}
+          {goal.why && !isReached && <p className="goal-row__why">{goal.why}</p>}
         </div>
-
-        <div className="goal-stat" aria-label={`${prog.pct} percent complete`}>
-          <span className="goal-pct tnum">{prog.pct}%</span>
-          {reached && <span className="goal-reached-tag"><IconCheck size={13} /> Reached</span>}
+        <div className="goal-row__pct tnum" aria-hidden="true" style={{ color: isReached ? 'var(--good)' : `var(${area.cssVar})` }}>
+          {projPct}%
         </div>
       </div>
 
-      <dl className="goal-meta">
-        <div>
-          <dt>Deadline</dt>
-          <dd>{reached ? deadlineText : (goal.targetDate ? deadlineText : 'No target date')}</dd>
-        </div>
-        {!reached && totalMilestones > 0 && (
-          <div>
-            <dt>Milestones</dt>
-            <dd className="tnum">{doneMilestones}/{totalMilestones}</dd>
-          </div>
-        )}
-        {prog.source !== 'none' && !reached && (
-          <div>
-            <dt>Progress</dt>
-            <dd>{prog.detail}</dd>
-          </div>
-        )}
-        <div>
-          <dt>Health</dt>
-          <dd data-tone={badge.tone}>{badge.note || badge.text}</dd>
-        </div>
-      </dl>
+      {/* Trajectory strip */}
+      <TrajectoryStrip
+        actual={actual}
+        expected={expected}
+        prog={projPct}
+        expectedToday={expectedToday}
+        milestones={ms}
+        isReached={isReached}
+        hasWindow={hasWindow}
+        windowStart={windowStart}
+        windowEnd={windowEnd}
+        today={today}
+        projectionDays={projectionDays}
+        areaVar={area.cssVar}
+        tone={health.tone}
+        ariaLabel={`${goal.title} trajectory: ${projPct}% complete${expectedToday != null ? `, expected ${expectedToday}% by today` : ''}`}
+      />
 
-      {/* NEXT MILESTONE — the primary execution surface on the card */}
-      {reached ? (
-        <p className="goal-reached-note">This outcome is complete. Open it to review progress and notes.</p>
-      ) : totalMilestones > 0 ? (
-        <div className="goal-next">
-          <div className="goal-next-label">
-            <IconChevronRight size={14} />
-            {next ? 'Next milestone' : 'Milestones'}
-            <span className="tnum">({doneMilestones}/{totalMilestones})</span>
-          </div>
-          {next ? (
-            <div className="goal-next-row">
-              <button
-                type="button"
-                className="goal-next-toggle"
-                aria-pressed={next.done}
-                onClick={() => dispatch({ type: 'TOGGLE_GOAL_MILESTONE', id: goal.id, milestoneId: next.id })}
-              >
+      {/* Snapshot pills */}
+      <div className="goal-row__snap">
+        <span className="dlv__pill" style={{ cursor: 'default' }}><span className="dlv__pill-val tnum">{projPct}%</span><span className="dlv__pill-label">Progress</span></span>
+        <span className="dlv__pill" style={{ cursor: 'default' }}><span className="dlv__pill-val">{dueText}</span><span className="dlv__pill-label">Horizon</span></span>
+        {ms.length > 0 && <span className="dlv__pill" style={{ cursor: 'default' }}><span className="dlv__pill-val tnum">{msDone}/{ms.length}</span><span className="dlv__pill-label">Milestones</span></span>}
+        <span className={`dlv__pill is-${momentum.tone}`} style={{ cursor: 'default' }}><span className="dlv__pill-val">{momentum.text}</span><span className="dlv__pill-label">Momentum</span></span>
+      </div>
+
+      {/* Next milestone */}
+      {!isReached ? (
+        next ? (
+          <div className="goal-row__next">
+            <div className="goal-row__next-label">Next milestone</div>
+            <div className="goal-row__next-row">
+              <button type="button" className="goal-next-toggle"
+                aria-pressed={!!next.done}
+                onClick={() => dispatch({ type: 'TOGGLE_GOAL_MILESTONE', id: goal.id, milestoneId: next.id })}>
                 <span className="ms-box" aria-hidden="true">{next.done ? <IconCheck size={13} /> : null}</span>
                 <span className="goal-next-name">{next.name}</span>
                 {isValidDayStr(next.targetDate) && <span className="goal-next-date tnum">{prettyDate(next.targetDate)}</span>}
                 <IconChevronRight size={14} className="goal-next-open" aria-hidden="true" />
               </button>
-              <Link to={`goals/${goal.id}`} className="btn ghost sm goal-open-btn" aria-label={`Open ${goal.title}`}>
+              <Link to={`goals/${goal.id}`} className="btn ghost sm goal-row__open" aria-label={`Open ${goal.title}`}>
                 Open
               </Link>
             </div>
-          ) : (
-            <p className="tiny muted">All milestones reached — this goal is complete.</p>
-          )}
-        </div>
-      ) : (
-        !reached && (
-          <div className="goal-next empty-milestone">
-            <button type="button" className="btn ghost sm" onClick={() => onEdit(goal)}>
-              <IconPlus size={14} /> Add a milestone
-            </button>
-            <span className="tiny muted">No milestones yet — progress will derive from linked work or a manual percent.</span>
+          </div>
+        ) : ms.length === 0 ? (
+          <div className="goal-row__next empty-milestone">
+            <button type="button" className="btn ghost sm" onClick={onEdit}><IconPlus size={14} /> Add a milestone</button>
+            <Link to={`goals/${goal.id}`} className="btn ghost sm">Open</Link>
+          </div>
+        ) : (
+          <div className="goal-row__next">
+            <p className="goal-reached-note">All milestones reached.</p>
+            <Link to={`goals/${goal.id}`} className="btn ghost sm goal-row__open">Open</Link>
           </div>
         )
-      )}
-
-      {/* Link existing work */}
-      <div className="goal-linkbar">
-        <button type="button" className="btn ghost sm" onClick={() => onLinks(goal)} aria-expanded={linksOpen}>
-          <IconLink size={14} /> {linksOpen ? 'Done' : 'Link work'}
-        </button>
-        {!reached && next && (
-          <span className="tiny muted goal-today-hint">
-            {pending.length === 0 ? 'Nothing linked is due today.' : `Today: ${pending.slice(0, 2).map((a) => a.name).join(', ')}${pending.length > 2 ? ` +${pending.length - 2}` : ''}`}
-          </span>
-        )}
-      </div>
-
-      {linksOpen && (
-        <div className="goal-links">
-          <p className="field-label" style={{ marginTop: 4 }}>Habits</p>
-          {allHabits.length === 0 ? (
-            <p className="tiny muted">Add a habit first, then link it here.</p>
-          ) : (
-            <div className="wrap-gap" style={{ gap: 6 }}>
-              {allHabits.map((h) => {
-                const on = (goal.linkedHabitIds || []).includes(h.id)
-                return (
-                  <button key={h.id} type="button" className="chip-btn" aria-pressed={on} onClick={() => toggleHabit(h.id)}>
-                    {on && <IconCheck size={13} />}
-                    {h.name}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
-          <p className="field-label" style={{ marginTop: 12 }}>Projects</p>
-          {openProjects.length === 0 ? (
-            <p className="tiny muted">No open projects yet.</p>
-          ) : (
-            <div className="wrap-gap" style={{ gap: 6 }}>
-              {openProjects.map((p) => {
-                const on = (goal.linkedProjectIds || []).includes(p.id)
-                return (
-                  <button key={p.id} type="button" className="chip-btn" aria-pressed={on} onClick={() => toggleProject(p.id)}>
-                    {on && <IconCheck size={13} />}
-                    {p.name}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
-          <p className="field-label" style={{ marginTop: 12 }}>Assignments</p>
-          {openAssignments.length === 0 ? (
-            <p className="tiny muted">No open assignments yet.</p>
-          ) : (
-            <div className="wrap-gap" style={{ gap: 6 }}>
-              {openAssignments.map((a) => {
-                const on = (goal.linkedAssignmentIds || []).includes(a.id)
-                return (
-                  <button key={a.id} type="button" className="chip-btn" aria-pressed={on} onClick={() => toggleAssignment(a.id)}>
-                    {on && <IconCheck size={13} />}
-                    {a.name}
-                  </button>
-                )
-              })}
-            </div>
-          )}
+      ) : (
+        <div className="goal-row__next">
+          <p className="goal-reached-note"><IconCheck size={13} /> Outcome reached. Open to review.</p>
+          <Link to={`goals/${goal.id}`} className="btn ghost sm goal-row__open">Open</Link>
         </div>
       )}
 
-      {/* Linked contributors, always visible when they exist */}
-      {(linkedHabits.length > 0 || linkedProjects.length > 0 || linkedAssignments.length > 0) && !linksOpen && !reached && (
-        <div className="goal-linked">
-          {linkedHabits.map((h) => {
-            const r = habitRate(state, h, from, today)
-            const streak = habitStreak(state, h)
-            return (
-              <Link key={h.id} to={`habits/${h.id}`} className="goal-habit">
-                <span className="dot" style={{ background: `var(${area.cssVar})` }} />
-                <span className="goal-habit-name ellipsis">{h.name}</span>
-                {streak > 1 && (
-                  <span className="tiny tnum" style={{ color: 'var(--warn)', fontWeight: 700, display: 'inline-flex', gap: 3, alignItems: 'center' }}>
-                    <IconFlame size={12} />{streak}d
-                  </span>
-                )}
-                <span className="tiny muted tnum" style={{ flex: 'none' }}>
-                  {r.rate == null ? 'no data' : `${Math.round(r.rate * 100)}% 30d`}
-                </span>
-              </Link>
-            )
-          })}
-          {linkedProjects.map((p) => (
-            <Link key={p.id} to={`projects/${p.id}`} className="goal-habit">
-              <span className="dot" style={{ background: 'var(--accent-1)' }} />
-              <span className="goal-habit-name ellipsis">{p.name}</span>
-              <span className="tiny muted tnum" style={{ flex: 'none' }}>{projectProgress(p).pct}%</span>
-            </Link>
-          ))}
-          {linkedAssignments.map((a) => (
-            <Link key={a.id} to={`assignments/${a.id}`} className="goal-habit">
-              <span className="dot" style={{ background: 'var(--info)' }} />
-              <span className="goal-habit-name ellipsis">{a.name}</span>
-              <span className="tiny muted tnum" style={{ flex: 'none' }}>{a.progress ?? 0}%</span>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {!reached && pending.length > 0 && (
-        <p className="goal-today">
-          Today: {pending.slice(0, 3).map((a) => a.name).join(', ')}{pending.length > 3 ? ` +${pending.length - 3} more` : ''}
-        </p>
-      )}
-
-      <div className="goal-foot">
-        <button className="btn ghost sm" onClick={() => onEdit(goal)}><IconPencil size={14} /> Edit</button>
+      {/* Footer actions */}
+      <div className="goal-row__foot">
+        <button className="btn ghost sm" onClick={onEdit}><IconPencil size={14} /> Edit</button>
         <span style={{ flex: 1 }} />
-        <button className="btn ghost sm" onClick={() => onArchive(goal)} aria-label={`Archive ${goal.title}`}><IconArchive size={15} /></button>
-        <button className="btn ghost sm" style={{ color: 'var(--bad)' }} onClick={() => onDelete(goal)} aria-label={`Delete ${goal.title}`}><IconTrash size={15} /></button>
+        <button className="btn ghost sm" onClick={onArchive} aria-label={`Archive ${goal.title}`}><IconArchive size={15} /></button>
+        <button className="btn ghost sm" style={{ color: 'var(--bad)' }} onClick={onDelete} aria-label={`Delete ${goal.title}`}><IconTrash size={15} /></button>
       </div>
     </article>
+  )
+}
+
+/* ------------------------------------------------------------
+   TRAJECTORY STRIP — compact actual-vs-expected arc.
+
+   Real data only. Actual line uses goalAnalytics actual series;
+   expected is the linear pace line when a window exists; today is
+   marked; completed milestones are filled dots, next is a ring;
+   future milestones are hollow; projection extends as dashed.
+   Gaps are breaks in the actual line (never interpolated).
+   ------------------------------------------------------------ */
+function TrajectoryStrip({ actual, prog, expectedToday, milestones, isReached, hasWindow, windowStart, windowEnd, today, projectionDays, areaVar, tone, ariaLabel }) {
+  const W = 640, H = 64, L = 4, R = 4, T = 6, B = 18
+  const n = actual.length
+  const x = (i) => (n <= 1 ? (L + W - R) / 2 : L + (i / Math.max(1, n - 1 + projectionDays)) * (W - L - R))
+  const y = (v) => T + (1 - Math.max(0, Math.min(100, v)) / 100) * (H - T - B)
+
+  const known = actual.map((r, i) => ({ ...r, i, x: x(i), y: r.pct == null ? null : y(r.pct) }))
+  let d = ''
+  let started = false
+  known.forEach((p) => {
+    if (p.y == null) { started = false; return }
+    d += (started ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1) + ' '
+    started = true
+  })
+  d = d.trim()
+
+  // Expected pace line: from (0,0) at windowStart to (n-1, expectedToday) and onward to target.
+  let ed = ''
+  if (hasWindow && expectedToday != null) {
+    const t0 = new Date(`${windowStart}T00:00`).getTime()
+    const t1 = new Date(`${windowEnd}T23:59`).getTime()
+    const tNow = new Date(`${today}T12:00`).getTime()
+    const todayX = L + Math.max(0, Math.min(1, (tNow - t0) / (t1 - t0))) * (W - L - R) * (n - 1) / Math.max(1, n - 1 + projectionDays)
+    ed = `M${L} ${y(0)} L${todayX.toFixed(1)} ${y(expectedToday).toFixed(1)}`
+  }
+
+  // Projection dashed extension.
+  let projD = ''
+  if (projectionDays > 0 && !isReached) {
+    const i0 = n - 1
+    const p0 = known.find((p) => p.i === i0 && p.y != null)
+    if (p0) {
+      const xEnd = x(n - 1 + projectionDays)
+      projD = `M${p0.x.toFixed(1)} ${p0.y.toFixed(1)} L${xEnd.toFixed(1)} ${y(100).toFixed(1)}`
+    }
+  }
+
+  // Milestone markers along trajectory.
+  const msDots = milestones.map((m) => {
+    let mx, my
+    if (isReached || m.done) {
+      // Completed: place at last known point or progress line.
+      const last = [...known].reverse().find((p) => p.y != null)
+      mx = last ? last.x : x(n - 1)
+      my = last ? last.y : y(prog)
+    } else {
+      // Next / upcoming: place on expected line at the milestone targetDate (clamped), else at current progress x.
+      const t0 = hasWindow ? new Date(`${windowStart}T00:00`).getTime() : new Date(`${today}T00:00`).getTime()
+      const t1 = hasWindow ? new Date(`${windowEnd}T23:59`).getTime() : new Date(`${today}T00:00`).getTime()
+      if (isValidDayStr(m.targetDate) && t1 > t0) {
+        const tm = new Date(`${m.targetDate}T12:00`).getTime()
+        const pctAlong = Math.max(0, Math.min(1.2, (tm - t0) / (t1 - t0)))
+        const idx = pctAlong * (n - 1 + projectionDays)
+        mx = x(Math.round(idx))
+        my = y(Math.round(pctAlong * (expectedToday ?? prog)))
+      } else {
+        mx = x(n - 1)
+        my = y(prog)
+      }
+    }
+    return { m, cx: mx, cy: my }
+  })
+
+  // Today marker x.
+  const todayX = hasWindow && expectedToday != null
+    ? L + Math.max(0, Math.min(1, (new Date(`${today}T12:00`).getTime() - new Date(`${windowStart}T00:00`).getTime()) / (new Date(`${windowEnd}T23:59`).getTime() - new Date(`${windowStart}T00:00`).getTime()))) * (W - L - R) * (n - 1) / Math.max(1, n - 1 + projectionDays)
+    : x(n - 1)
+
+  const stroke = isReached ? 'var(--good)' : `var(${areaVar})`
+  const expStroke = tone === 'bad' ? 'var(--bad)' : tone === 'warn' ? 'var(--warn)' : 'var(--text-3)'
+
+  return (
+    <div className="goal-trajectory" role="img" aria-label={ariaLabel}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden="true">
+        {/* baseline */}
+        <line x1={L} y1={y(0)} x2={W - R} y2={y(0)} stroke="var(--border)" strokeWidth="1" />
+        {/* 50% guide */}
+        <line x1={L} y1={y(50)} x2={W - R} y2={y(50)} stroke="var(--border)" strokeDasharray="2 4" strokeWidth="1" />
+        {/* expected pace */}
+        {ed && <path d={ed} fill="none" stroke={expStroke} strokeWidth="1.5" strokeDasharray="3 4" opacity="0.8" />}
+        {/* projection */}
+        {projD && <path d={projD} fill="none" stroke={stroke} strokeWidth="1.8" strokeDasharray="2 3" opacity="0.5" />}
+        {/* actual line */}
+        {d && <path d={d} fill="none" stroke={stroke} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
+        {/* current dot */}
+        {(() => {
+          const last = [...known].reverse().find((p) => p.y != null)
+          if (!last) return null
+          return <circle cx={last.x} cy={last.y} r="3.5" fill="var(--surface-solid)" stroke={stroke} strokeWidth="2" />
+        })()}
+        {/* milestone dots */}
+        {msDots.map(({ m, cx, cy }, i) => (
+          <circle key={m.id || i} cx={cx} cy={cy} r={m.done || isReached ? 3.5 : 3}
+            fill={m.done || isReached ? stroke : 'var(--surface-solid)'}
+            stroke={stroke} strokeWidth="1.8" />
+        ))}
+        {/* today marker */}
+        <line x1={todayX} y1={T - 2} x2={todayX} y2={H - B + 2} stroke={stroke} strokeWidth="1.5" strokeDasharray="1 2" opacity="0.6" />
+        <polygon points={`${todayX - 3},${H - B + 4} ${todayX + 3},${H - B + 4} ${todayX},${H - B}`} fill={stroke} opacity="0.7" />
+      </svg>
+      <div className="goal-trajectory__legend" aria-hidden="true">
+        <span><i style={{ background: stroke }} /> actual</span>
+        {ed && <span><i style={{ borderTop: `2px dashed ${expStroke}` }} /> expected</span>}
+        {projD && <span><i style={{ borderTop: `2px dashed ${stroke}`, opacity: 0.6 }} /> projected</span>}
+        {milestones.length > 0 && <span><i className="dot" style={{ background: stroke }} /> milestone</span>}
+      </div>
+    </div>
   )
 }

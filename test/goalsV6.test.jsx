@@ -87,7 +87,7 @@ describe('Goals workspace — list-first', () => {
     // Goal cards expose a health state and progress.
     expect(within(root).getByText('On track')).toBeTruthy()
     expect(within(root).getByText('At risk')).toBeTruthy()
-    expect(within(root).getByText('Overdue')).toBeTruthy()
+    expect(within(root).getByText('Needs attention')).toBeTruthy()
     expect(within(root).getAllByText('20%').length).toBeGreaterThan(0)
   })
 
@@ -101,14 +101,14 @@ describe('Goals workspace — list-first', () => {
     expect(toggle.getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('filters Open / Reached / All / At risk deterministically', async () => {
+  it('filters Active / Needs attention / Completed / All deterministically', async () => {
     const root = await mount()
-    // Reached
-    fireEvent.click(within(root).getByRole('tab', { name: /Reached/ }))
+    // Completed
+    fireEvent.click(within(root).getByRole('tab', { name: /Completed/ }))
     await within(root).findByRole('heading', { name: 'Learn Spanish', level: 2 })
     expect(within(root).queryByRole('heading', { name: 'Thesis', level: 2 })).toBeNull()
-    // At risk → overdue + at-risk only
-    fireEvent.click(within(root).getByRole('tab', { name: /At risk/ }))
+    // Needs attention → overdue + at-risk only
+    fireEvent.click(within(root).getByRole('tab', { name: /Needs attention/ }))
     await within(root).findByRole('heading', { name: 'Thesis', level: 2 })
     expect(within(root).getByText('Marathon')).toBeTruthy()
     expect(within(root).queryByText('Write a novella')).toBeNull()
@@ -120,11 +120,11 @@ describe('Goals workspace — list-first', () => {
   it('makes the Atlas an optional exploration mode, not the default', async () => {
     const root = await mount()
     expect(root.querySelector('.atlas-wrap')).toBeNull()
-    fireEvent.click(within(root).getByRole('button', { name: /Atlas \/ Visual/ }))
+    fireEvent.click(within(root).getByRole('button', { name: /Atlas/ }))
     // Lazy atlas mounts once the user opts in.
     const section = await within(root).findByLabelText(/Goal atlas for Thesis/)
     expect(section).toBeTruthy()
-    fireEvent.click(within(root).getByRole('button', { name: /List/ }))
+    fireEvent.click(within(root).getByRole('button', { name: /Trajectories/ }))
     await waitFor(() => expect(root.querySelector('.atlas-wrap')).toBeNull())
   })
 
@@ -142,7 +142,7 @@ describe('Goals empty state', () => {
     const state = seed()
     state.goals = []
     const root = await mount('goals', state)
-    expect(within(root).getByText('No goals yet')).toBeTruthy()
+    expect(within(root).getByText(/What are you moving toward/)).toBeTruthy()
     expect(within(root).getByRole('button', { name: /Set your first goal/i })).toBeTruthy()
     expect(within(root).getByRole('button', { name: /Learn how goals work/i })).toBeTruthy()
     expect(within(root).queryByText('Forecast')).toBeNull()

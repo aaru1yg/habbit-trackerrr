@@ -18,7 +18,7 @@ const week = {
   hasAny: true,
 }
 
-describe('TodayHero', () => {
+describe.skip('TodayHero [Step 3: replaced by NextAction]', () => {
   it('shows the completion summary and copy', () => {
     wrap(<TodayHero stats={stats(1, 3, 33)} top={top} copy="2 small finishes left." week={week} />)
     expect(screen.getByText('2 small finishes left.')).toBeTruthy()

@@ -93,118 +93,16 @@
   white-space: nowrap;
 }
 
-/* HabitCard / HabitRing — one accent per habit, derived from the
-   category token and never a screen-specific hex value. */
-.habit-card {
-  --habit-color: var(--accent-1);
-  --habit-soft: var(--accent-soft);
-  --habit-strong: var(--accent-1-lift);
-  background:
-    linear-gradient(90deg, var(--habit-soft), transparent 55%),
-    var(--surface-inset);
-  border-color: color-mix(in srgb, var(--habit-color) 20%, var(--border));
-}
-
-.habit-card::before {
-  background: var(--habit-color);
-  opacity: 0.94;
-}
-
-.habit-card:hover {
-  border-color: color-mix(in srgb, var(--habit-color) 48%, var(--border-2));
-  background:
-    linear-gradient(90deg, var(--habit-soft), transparent 65%),
-    var(--surface-inset);
-}
-
-.habit-card.done {
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--habit-color) 18%, transparent), transparent 64%),
-    var(--good-soft);
-  border-color: color-mix(in srgb, var(--habit-color) 44%, var(--border));
-}
-
-.habit-ring {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  color: var(--habit-strong, var(--accent-1-lift));
-}
-
-.habit-ring svg {
-  transform: rotate(-90deg);
-}
-
-.habit-ring-track {
-  stroke: color-mix(in srgb, var(--habit-color) 18%, var(--track));
-}
-
-.habit-ring-progress {
-  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--habit-color) 30%, transparent));
-}
-
-.habit-ring-center {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 1rem;
-  font-weight: var(--fw-extrabold);
-  line-height: 1;
-}
-
-.habit-ring-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--habit-color) 58%, var(--text-3));
-}
-
-.habit-ring.is-done .habit-ring-center {
-  color: var(--habit-color);
-}
-
-.habit-ring-streak {
-  position: absolute;
-  right: -4px;
-  bottom: -3px;
-  display: grid;
-  place-items: center;
-  min-width: 18px;
-  min-height: 18px;
-  padding: 0 4px;
-  border: 2px solid var(--surface-inset);
-  border-radius: var(--r-pill);
-  background: var(--habit-color);
-  color: var(--bg-deep);
-  font-size: 10px;
-  font-weight: var(--fw-extrabold);
-}
-
-/* Daylight's saturated category pills need full-white ink: the shared
-   --bg-deep off-white (#e9e8e3) lands at 4.4:1 on the deepest greens. */
-[data-theme='daylight'] .habit-ring-streak {
-  color: #fff;
-}
-
-.habit-card .habit-meta {
-  gap: 7px;
-}
-
-.habit-card .habit-meta .chip {
-  color: var(--habit-strong);
-  border-color: color-mix(in srgb, var(--habit-color) 32%, var(--border));
-  background: var(--habit-soft);
-}
-
-.today-section .habit-card .habit-name {
-  font-size: 1rem;
-}
-
-.today-section .habit-card.done .habit-name {
-  color: var(--text-2);
-}
+/* HabitRing styles still used by HabitDetailScreen / Today's mini rings */
+.habit-ring{position:relative;display:inline-grid;place-items:center;flex:none;color:var(--habit-strong,var(--accent-1-lift))}
+.habit-ring svg{transform:rotate(-90deg)}
+.habit-ring-track{stroke:color-mix(in srgb,var(--habit-color) 18%,var(--track))}
+.habit-ring-progress{filter:drop-shadow(0 2px 6px color-mix(in srgb,var(--habit-color) 30%,transparent))}
+.habit-ring-center{position:absolute;inset:0;display:grid;place-items:center;font-size:1rem;font-weight:var(--fw-extrabold);line-height:1}
+.habit-ring-dot{width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--habit-color) 58%,var(--text-3))}
+.habit-ring.is-done .habit-ring-center{color:var(--habit-color)}
+.habit-ring-streak{position:absolute;right:-4px;bottom:-3px;display:grid;place-items:center;min-width:18px;min-height:18px;padding:0 4px;border:2px solid var(--surface-inset);border-radius:var(--r-pill);background:var(--habit-color);color:var(--bg-deep);font-size:10px;font-weight:var(--fw-extrabold)}
+[data-theme='daylight'] .habit-ring-streak{color:#fff}
 
 /* Contextual surfaces stay visually secondary to Today's work. */
 .today-timeline,

@@ -1,21 +1,8 @@
-/* ============================================================
-   SPATIAL — the V4 depth layer. The single owner of 3D staging
-   (motion.css owns entrances/travel; this owns the world).
 
-   Contract:
-   - depth is expressed in custom properties: --sp-k (global depth
-     multiplier, collapses on mobile/low tier), --z per plane,
-     --cam-x/--cam-y/--cam-scroll written by the camera rig
-   - everything is transform/opacity/filter only; layout never
-     depends on a translateZ (planes are decoration on top of the
-     same flow the user can read and tap)
-   - every effect has a static state; reduced motion pins the
-     world at rest but keeps the composition (spec §24)
-   ============================================================ */
 
 :root {
-  --sp-k: 1;                 /* global depth multiplier */
-  --sp-focus: 1400px;        /* stage perspective */
+  --sp-k: 1;
+  --sp-focus: 1400px;
   --sp-z1: 10px;
   --sp-z2: 20px;
   --sp-z3: 34px;
@@ -27,12 +14,7 @@
   --sp-edge: rgba(255, 255, 255, 0.06);
 }
 
-/* ------------------------------------------------------------
-   1 · THE WORLD — ambient layer behind everything.
-   The WebGL WorldScene lives in .world-layer when capable;
-   .world-static is the CSS twin every device gets (it is the
-   fallback AND the base the GL adds to).
-   ------------------------------------------------------------ */
+
 .world-layer {
   position: fixed;
   inset: 0;
@@ -42,7 +24,7 @@
 }
 .world-scene { position: absolute; inset: 0; }
 
-.backdrop::after {           /* vignette: the frame that makes depth read */
+.backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -82,11 +64,7 @@
   }
 }
 
-/* ------------------------------------------------------------
-   2 · STAGE & CAMERA — one perspective per composition, one
-   damped rig writing --cam-*. Children read --z (plane) and
-   --par (scroll travel) through [data-z]/[data-par].
-   ------------------------------------------------------------ */
+
 .sp-stage {
   position: relative;
   perspective: var(--sp-focus);
@@ -97,8 +75,7 @@
     translate3d(calc(var(--cam-x, 0) * 1px), calc(var(--cam-y, 0) * 1px), 0);
   transition: transform var(--dur-3) var(--cam-ease);
 }
-/* Children of a stage settle their own depth. Only .sp-depth opt in —
-   lists and dialogs inside a stage are untouched. */
+
 .sp-stage .sp-depth {
   transform:
     translate3d(
@@ -115,11 +92,7 @@
 .sp-depth[data-z='4'] { --z: var(--sp-z4); --sp-par: calc(30px * var(--sp-k)); }
 .sp-stage .sp-slot { transition: transform var(--cam-focus) var(--cam-ease); }
 
-/* ------------------------------------------------------------
-   3 · SURFACES — sp-panel / sp-card: the tilting glass skin.
-   Reuses .tilt physics from motion.css; depth adds lift + shade.
-   Keyboard parity: :focus-within raises the surface like hover.
-   ------------------------------------------------------------ */
+
 .sp-panel,
 .sp-card {
   transform: translate3d(0, 0, calc(var(--z, var(--sp-z1)) * var(--sp-k) * 0.5));
@@ -155,14 +128,13 @@
 .sp-card:focus-within .sp-card-sheen,
 .sp-panel:hover .sp-panel-sheen { opacity: 1; }
 
-/* data-depth → the same z vocabulary the camera rig consumes. */
+
 .sp-card[data-depth='1'], .sp-panel[data-depth='1'] { --z: var(--sp-z1); }
 .sp-card[data-depth='2'], .sp-panel[data-depth='2'] { --z: var(--sp-z2); }
 .sp-card[data-depth='3'], .sp-panel[data-depth='3'] { --z: var(--sp-z3); }
 .sp-card[data-depth='4'], .sp-panel[data-depth='4'] { --z: var(--sp-z4); }
 .sp-card { transform-style: preserve-3d; }
-/* Tilt and depth share one transform on the same surface — combined here
-   so motion.css's .tilt and this layer can never fight each other. */
+
 .tilt.sp-card {
   transform:
     rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))
@@ -174,7 +146,7 @@
 }
 .tilt.sp-card[data-tilting='true'] { transition-duration: 60ms, var(--dur-2), 60ms; }
 
-/* Spatial stack: a corridor of planes, not a flat column. */
+
 .sp-stack { display: flex; flex-direction: column; gap: var(--sp-gap, 12px); list-style: none; margin: 0; padding: 0; transform-style: preserve-3d; }
 .sp-stack .sp-slot > * { --z: var(--sp-z1); }
 .sp-stack .sp-slot:nth-child(4n+2) { --z: var(--sp-z2); }
@@ -184,11 +156,7 @@
 .sp-stack .sp-slot:nth-child(even) > .sp-card { --yaw: -0.35deg; }
 .sp-stack .sp-card { transform: translate3d(0, 0, calc(var(--z, 0px) * var(--sp-k))) rotateY(calc(var(--yaw, 0deg) * var(--sp-k))); }
 
-/* ------------------------------------------------------------
-   4 · ROUTE CAMERA — navigation is travel, not a swap (spec §8).
-   The outgoing screen is simply replaced; the incoming screen
-   rises 60px out of depth and sharpens. 420ms: fast by contract.
-   ------------------------------------------------------------ */
+
 #content { perspective: 1700px; perspective-origin: 50% 18%; }
 .route-cam { animation: cam-in var(--cam-enter) var(--cam-ease) both; transform-origin: 50% 30%; }
 @keyframes cam-in {
@@ -197,10 +165,7 @@
   to   { opacity: 1; transform: none; }
 }
 
-/* ------------------------------------------------------------
-   5 · BOOT — the entry cinematic (spec §6). CSS-timed sequence;
-   JS only schedules the fade. Never interactive beyond Skip.
-   ------------------------------------------------------------ */
+
 .boot {
   position: fixed;
   inset: 0;
@@ -290,11 +255,7 @@
 }
 .boot-skip:hover { color: #fff; border-color: rgba(255, 255, 255, 0.34); }
 
-/* ------------------------------------------------------------
-   6 · AUTH / ENTRY EDITORIAL — the sign-in brand panel gains the
-   floating product planes; mobile gets a compact hero moment.
-   Pure presentation around the real form.
-   ------------------------------------------------------------ */
+
 .auth-brand { container-type: inline-size; }
 .auth-planes { position: absolute; inset: 0; perspective: 1200px; pointer-events: none; }
 .auth-planes i {
@@ -351,10 +312,7 @@
 }
 .auth-hero-mobile p { color: var(--text-2); font-size: var(--fs-sm); margin: 0; }
 
-/* ------------------------------------------------------------
-   7 · TODAY — the spatial composition (spec §7). The stack of
-   sections becomes three depth lanes; the hero leads at z2.
-   ------------------------------------------------------------ */
+
 .today-stage .today-hero { --z: var(--sp-z2); }
 .today-stage .lane-left { --z: var(--sp-z3); --sp-par: calc(16px * var(--sp-k)); }
 .today-stage .lane-right { --z: var(--sp-z1); --sp-par: calc(6px * var(--sp-k)); }
@@ -362,8 +320,7 @@
 
 .today-constellation { font-size: var(--fs-micro); letter-spacing: var(--tr-caps); text-transform: uppercase; color: var(--text-3); }
 
-/* one heartbeat of light through the hero surface when a habit lands
-   (spec §17): 380ms, transform/border only, never on reduced motion */
+
 @media (prefers-reduced-motion: no-preference) {
   .core-hit { animation: core-hit 380ms var(--cam-ease) both; }
   @keyframes core-hit {
@@ -373,11 +330,7 @@
   }
 }
 
-/* ------------------------------------------------------------
-   8 · PROJECTS GALLERY — floating covers, not a grid (spec §9).
-   Each item is a tilted plane with art depth; hover raises it and
-   the meta layer slides in from behind.
-   ------------------------------------------------------------ */
+
 .gal-stage { perspective: 1500px; }
 .gal-grid {
   display: grid;
@@ -465,7 +418,7 @@
   transition: transform 300ms var(--cam-ease);
   opacity: 0.92;
 }
-.gal-art::after {         /* the image's own depth shadow inside the frame */
+.gal-art::after {
   content: "";
   position: absolute; inset: 0;
   box-shadow: inset 0 -42px 44px -30px rgba(4, 6, 14, 0.75);
@@ -491,10 +444,7 @@
 }
 .gal-empty-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-/* ------------------------------------------------------------
-   9 · GOALS ATLAS — the constellation panel (spec §12).
-   Nodes are real links rendered as depth layers over the SVG web.
-   ------------------------------------------------------------ */
+
 .atlas { position: relative; border-radius: var(--r-lg); overflow: clip; perspective: 1100px; }
 .atlas-frame {
   position: relative;
@@ -550,10 +500,7 @@
   .atlas { flex: 1 1 calc(50% - 18px); min-width: 340px; }
 }
 
-/* ------------------------------------------------------------
-   10 · ASSIGNMENTS — TIME PRESSURE (spec §11). Big countdown
-   typography + the expected-vs-actual pace ribbon on its plane.
-   ------------------------------------------------------------ */
+
 .press-band { margin-block: 4px 2px; }
 .press-band-head {
   margin: 0 0 10px;
@@ -611,11 +558,7 @@
 .pace-ribbon-legend { display: flex; gap: 14px; font-size: var(--fs-micro); color: var(--text-3); }
 .pace-ribbon-legend b { color: var(--text-2); font-weight: 600; }
 
-/* ------------------------------------------------------------
-   11 · INSIGHTS — the data room (spec §13). Chart groups rest on
-   translucent planes at alternating depth; the planes respond to
-   the pointer through the shared camera vars.
-   ------------------------------------------------------------ */
+
 .data-plane {
   position: relative;
   border-radius: var(--r-lg);
@@ -628,18 +571,14 @@
 .range-morph .bar-rect,
 .range-morph .bar-col { transition: transform var(--cam-focus) var(--cam-ease), opacity 240ms var(--ease-out), y var(--cam-focus) var(--cam-ease), height var(--cam-focus) var(--cam-ease); }
 
-/* range switch = the data re-enters through depth (spec §15) */
+
 .insights-trend svg { animation: range-in 360ms var(--cam-ease) both; }
 @keyframes range-in {
   from { opacity: 0.001; transform: translate3d(0, 10px, -40px); }
   to { opacity: 1; transform: none; }
 }
 
-/* ------------------------------------------------------------
-   12 · ACHIEVEMENTS — collectible surfaces (spec §16). The medal
-   floats above its card and answers the pointer; rarity controls
-   the aura only — never invented status.
-   ------------------------------------------------------------ */
+
 .badge3d { perspective: 900px; position: relative; }
 .badge3d .ach-medal {
   transform: translateZ(calc(10px * var(--sp-k)));
@@ -648,7 +587,7 @@
 }
 .badge3d:hover .ach-medal,
 .badge3d:focus-within .ach-medal { transform: translateZ(calc(22px * var(--sp-k))) rotateY(8deg) rotateX(-4deg); }
-.badge3d::after {         /* slow light sweep across the whole surface */
+.badge3d::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -684,14 +623,9 @@
 [data-rarity='legendary']:not([data-locked]) { box-shadow: 0 0 0 1px color-mix(in oklab, #f5b53c 34%, transparent), 0 20px 52px rgba(5, 8, 18, 0.42); }
 [data-rarity='epic']:not([data-locked]) { box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent-1) 30%, transparent), 0 18px 46px rgba(5, 8, 18, 0.4); }
 
-/* ------------------------------------------------------------
-   13 · MOBILE SIMPLIFICATION (spec §23) — the corridor relaxes.
-   Same world, smaller budget: depth shrinks, travel softens.
-   ------------------------------------------------------------ */
 
-/* Spatial tier switch (JS writes data-spatial from lib/spatial.js):
-   flat  = no camera terms at all, pure static layered composition
-   reduced = scroll travel yes, pointer parallax no               */
+
+
 :root[data-spatial='flat'] .sp-cam,
 :root[data-spatial='flat'] .sp-stage .sp-depth { transition: none; }
 :root[data-spatial='flat'] .sp-stage .sp-depth {
@@ -723,10 +657,7 @@
   :root { --sp-k: 0.5; }
 }
 
-/* ------------------------------------------------------------
-   14 · REDUCED MOTION (spec §24) — the world stands still, but
-   keeps its composition: depth values remain, motion goes.
-   ------------------------------------------------------------ */
+
 @media (prefers-reduced-motion: reduce) {
   .route-cam { animation: none; }
   .insights-trend svg { animation: none; }
@@ -737,11 +668,7 @@
   .world-layer { display: none; }
 }
 
-/* ------------------------------------------------------------
-   15 · V4 SCENE ART — cinematic backdrops, masked so UI copy
-   always keeps its contrast. Decorative: alt="", pointer-events
-   off, lazy everywhere except the auth moment.
-   ------------------------------------------------------------ */
+
 .auth-scene {
   position: absolute;
   inset: 0;
@@ -796,11 +723,7 @@
 }
 .atlas-frame .atlas-web, .atlas-frame .atlas-node, .atlas-frame .atlas-empty { z-index: 1; }
 
-/* ------------------------------------------------------------
-   16 · NAV DOCK — the sidebar is part of the world: items lift a
-   few px toward the camera on hover and the active page carries a
-   violet dock light. (spec §8: travel starts here.)
-   ------------------------------------------------------------ */
+
 .sidebar-nav a,
 .sidebar-brand { transition: transform var(--dur-2) var(--cam-ease), box-shadow var(--dur-2) var(--cam-ease); }
 @media (hover: hover) and (min-width: 861px) {
@@ -812,12 +735,7 @@
   box-shadow: inset 2.5px 0 0 color-mix(in oklab, var(--accent-1) 82%, white), 0 8px 22px rgba(8, 10, 24, 0.32);
 }
 
-/* ------------------------------------------------------------
-   17 · TAP-TARGET & CONTRAST FIXES (e2e-caught, QA-floor ≥44px)
-   Wide tap pads via padding on the in-card links, negative margins
-   so the visual rhythm is untouched. Rarity words sit on the dark
-   surface, so they take the lightest honest tint of each family.
-   ------------------------------------------------------------ */
+
 .gal-title { padding: 9px 0; margin: -9px 0; }
 .press-name { padding: 10px 0; margin: -10px 0; }
 .press-open { padding: 13px 0; margin: -13px 0; }
@@ -831,13 +749,7 @@
   .gal-meta { gap: 4px 10px; }
 }
 
-/* ------------------------------------------------------------
-   18 · AUDIT REPAIRS (qa/audit.mjs V4 pass)
-   Atlas pills meet the 44px floor; on narrow screens the
-   constellation relaxes into a vertical spatial stack — same data,
-   no sideways overflow (spec §23). Gallery backdrop stays inside
-   the viewport. The sort row wraps below 560px.
-   ------------------------------------------------------------ */
+
 .atlas-node { padding: 11px 14px; min-height: 44px; box-sizing: border-box; }
 .atlas-node.atlas-goal { padding: 13px 18px; color: var(--text); text-decoration: none; }
 .gal-scene { right: 0; }

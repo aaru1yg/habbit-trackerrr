@@ -11,7 +11,7 @@
    libnss3/libnspr4, and neither is installed).
    ============================================================ */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { StoreProvider, STORAGE_KEY } from '../src/store.jsx'
 import App from '../src/App.jsx'
 import { Heatmap, HabitMatrix } from '../src/components/charts/chartKit.jsx'
@@ -23,14 +23,6 @@ import { isSheetOpen } from '../src/components/ui/Sheet.jsx'
 const DAY = 86400000
 const iso = (offsetDays, hhmm = '17:00') =>
   new Date(Date.now() + offsetDays * DAY).toISOString().slice(0, 10) + 'T' + hhmm
-
-function longRunningLog() {
-  return [1, 2, 3, 4].map((n) => ({
-    id: `f${n}`, kind: 'assignment', itemId: 'a1', name: 'Physics set',
-    startedAt: iso(-n, '09:00'), endedAt: iso(-n, '09:45'),
-    plannedMin: 30, actualMin: 45, completed: true, interrupted: false,
-  }))
-}
 
 function seedState(over = {}) {
   return {
@@ -158,19 +150,13 @@ describe('the command palette is keyboard-first — #20', () => {
 })
 
 describe('the universal action sheet is operable — #22', () => {
-  it('opens from a named trigger and closes on Escape', async () => {
-    mountToday()
-    await screen.findByText("Today's priorities")
-    const trigger = document.querySelector('.priority-actions')
-    expect(trigger.getAttribute('aria-label')).toMatch(/^Actions for .+/u)
-
-    fireEvent.click(trigger)
-    const dialog = await screen.findByRole('dialog')
-    expect(dialog.getAttribute('aria-modal')).toBe('true')
-
-    fireEvent.keyDown(dialog, { key: 'Escape' })
-    await waitFor(() => expect(isSheetOpen()).toBe(false))
-  })
+  // Step 3: the legacy per-row .priority-actions menu was removed from Today
+  // in favor of the editorial Today's Work list (per-item actions use existing
+  // HabitRing/link/Progress/Button primitives, and global actions live in
+  // Omni + Tools). These three tests are retired.
+  it.skip('opens from a named trigger and closes on Escape', async () => {})
+  it.skip('every action button is named', async () => {})
+  it.skip('the destructive action asks before it acts', async () => {})
 
   it('returns focus to the opener on close, even when the sheet auto-focuses a field', async () => {
     /* Sheet captured `document.activeElement` inside its open effect. React
@@ -193,71 +179,34 @@ describe('the universal action sheet is operable — #22', () => {
     await waitFor(() => expect(isSheetOpen()).toBe(false))
     await waitFor(() => expect(document.activeElement).toBe(opener))
   })
-
-  it('every action button is named', async () => {
-    mountToday()
-    await screen.findByText("Today's priorities")
-    fireEvent.click(document.querySelector('.priority-actions'))
-    const dialog = await screen.findByRole('dialog')
-    const actions = Array.from(dialog.querySelectorAll('.item-action'))
-    expect(actions.length).toBeGreaterThan(0)
-    for (const a of actions) {
-      expect(a.textContent.trim().length, 'action button with no text').toBeGreaterThan(0)
-    }
-  })
-
-  it('the destructive action asks before it acts', async () => {
-    mountToday()
-    await screen.findByText("Today's priorities")
-    fireEvent.click(document.querySelector('.priority-actions'))
-    const dialog = await screen.findByRole('dialog')
-
-    const danger = Array.from(dialog.querySelectorAll('.item-action.danger'))
-    if (danger.length) {
-      fireEvent.click(danger[0])
-      /* Confirm, then the warning about no undo. */
-      expect(within(dialog).getByText(/cannot be undone from here/)).toBeTruthy()
-    }
-  })
 })
 
 describe('proactive surfaces are dismissible, never traps — #27', () => {
-  it('the nudge has a real button, not a click handler on a div', async () => {
-    mountToday(seedState({ focusLog: longRunningLog() }))
-    const nudge = await screen.findByLabelText('Suggestion')
-    const dismiss = within(nudge).getByRole('button', { name: 'Dismiss' })
-    expect(dismiss).toBeTruthy()
-    fireEvent.click(dismiss)
-    expect(document.querySelector('.nudge')).toBeNull()
-  })
-
-  it('the weekly accept path is a named button', async () => {
-    mountToday(seedState({ focusLog: longRunningLog() }))
-    const panel = await screen.findByLabelText('Weekly adaptation')
-    const accept = within(panel).getByRole('button', { name: /Plan .* instead/ })
-    expect(accept.textContent).toMatch(/\d/)
-  })
+  // Step 3: removed the AdaptiveEmphasis "Nudge" and "Weekly adaptation"
+  // proactive surfaces from Today; they were replaced by the compact
+  // TodayContext strip and NextAction's reason/urgency signals. These
+  // contract assertions belong to the retired composition.
+  it.skip('the nudge has a real button, not a click handler on a div', async () => {})
+  it.skip('the weekly accept path is a named button', async () => {})
 })
 
 describe('no interactive element is an unnamed non-button', () => {
   it('every button in the rendered Today screen has an accessible name', async () => {
-    mountToday(seedState({ focusLog: longRunningLog() }))
-    await screen.findByText("Today's priorities")
+    mountToday()
+    await screen.findByRole('heading', { name: 'Today' })
+    // Let any async panels settle
+    await waitFor(() => expect(document.querySelectorAll('button').length).toBeGreaterThan(0))
 
     const unnamed = []
     for (const b of Array.from(document.querySelectorAll('button'))) {
-      const name = (b.getAttribute('aria-label') || b.textContent || '').trim()
-      if (!name) unnamed.push(b.className)
+      const name = (b.getAttribute('aria-label') || b.getAttribute('title') || b.textContent || '').trim()
+      if (!name) unnamed.push(b.className + ' :: ' + b.outerHTML.slice(0, 120))
     }
-    expect(unnamed, `unnamed buttons: ${unnamed.join(', ')}`).toHaveLength(0)
+    expect(unnamed, `unnamed buttons: ${unnamed.join(' | ')}`).toHaveLength(0)
   })
 
-  it('icon-only controls carry aria-label rather than relying on the icon', async () => {
-    mountToday()
-    await screen.findByText("Today's priorities")
-    /* The per-row action trigger holds only an SVG. */
-    const trigger = document.querySelector('.priority-actions')
-    expect(trigger.textContent.trim()).toBe('')
-    expect(trigger.getAttribute('aria-label')).toBeTruthy()
-  })
+  // Step 3: the .priority-actions icon-only trigger was removed (per-row
+  // affordances are now inline Buttons/Links in TodayWorkList; icon-only
+  // global controls like Omni/Fab are already asserted in shell.test.jsx).
+  it.skip('icon-only controls carry aria-label rather than relying on the icon', async () => {})
 })

@@ -1,0 +1,30 @@
+/* ============================================================
+   LEGACY TOKEN ALIASES
+   Maps canonical token names to legacy theme variables.
+   Shrinks as screens migrate.
+   ============================================================ */
+:root {
+  --font-body:var(--font-family);
+  --font-display:var(--font-family-display);
+  --font-num:var(--font-family);
+  --good:var(--color-good); --good-soft:var(--color-good-soft);
+  --warn:var(--color-warning); --warn-soft:var(--color-warning-soft);
+  --bad:var(--color-danger); --bad-soft:var(--color-danger-soft);
+  --info:var(--color-info); --info-soft:var(--color-info-soft);
+  --content-max:var(--layout-content-max);
+  --gutter:var(--layout-page-gutter);
+  --touch:var(--touch-min);
+  --focus-color:var(--color-focus);
+  --dur-fast:var(--motion-fast); --dur-med:var(--motion-normal);
+  --dur-slow:var(--motion-slow);
+  /* Step 4G-1 canonical aliases */
+  --line:var(--border);
+  --line-2:var(--border-2);
+  --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+  --surface:var(--bg-raise,var(--surface-base));
+  --surface-2:var(--bg-2,var(--surface-inset));
+  --surface-3:var(--bg-3,var(--surface-raised));
+  --focus-ring:var(--focus-width,2px) solid var(--focus-color,var(--color-focus));
+  --focus-ring-offset:2px;
+  --new-tokens:1;
+}

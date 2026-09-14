@@ -8,6 +8,28 @@ import AuthGate from './components/auth/AuthGate.jsx'
 import './index.css'
 import { BUILD_ID, BUILD_TIME } from './lib/buildInfo.js'
 
+/* Lazy theme loader: to stay within the initial-CSS performance budget,
+   non-default themes are loaded on demand when data-theme changes.
+   Default (midnight) is part of the initial CSS. */
+const loadedThemes = new Set(['midnight'])
+function ensureTheme(theme) {
+  if (!theme || loadedThemes.has(theme)) return
+  const href = new URL(`./styles/themes/${theme}.css`, import.meta.url).href
+  if (document.querySelector(`link[data-theme-link="${theme}"]`)) { loadedThemes.add(theme); return }
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = href
+  link.setAttribute('data-theme-link', theme)
+  document.head.appendChild(link)
+  loadedThemes.add(theme)
+}
+function syncTheme() {
+  const t = document.documentElement.getAttribute('data-theme') || 'midnight'
+  ensureTheme(t)
+}
+new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+syncTheme()
+
 // Production-safe build identity: proves exactly which commit is being served.
 // Non-intrusive — window vars + console line only; visible captions live in the
 // onboarding footer and Settings → About.

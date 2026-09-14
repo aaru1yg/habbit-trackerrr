@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { StoreProvider, STORAGE_KEY, emptyState } from '../src/store.jsx'
 import App from '../src/App.jsx'
 import { todayStr, addDaysStr, subDaysStr } from '../src/lib/dates.js'

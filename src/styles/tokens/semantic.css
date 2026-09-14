@@ -1,0 +1,119 @@
+/* ============================================================
+   HABIT OS — SEMANTIC TOKENS
+   ============================================================ */
+:root {
+  /* Typography */
+  --font-family:var(--font-sans); --font-family-display:var(--font-sans); --font-family-mono:var(--font-mono);
+  --font-metric:var(--fs-metric); --font-display:var(--fs-display);
+  --font-h1:var(--fs-32); --font-h2:var(--fs-24); --font-h3:var(--fs-20);
+  --font-body-lg:var(--fs-17); --font-body:var(--fs-15); --font-label:var(--fs-14);
+  --font-caption:var(--fs-13); --font-micro:var(--fs-12);
+  --leading-display:var(--lh-tight); --leading-heading:var(--lh-snug);
+  --leading-body:var(--lh-base); --leading-relaxed:var(--lh-relaxed);
+  --weight-display:var(--fw-semibold); --weight-heading:var(--fw-semibold);
+  --weight-body:var(--fw-regular); --weight-medium:var(--fw-medium);
+  --weight-strong:var(--fw-semibold); --weight-bold:var(--fw-bold); --weight-metric:var(--fw-bold);
+  --tracking-display:var(--ls-tight); --tracking-heading:var(--ls-tight);
+  --tracking-body:var(--ls-normal); --tracking-label:var(--ls-normal); --tracking-caps:var(--ls-caps);
+  --font-numeric-features:"tnum" 1,"cv11" 1,"ss01" 1;
+
+  /* Surfaces */
+  --bg-base:var(--color-bg); --bg-raise:var(--color-bg-raise);
+  --surface-base:var(--color-surface); --surface-raised:var(--color-surface-raised);
+  --surface-inset:var(--color-surface-inset); --surface-interactive:var(--color-surface-interactive);
+  --surface-selected:var(--color-surface-selected); --surface-overlay:var(--color-scrim);
+
+  /* Text */
+  --text-primary:var(--color-text); --text-secondary:var(--color-text-2);
+  --text-muted:var(--color-text-3); --text-disabled:var(--color-text-disabled);
+  --text-on-accent:var(--color-accent-contrast); --text-on-solid:var(--color-text-inverse);
+
+  /* Borders */
+  --border-subtle:var(--bw-subtle) solid var(--color-border-subtle);
+  --border-default:var(--bw-default) solid var(--color-border);
+  --border-strong:var(--bw-strong) solid var(--color-border-strong);
+  --divider:var(--border-subtle);
+
+  /* Accents */
+  --accent:var(--color-accent); --accent-secondary:var(--color-accent-2);
+  --accent-soft:var(--color-accent-soft); --accent-strong:var(--color-accent-strong);
+
+  /* Status */
+  --color-success:var(--color-good); --color-success-soft:var(--color-good-soft);
+  --color-warning:var(--color-warn); --color-warning-soft:var(--color-warn-soft);
+  --color-danger:var(--color-bad); --color-danger-soft:var(--color-bad-soft);
+
+  /* Depth */
+  --depth-none:none; --depth-low:var(--shadow-low);
+  --depth-medium:var(--shadow-medium); --depth-high:var(--shadow-high);
+
+  /* Focus */
+  --focus-ring:var(--focus-width) solid var(--color-focus);
+  --focus-ring-offset:var(--focus-offset);
+
+  /* Charts */
+  --chart-bg:transparent; --chart-grid:var(--color-chart-grid);
+  --chart-axis:var(--color-chart-axis); --chart-text:var(--color-chart-text);
+  --chart-tooltip-bg:var(--color-chart-tooltip);
+  --chart-target:var(--color-accent); --chart-expected:var(--color-chart-expected);
+  --chart-required:var(--color-bad); --chart-positive:var(--color-good); --chart-negative:var(--color-bad);
+  --chart-series-1:var(--c1); --chart-series-2:var(--c2); --chart-series-3:var(--c3);
+  --chart-series-4:var(--c4); --chart-series-5:var(--c5); --chart-series-6:var(--c6);
+  --chart-series-7:var(--c7); --chart-series-8:var(--c8);
+  --chart-seq-0:var(--seq-0); --chart-seq-1:var(--seq-1);
+  --chart-seq-2:var(--seq-2); --chart-seq-3:var(--seq-3); --chart-seq-4:var(--seq-4);
+
+  /* Category tonal-scale helper: base hues come from tokens.css; soft/muted/strong
+     are derived via color-mix so we don't repeat 8 colors × 4 variants per theme.
+     Themes may override any variant explicitly. */
+  --cat-fitness-soft:color-mix(in oklab,var(--cat-fitness) 14%, transparent);
+  --cat-fitness-muted:color-mix(in oklab,var(--cat-fitness) 48%, transparent);
+  --cat-fitness-strong:color-mix(in oklab,var(--cat-fitness) 80%, #fff);
+  --cat-fitness-contrast:#fff;
+  --cat-health-soft:color-mix(in oklab,var(--cat-health) 14%, transparent);
+  --cat-health-muted:color-mix(in oklab,var(--cat-health) 48%, transparent);
+  --cat-health-strong:color-mix(in oklab,var(--cat-health) 80%, #fff);
+  --cat-health-contrast:#fff;
+  --cat-mind-soft:color-mix(in oklab,var(--cat-mind) 14%, transparent);
+  --cat-mind-muted:color-mix(in oklab,var(--cat-mind) 48%, transparent);
+  --cat-mind-strong:color-mix(in oklab,var(--cat-mind) 80%, #fff);
+  --cat-mind-contrast:#fff;
+  --cat-learning-soft:color-mix(in oklab,var(--cat-learning) 14%, transparent);
+  --cat-learning-muted:color-mix(in oklab,var(--cat-learning) 48%, transparent);
+  --cat-learning-strong:color-mix(in oklab,var(--cat-learning) 80%, #fff);
+  --cat-learning-contrast:#fff;
+  --cat-creative-soft:color-mix(in oklab,var(--cat-creative) 14%, transparent);
+  --cat-creative-muted:color-mix(in oklab,var(--cat-creative) 48%, transparent);
+  --cat-creative-strong:color-mix(in oklab,var(--cat-creative) 80%, #fff);
+  --cat-creative-contrast:#fff;
+  --cat-social-soft:color-mix(in oklab,var(--cat-social) 14%, transparent);
+  --cat-social-muted:color-mix(in oklab,var(--cat-social) 48%, transparent);
+  --cat-social-strong:color-mix(in oklab,var(--cat-social) 80%, #fff);
+  --cat-social-contrast:#fff;
+  --cat-finance-soft:color-mix(in oklab,var(--cat-finance) 14%, transparent);
+  --cat-finance-muted:color-mix(in oklab,var(--cat-finance) 48%, transparent);
+  --cat-finance-strong:color-mix(in oklab,var(--cat-finance) 80%, #fff);
+  --cat-finance-contrast:#fff;
+  --cat-productivity-soft:color-mix(in oklab,var(--cat-productivity) 14%, transparent);
+  --cat-productivity-muted:color-mix(in oklab,var(--cat-productivity) 48%, transparent);
+  --cat-productivity-strong:color-mix(in oklab,var(--cat-productivity) 80%, #fff);
+  --cat-productivity-contrast:#fff;
+
+  /* Entity defaults */
+  --habit-base:var(--cat-productivity); --habit-soft:var(--cat-productivity-soft);
+  --habit-muted:var(--cat-productivity-muted); --habit-strong:var(--cat-productivity-strong); --habit-contrast:#fff;
+  --goal-base:var(--cat-mind); --goal-soft:var(--cat-mind-soft);
+  --goal-muted:var(--cat-mind-muted); --goal-strong:var(--cat-mind-strong); --goal-contrast:#fff;
+  --project-base:var(--cat-productivity); --project-soft:var(--cat-productivity-soft);
+  --project-muted:var(--cat-productivity-muted); --project-strong:var(--cat-productivity-strong); --project-contrast:#fff;
+  --assignment-base:var(--info); --assignment-soft:var(--info-soft);
+  --assignment-muted:var(--info); --assignment-strong:var(--info); --assignment-contrast:#fff;
+  --milestone-base:var(--accent-2); --milestone-soft:color-mix(in oklab,var(--accent-2) 14%, transparent);
+  --milestone-muted:color-mix(in oklab,var(--accent-2) 48%, transparent); --milestone-strong:var(--accent-2); --milestone-contrast:#052026;
+
+  /* Controls: 44px default hit target; sm stays visually compact (32px) with
+     per-surface padding expanding the hit area to 44 where WCAG requires. */
+  --c-control-height:44px; --c-control-height-sm:32px;
+  --c-control-radius:var(--radius-sm); --c-control-padding-x:var(--sp-4);
+  --c-row-height:56px; --c-row-height-compact:44px; --c-row-radius:var(--radius-md);
+}

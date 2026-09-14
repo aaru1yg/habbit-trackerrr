@@ -1,16 +1,4 @@
-/* ============================================================
-   WORK LAYER — Projects, Assignments, Workload, Timeline.
-   Same tokens, same radii, same motion as the habit system, but a
-   deliberately different information hierarchy:
 
-     HABIT row       → completion control + streak
-     PROJECT card    → progress + milestone + deadline
-     ASSIGNMENT card → deadline + progress + urgency
-
-   Kind is encoded with a quiet tag + icon (violet = project,
-   cyan = assignment). Status colors stay SEMANTIC only:
-   good / warn / bad / neutral. Nothing is colored decoratively.
-   ============================================================ */
 
 :root {
   --kind-project: var(--accent-1);
@@ -18,7 +6,7 @@
   --kind-habit: var(--accent-2);
 }
 
-/* ---------------- Summary stat strip ---------------- */
+
 
 .stat-strip {
   display: grid;
@@ -78,7 +66,7 @@
 .stat-cell[data-tone='warn'] .v { color: var(--warn); }
 .stat-cell[data-tone='bad'] .v { color: var(--bad); }
 
-/* ---------------- Status pill ---------------- */
+
 
 .status-pill {
   display: inline-flex;
@@ -128,7 +116,7 @@
 .kind-tag.project { --kind: var(--kind-project); }
 .kind-tag.assignment { --kind: var(--kind-assignment); }
 
-/* ---------------- Work cards ---------------- */
+
 
 .work-list {
   display: flex;
@@ -137,7 +125,6 @@
 }
 
 .work-card {
-  position: relative;
   display: block;
   width: 100%;
   text-align: left;
@@ -145,27 +132,9 @@
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface);
-  box-shadow: var(--shadow-1);
-  overflow: hidden;
-  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) ease, background var(--dur-fast) ease;
-  -webkit-tap-highlight-color: transparent;
+  transition: border-color var(--dur-fast) ease, background var(--dur-fast) ease;
 }
-.work-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--tone, var(--border-2));
-  opacity: 0.9;
-}
-.work-card[data-tone='good'] { --tone: var(--good); }
-.work-card[data-tone='warn'] { --tone: var(--warn); }
-.work-card[data-tone='bad'] { --tone: var(--bad); }
-.work-card[data-tone='neutral'] { --tone: var(--border-2); }
 .work-card:hover { border-color: var(--border-2); background: var(--surface-2); }
-.work-card:active { transform: scale(0.995); }
 .work-card.is-done { opacity: 0.72; }
 
 .work-top {
@@ -203,7 +172,7 @@
   flex-wrap: wrap;
 }
 
-/* The single most important number on an assignment: its deadline. */
+
 .deadline-hero {
   display: flex;
   align-items: baseline;
@@ -222,7 +191,7 @@
 .deadline-hero[data-tone='warn'] .big { color: var(--warn); }
 .deadline-hero[data-tone='good'] .big { color: var(--text); }
 
-/* ---------------- Progress meter ---------------- */
+
 
 .meter {
   display: block;
@@ -237,16 +206,16 @@
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: var(--r-pill);
-  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  background:var(--accent);
   transition: width var(--dur-slow) var(--ease-out);
 }
-.meter[data-tone='good'] > i { background: linear-gradient(90deg, color-mix(in srgb, var(--good) 70%, var(--accent-1)), var(--good)); }
-.meter[data-tone='warn'] > i { background: linear-gradient(90deg, color-mix(in srgb, var(--warn) 65%, var(--accent-1)), var(--warn)); }
-.meter[data-tone='bad'] > i { background: linear-gradient(90deg, color-mix(in srgb, var(--bad) 65%, var(--accent-1)), var(--bad)); }
+.meter[data-tone='good'] > i { background:var(--good); }
+.meter[data-tone='warn'] > i { background:var(--warn); }
+.meter[data-tone='bad'] > i { background:var(--bad); }
 .meter.thin { height: 5px; }
 .meter.thick { height: 12px; }
 
-/* Pace marker: where you SHOULD be by now vs where you are. */
+
 .meter.with-pace > u {
   position: absolute;
   top: -2px;
@@ -274,7 +243,7 @@
   text-align: right;
 }
 
-/* 10-point quick progress control (§66) */
+
 .quick-pct {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -295,14 +264,13 @@
   transition: transform var(--dur-fast) var(--ease-out), background var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 .quick-pct button:hover { background: var(--surface-3); color: var(--text); }
-.quick-pct button:active { transform: scale(0.94); }
 .quick-pct button[aria-pressed='true'] {
   background: var(--accent-soft);
   border-color: var(--accent-1);
   color: var(--text);
 }
 
-/* ---------------- Milestone stepper (§59) ---------------- */
+
 
 .stepper {
   display: flex;
@@ -341,7 +309,7 @@
   left: 0;
   height: 2px;
   width: var(--fill, 0%);
-  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  background:var(--accent);
   border-radius: 2px;
   transition: width var(--dur-slow) var(--ease-out);
 }
@@ -359,7 +327,7 @@
   flex: none;
 }
 .step[data-state='reached'] .step-dot {
-  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  background:var(--accent);
   border-color: transparent;
   color: var(--accent-ink);
 }
@@ -381,7 +349,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Vertical variant for narrow screens / detail sheets */
+
 .stepper.vertical {
   display: flex;
   flex-direction: column;
@@ -409,7 +377,7 @@
 .stepper.vertical .step-dot { position: relative; z-index: 1; }
 .stepper.vertical .step-name { margin-top: 0; max-width: none; white-space: normal; }
 
-/* ---------------- Countdown / deadline chips ---------------- */
+
 
 .count-chip {
   display: inline-flex;
@@ -429,7 +397,7 @@
 .count-chip[data-tone='warn'] { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
 .count-chip[data-tone='good'] { color: var(--good); background: var(--good-soft); border-color: transparent; }
 
-/* ---------------- Filter bar / segmented nav ---------------- */
+
 
 .filter-bar {
   display: flex;
@@ -438,7 +406,6 @@
   scrollbar-width: none;
   padding: 2px;
   margin: 0 -2px;
-  -webkit-overflow-scrolling: touch;
 }
 .filter-bar::-webkit-scrollbar { display: none; }
 .filter-bar button {
@@ -499,10 +466,9 @@
 .tabbar a[aria-current='page'] {
   background: var(--surface-solid);
   color: var(--text);
-  box-shadow: var(--shadow-1);
 }
 
-/* ---------------- Key/value rows ---------------- */
+
 
 .kv {
   display: grid;
@@ -525,7 +491,7 @@
 }
 .kv dd.tnum { font-variant-numeric: tabular-nums; }
 
-/* ---------------- Deadline timeline (§72) ---------------- */
+
 
 .tl {
   display: flex;
@@ -567,7 +533,6 @@
   transition: background var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out);
 }
 .tl-item:hover { background: var(--surface-3); }
-.tl-item:active { transform: scale(0.99); }
 .tl-item .tl-main { flex: 1; min-width: 0; }
 .tl-item .tl-name {
   font-weight: 650;
@@ -585,7 +550,7 @@
 .tl-item .tl-meter { width: 72px; flex: none; }
 @media (min-width: 560px) { .tl-item .tl-meter { width: 120px; } }
 
-/* ---------------- Workload bars (§73) ---------------- */
+
 
 .load-bars {
   display: grid;
@@ -610,11 +575,11 @@
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  background:var(--accent);
   transition: width var(--dur-slow) var(--ease-out);
 }
-.load-bars .lb-fill[data-level='2'] { background: linear-gradient(90deg, color-mix(in srgb, var(--warn) 70%, var(--accent-1)), var(--warn)); }
-.load-bars .lb-fill[data-level='3'] { background: linear-gradient(90deg, color-mix(in srgb, var(--bad) 70%, var(--accent-1)), var(--bad)); }
+.load-bars .lb-fill[data-level='2'] { background:var(--warn); }
+.load-bars .lb-fill[data-level='3'] { background:var(--bad); }
 .load-bars .lb-n {
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -625,7 +590,7 @@
 .load-bars .lb-row { display: contents; }
 .load-bars .lb-row.is-today .lb-day { color: var(--accent-2); }
 
-/* Compact vertical version for the Week screen */
+
 .load-columns {
   display: flex;
   align-items: flex-end;
@@ -653,7 +618,7 @@
 .load-columns .lc-fill {
   width: 100%;
   border-radius: 7px;
-  background: linear-gradient(180deg, var(--accent-2), var(--accent-1));
+  background:var(--accent);
   transition: height var(--dur-slow) var(--ease-out);
 }
 .load-columns .lc-label {
@@ -662,7 +627,7 @@
   color: var(--text-3);
 }
 
-/* ---------------- Burndown ---------------- */
+
 
 .burndown-legend {
   display: flex;
@@ -680,7 +645,7 @@
   display: inline-block;
 }
 
-/* ---------------- Distribution / weekday bars ---------------- */
+
 
 .dist {
   display: grid;
@@ -695,7 +660,7 @@
 .dist-label { font-size: var(--fs-xs); color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
 .dist-value { font-size: var(--fs-xs); color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
 
-/* ---------------- Task rows ---------------- */
+
 
 .task-row {
   display: flex;
@@ -750,14 +715,13 @@
   transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-spring);
 }
 .check-box:hover { border-color: var(--accent-1); }
-.check-box:active { transform: scale(0.9); }
 .check-box[data-done='true'] {
-  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  background:var(--accent);
   border-color: transparent;
   color: var(--accent-ink);
 }
 
-/* ---------------- Two-column analytics layout (desktop) ---------------- */
+
 
 .split {
   display: grid;
@@ -777,16 +741,16 @@
 @media (min-width: 760px) { .triple { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1180px) { .triple { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-/* Detail screen: sticky summary column on wide screens */
+
 .detail-layout { display: grid; gap: var(--sp-4); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 1024px) {
   .detail-layout { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
   .detail-layout .rail { position: sticky; top: var(--sp-4); }
-  /* the work hub tabs duplicate the sidebar on wide screens */
+
   .tabbar { display: none; }
 }
 
-/* ---------------- Search palette (§30) ---------------- */
+
 
 .search-field {
   display: flex;
@@ -843,11 +807,11 @@
   white-space: nowrap;
 }
 
-/* ---------------- Screen header with actions ---------------- */
+
 
 .head-actions { display: flex; gap: 8px; align-items: center; }
 
-/* Sticky sub-header for long lists (keeps primary actions reachable) */
+
 .sticky-bar {
   position: sticky;
   top: 0;
@@ -856,67 +820,14 @@
   flex-direction: column;
   gap: 10px;
   padding: var(--sp-2) 0 var(--sp-3);
-  background: linear-gradient(180deg, var(--bg) 62%, transparent);
+  background:var(--bg);
 }
 @media (min-width: 1024px) {
   .sticky-bar { top: 0; }
 }
 
-/* ---------------- Routines (habit stacking) ---------------- */
 
-.routine-card {
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  overflow: hidden;
-}
-.routine-head {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-}
-.routine-stack {
-  position: relative;
-  padding-left: var(--sp-6);
-}
-.routine-stack::before {
-  content: '';
-  position: absolute;
-  left: 15px;
-  top: 12px;
-  bottom: 12px;
-  width: 2px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--accent-1), color-mix(in srgb, var(--accent-2) 40%, transparent));
-  opacity: 0.5;
-}
-.routine-step {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px var(--sp-3) 8px 0;
-  min-height: 52px;
-}
-.routine-step::before {
-  content: '';
-  position: absolute;
-  left: -25px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--surface-solid);
-  border: 2px solid var(--border-2);
-}
-.routine-step[data-done='true']::before {
-  background: var(--accent-2);
-  border-color: var(--accent-2);
-}
 
-/* ---------------- Insights tiles ---------------- */
 
 .insight-tile {
   display: flex;
@@ -948,7 +859,7 @@
 }
 .insight-tile .it-text { font-size: var(--fs-sm); color: var(--text-2); margin-top: 3px; line-height: 1.5; }
 
-/* ---------------- Bests grid ---------------- */
+
 
 .best-grid {
   display: grid;
@@ -975,7 +886,7 @@
 .best-cell .b-k { font-size: var(--fs-xs); color: var(--text-3); font-weight: 600; margin-bottom: 2px }
 .best-cell .b-s { font-size: var(--fs-xs); color: var(--text-2); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ---------------- Calendar deadline markers ---------------- */
+
 
 .cal-marker-row {
   display: flex;
@@ -1032,7 +943,7 @@
   white-space: nowrap;
 }
 
-/* ---------------- FAB variants ---------------- */
+
 
 .fab-stack {
   position: fixed;
@@ -1061,15 +972,13 @@
   border-radius: var(--r-pill);
   background: var(--surface-solid);
   border: 1px solid var(--border-2);
-  box-shadow: var(--shadow-2);
   color: var(--text);
   font-size: var(--fs-sm);
   font-weight: 650;
   white-space: nowrap;
 }
-.fab-choice:active { transform: scale(0.97); }
 
-/* ---------------- Utility ---------------- */
+
 
 .row-between {
   display: flex;
@@ -1086,14 +995,10 @@
 .hr { height: 1px; background: var(--border); border: 0; margin: var(--sp-3) 0; }
 .wrap-gap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
-/* Empty-state action row */
+
 .empty-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: var(--sp-4); }
 
-/* ============================================================
-   NAVIGATION EXTENSIONS — grouped sidebar, search trigger,
-   mobile More links, and room for the FAB so it never covers
-   the last row of content (§11).
-   ============================================================ */
+
 
 .sidebar-search {
   display: flex;
@@ -1170,20 +1075,20 @@
 .more-link[aria-current='page'] { background: var(--accent-soft); color: var(--text); }
 .more-link svg { color: var(--text-2); flex: none; }
 
-/* The FAB must never cover the last row (§11). */
+
 @media (max-width: 1023px) {
   .screen { padding-bottom: calc(var(--nav-h) + 104px + env(safe-area-inset-bottom)); }
 }
 
-/* Desktop: header actions sit on the right of the screen head */
+
 @media (min-width: 1024px) {
   .screen-head .btn.fallback-desktop { display: inline-flex; }
 }
 
-/* Search overlay result list */
+
 .search-results { display: flex; flex-direction: column; gap: 2px; }
 
-/* ---------------- Back link + detail chrome ---------------- */
+
 
 .back-link {
   display: inline-flex;
@@ -1226,10 +1131,7 @@
 .pace-note[data-tone='warn'] { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
 .pace-note[data-tone='good'] { color: var(--good); background: var(--good-soft); border-color: transparent; }
 
-/* ------------------------------------------------------------
-   CALENDAR WORK MARKERS (§71) — deadlines show up in the habit
-   grid without turning it into a spreadsheet.
-   ------------------------------------------------------------ */
+
 .cal-marks {
   display: flex;
   gap: 2px;
@@ -1260,7 +1162,7 @@
   transition: transform 160ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-/* deadlines listed under the calendar grid */
+
 .di-row {
   display: flex;
   gap: 10px;
@@ -1295,9 +1197,7 @@
   .cal-head-cell:focus-within .cal-mark { transform: none; }
 }
 
-/* ------------------------------------------------------------
-   INSIGHTS · DEEP DIVE
-   ------------------------------------------------------------ */
+
 .insight-list {
   display: flex;
   flex-direction: column;
@@ -1435,9 +1335,7 @@
   .tile-btn:hover { transform: none; }
 }
 
-/* ------------------------------------------------------------
-   MIND — capacity scales + reflection (§24, §25)
-   ------------------------------------------------------------ */
+
 .mood-row {
   display: flex;
   gap: 8px;
@@ -1475,13 +1373,11 @@
 }
 
 .level-btn:hover { border-color: var(--border-2); color: var(--text-2); }
-.level-btn:active { transform: scale(0.97); }
 
 .level-btn[data-on='true'] {
-  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  background: var(--accent);
   border-color: transparent;
-  color: #0b0f1a;
-  box-shadow: 0 6px 18px -10px var(--accent-1);
+  color: var(--surface);
 }
 
 .mood-strip {
@@ -1501,9 +1397,7 @@
   .level-btn:active { transform: none; }
 }
 
-/* ------------------------------------------------------------
-   GOALS · DIRECTION (§23)
-   ------------------------------------------------------------ */
+
 .goal-name {
   font-family: var(--font-display);
   font-weight: 700;
@@ -1570,11 +1464,7 @@
   .chip-btn { transition: none; }
 }
 
-/* ------------------------------------------------------------
-   TOUCH TARGETS (§86) — on touch devices every interactive
-   control gets at least a 44×44 hit area, without changing the
-   visual density on desktop.
-   ------------------------------------------------------------ */
+
 @media (pointer: coarse) {
   .btn.sm,
   .btn.ghost.sm,
@@ -1610,7 +1500,7 @@
     place-items: center;
   }
 
-  /* the card title is the primary target — grow its hit box, not the layout */
+
   a.work-title,
   button.work-title {
     padding-top: 12px;
@@ -1620,7 +1510,7 @@
   }
 }
 
-/* button-style card titles stay flush on desktop */
+
 button.work-title {
   padding-left: 0;
   padding-right: 0;

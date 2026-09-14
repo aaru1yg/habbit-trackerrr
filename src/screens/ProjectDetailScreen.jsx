@@ -9,7 +9,7 @@ import useNow from '../lib/useNow.js'
 import { useWorkUI } from '../components/work/WorkUIProvider.jsx'
 import { useToast } from '../components/ui/Toaster.jsx'
 import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
-import { StatusPill, KindTag, Meter, MeterRow, MilestoneStepper, QuickProgress, WorkEmpty } from '../components/work/WorkKit.jsx'
+import { StatusPill, KindTag, Meter, MilestoneStepper, QuickProgress, WorkEmpty } from '../components/work/WorkKit.jsx'
 import { HBarList } from '../components/charts/workCharts.jsx'
 const ProjectTrack = lazy(() => import('../components/work/ProjectTrack.jsx'))
 const ProjectAnalyticsDetail = lazy(() => import('../components/work/ProjectAnalyticsDetail.jsx'))
@@ -106,59 +106,70 @@ export default function ProjectDetailScreen({ id }) {
 
   return (
     <div className="screen" id="project-detail">
-      <header className="screen-head">
-        <div style={{ minWidth: 0 }}>
-          <a href="#/work?view=projects" className="back-link" aria-label="Back to projects">
-            <IconChevronLeft size={16} /> Projects
-          </a>
-          <div className="wrap-gap" style={{ gap: 8, marginTop: 6 }}>
-            <KindTag kind="project">Project</KindTag>
-            <StatusPill status={status} />
-          </div>
-          <h1 className="screen-title" style={{ marginTop: 6, overflowWrap: 'anywhere' }}>{project.name}</h1>
-          {project.description && <p className="screen-sub">{project.description}</p>}
-        </div>
-        <div className="head-actions">
-          <button className="btn ghost icon" aria-label="Edit project" onClick={() => work.editProject(project)}><IconPencil size={17} /></button>
-          <button className="btn ghost icon" style={{ color: 'var(--bad)' }} aria-label="Delete project" onClick={removeProject}><IconTrash size={17} /></button>
-        </div>
-      </header>
-
-      <div className="detail-layout">
-      <div className="stack">
-        {/* Progress hero */}
-        <SectionCard className="pad project-detail-hero">
-          <CardHead title="Status"><span className="tiny muted">{progress.done}/{progress.total} tasks complete</span></CardHead>
-          <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div className="wrap-gap" style={{ gap: 6, marginBottom: 10 }}>
+      <section className="dlv" style={{maxWidth:'100%'}}>
+        <header className="dlv__head">
+          <div style={{minWidth:0}}>
+            <a href="#/work?view=projects" className="dlv__eyebrow" style={{display:'inline-flex',alignItems:'center',gap:4,textDecoration:'none',color:'var(--text-3)'}}>
+              <IconChevronLeft size={14} /> Work
+            </a>
+            <div style={{display:'inline-flex',gap:6,marginTop:6,flexWrap:'wrap'}}>
+              <KindTag kind="project">Project</KindTag>
+              <StatusPill status={status} />
+              {status.hasDeadline && !status.complete && projectPhase(project, now) && (
                 <span className="status-pill" data-tone={phaseTone(projectPhase(project, now))}>
                   {PROJECT_PHASES.find((ph) => ph.id === projectPhase(project, now))?.label}
                 </span>
-                <StatusPill status={status.id} />
-              </div>
-              <MeterRow pct={status.pct} tone={status.tone} pace={status.elapsedPct} />
-              <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-                {status.hasDeadline && !status.complete
-                  ? <>Deadline {prettyDate(dayOf(project.deadline))} · <b className="tnum">{status.daysLeft ?? 0} days left</b> of a {status.durationDays}-day window{status.elapsedPct != null ? <> · <b className="tnum">{status.elapsedPct}%</b> of the time has gone</> : null}.</>
-                  : status.complete
-                    ? <>Completed{project.completedAt ? ` on ${shortDate(dayOf(project.completedAt))}` : ''}.</>
-                    : 'No deadline — progress only. Add one to unlock pace and burndown analysis.'}
-              </p>
-              {status.hasDeadline && !status.complete && status.elapsedPct != null && (
-                <p className="tiny" style={{ marginTop: 8, color: status.behind > 15 ? 'var(--bad)' : status.behind < -15 ? 'var(--good)' : 'var(--text-2)' }}>
-                  {status.behind > 15
-                    ? `Behind the pace line by ${status.behind} points.`
-                    : status.behind < -15
-                      ? `Ahead of the pace line by ${Math.abs(status.behind)} points.`
-                      : 'On pace with the deadline.'}
-                </p>
               )}
             </div>
+            <h1 className="dlv__title" style={{marginTop:4,overflowWrap:'anywhere',fontSize:'1.75rem'}}>{project.name}</h1>
+            {project.description && <p className="dlv__sub">{project.description}</p>}
           </div>
+          <div className="wo__head-actions-inline">
+            <button className="btn ghost icon" aria-label="Edit project" onClick={() => work.editProject(project)}><IconPencil size={17} /></button>
+            <button className="btn ghost icon" style={{color:'var(--bad)'}} aria-label="Delete project" onClick={removeProject}><IconTrash size={17} /></button>
+          </div>
+        </header>
 
+        <div className="dlv__snap" aria-label="Project snapshot">
+          {[
+            { label: 'Progress', value: `${status.pct ?? 0}%`, tone: status.complete ? 'good' : (status.tone === 'danger' || status.behind > 15) ? 'bad' : status.tone === 'warning' ? 'warn' : null },
+            { label: status.complete ? 'Completed' : (status.hasDeadline ? `${status.daysLeft ?? 0}d left` : 'No deadline'), value: status.complete ? shortDate(dayOf(project.completedAt||today)) : (project.deadline ? prettyDate(dayOf(project.deadline)) : 'Set deadline'), tone: status.complete ? 'good' : status.tone === 'danger' ? 'bad' : status.tone === 'warning' ? 'warn' : null },
+            { label: 'Tasks', value: `${progress.done}/${progress.total}`, tone: progress.total>0 && progress.done===progress.total ? 'good' : null },
+            { label: 'Milestones', value: track.length ? `${track.filter(m=>m.reached).length}/${track.length}` : '—', tone: track.length>0 && track.every(m=>m.reached) ? 'good' : null },
+          ].map((s,i) => <span key={i} className={['dlv__pill', s.tone?`is-${s.tone}`:''].join(' ').trim()} style={{cursor:'default'}}>
+            <span className="dlv__pill-val tnum">{s.value}</span>
+            <span className="dlv__pill-label">{s.label}</span>
+          </span>)}
+        </div>
+
+        {/* One visual: compact progress rail with pace line */}
+        <section className="dlv__pulse" aria-label="Project progress vs pace">
+          <p className="dlv__pulse-cap">
+            <span className="tiny muted">Progress</span>
+            <span className="tiny" style={{display:'inline-flex',gap:'var(--sp-3)',flexWrap:'wrap'}}>
+              <span style={{color:'var(--text-3)'}}><i style={{display:'inline-block',width:10,height:3,background:'var(--accent-1)',borderRadius:2,verticalAlign:'middle',marginRight:4}}/>Progress</span>
+              {status.hasDeadline && status.elapsedPct != null && <span style={{color:'var(--text-3)'}}><i style={{display:'inline-block',width:10,height:0,borderTop:'2px dashed var(--text-3)',verticalAlign:'middle',marginRight:4}}/>Pace</span>}
+              {status.hasDeadline && !status.complete && status.daysLeft != null && status.daysLeft <= 7 && <span style={{color: status.behind > 15 ? 'var(--bad)' : 'var(--warn)'}}><i style={{display:'inline-block',width:8,height:8,borderRadius:2,background: status.behind>15?'var(--bad)':'var(--warn)',marginRight:4,verticalAlign:'middle'}}/>{status.hasDeadline && !status.complete ? `${status.daysLeft}d left` : ''}</span>}
+            </span>
+          </p>
+          <div style={{position:'relative',height:14,background:'var(--surface-2)',borderRadius:'6px',overflow:'hidden'}} role="img" aria-label={`Progress ${status.pct??0}%`}>
+            <div style={{width:`${Math.min(100,status.pct??0)}%`,height:'100%',background: status.complete?'var(--good)': (status.tone==='danger'||status.behind>15) ? 'var(--bad)' : 'var(--accent-1)',borderRadius:'6px',transition:'width .2s ease'}}/>
+            {status.hasDeadline && status.elapsedPct != null && <div style={{position:'absolute',top:-2,bottom:-2,left:`${Math.min(100,Math.max(0,status.elapsedPct))}%`,width:2,background:'var(--text-3)'}} title="Time elapsed pace"/>}
+          </div>
+          <p className="tiny muted" style={{marginTop:8,lineHeight:1.6}}>
+            {status.hasDeadline && !status.complete
+              ? <>Deadline {prettyDate(dayOf(project.deadline))} · <b className="tnum">{status.daysLeft ?? 0} days left</b> of a {status.durationDays}-day window{status.elapsedPct != null ? <> · <b className="tnum">{status.elapsedPct}%</b> of the time has gone</> : null}.</>
+              : status.complete
+                ? <>Completed{project.completedAt ? ` on ${shortDate(dayOf(project.completedAt))}` : ''}.</>
+                : 'No deadline — progress only. Add one to unlock pace analysis.'}
+          </p>
+          {status.hasDeadline && !status.complete && status.elapsedPct != null && (
+            <p className="tiny" style={{marginTop:6,color: status.behind > 15 ? 'var(--bad)' : status.behind < -15 ? 'var(--good)' : 'var(--text-2)'}}>
+              {status.behind > 15 ? `Behind pace by ${status.behind} points.` : status.behind < -15 ? `Ahead of pace by ${Math.abs(status.behind)} points.` : 'On pace with the deadline.'}
+            </p>
+          )}
           {progress.total === 0 && (
-            <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+            <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--line)'}}>
               <QuickProgress
                 value={project.manualPercent ?? project.legacyPercent ?? 0}
                 onChange={(pct) => work.setProjectPercent(project, pct)}
@@ -166,7 +177,20 @@ export default function ProjectDetailScreen({ id }) {
               />
             </div>
           )}
-        </SectionCard>
+        </section>
+
+        {/* "Needs attention" when at risk */}
+        {!status.complete && (status.tone === 'danger' || status.behind > 15) && <section className="dlv__focus" style={{borderLeft:'3px solid var(--bad)',marginBottom:'var(--sp-4)'}} aria-label="Needs attention">
+          <p className="dlv__eyebrow" style={{color:'var(--bad)'}}>Needs attention</p>
+          <p className="tiny" style={{margin:'4px 0 0'}}>
+            {status.behind > 15 ? `Behind pace by ${status.behind} points.` : 'Deadline pressure is high.'}
+            {' '}Consider moving the deadline, adding capacity, or shipping the next milestone now.
+          </p>
+        </section>}
+      </section>
+
+      <div className="detail-layout">
+      <div className="stack">
 
         <section className="project-next-work"><h2>Next work</h2>{nextWork ? <UniversalWorkRow row={nextWork} now={now} /> : <p className="empty-note">{status.complete ? 'All work complete.' : 'Add a task below to make the next step clear.'}</p>}</section>
 

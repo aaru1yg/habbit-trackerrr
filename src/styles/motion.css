@@ -1,42 +1,22 @@
-/* ============================================================
-   MOTION — the single owner of scroll choreography, depth and
-   chart animation. tokens/base/components/work/system build the
-   product; this layer makes it move, and nothing else may.
 
-   Rules held here:
-   - every animation is transform/opacity only (GPU friendly)
-   - every effect has an explicit static state
-   - prefers-reduced-motion collapses all of it to the static state
-   - nothing animates forever except the atmosphere and the
-     Progress Core's slow orbit (both paused offscreen, both
-     disabled under reduced motion)
-   ============================================================ */
 
-/* ------------------------------------------------------------
-   0 · Motion tokens this layer consumes (declared here, used
-   here; components read them through these names only).
-   ------------------------------------------------------------ */
+
 :root {
   --mo-reveal-y: 22px;
   --mo-reveal-x: 12px;
-  /* no scale on entrance: mid-animation shrink would momentarily drop
-     tap targets below 44px and widen the scroll box */
+
   --mo-reveal-scale: 1;
-  --mo-depth-1: 600px;    /* gentle perspective: cards */
-  --mo-depth-2: 900px;    /* medium: hero compositions */
-  --mo-depth-3: 1400px;   /* deep: scene backdrops */
-  --mo-tilt-max: 5deg;    /* pointer tilt ceiling */
+  --mo-depth-1: 600px;
+  --mo-depth-2: 900px;
+  --mo-depth-3: 1400px;
+  --mo-tilt-max: 5deg;
   --mo-parallax-1: 14px;
   --mo-parallax-2: 30px;
   --mo-parallax-3: 56px;
   --mo-blur-enter: 6px;
 }
 
-/* ------------------------------------------------------------
-   1 · REVEAL — IntersectionObserver-driven entrance.
-   .reveal starts hidden; .reveal.is-in settles it. Delay comes
-   from --mo-delay so groups stagger without new classes.
-   ------------------------------------------------------------ */
+
 .reveal {
   opacity: 0;
   transform: translate3d(0, var(--mo-reveal-y), 0) scale(var(--mo-reveal-scale));
@@ -62,14 +42,10 @@
   filter: none;
 }
 
-/* Children of a choreographed group inherit the group's timing. */
+
 .stagger-group > * { --mo-delay: calc(var(--mo-i, 0) * 55ms); }
 
-/* ------------------------------------------------------------
-   2 · DEPTH — perspective containers and layered cards.
-   A .stage gives its children a shared vanishing point; .layer-*
-   place children at different depths.
-   ------------------------------------------------------------ */
+
 .stage {
   perspective: var(--mo-depth-2);
   perspective-origin: 50% 40%;
@@ -78,19 +54,19 @@
 .stage[data-depth='far'] { perspective: var(--mo-depth-3); }
 .stage > * { transform-style: preserve-3d; }
 
-/* layered composition: each layer floats at its own z */
+
 .layer-1 { transform: translateZ(0); }
 .layer-2 { transform: translateZ(18px); }
 .layer-3 { transform: translateZ(36px); }
 
-/* Pointer tilt — JS writes --tilt-x/--tilt-y; CSS owns the feel. */
+
 .tilt {
   transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
   transition: transform 220ms var(--ease-out);
   will-change: transform;
 }
 .tilt[data-tilting='true'] { transition-duration: 60ms; }
-/* the specular sheen that follows the pointer */
+
 .tilt-sheen {
   position: absolute;
   inset: 0;
@@ -107,10 +83,7 @@
 .tilt[data-tilting='true'] .tilt-sheen,
 .tilt:hover .tilt-sheen { opacity: 1; }
 
-/* ------------------------------------------------------------
-   3 · PARALLAX — scroll-linked travel. JS sets --px (0..1);
-   CSS maps it to a depth-scaled translate. Transform only.
-   ------------------------------------------------------------ */
+
 .parallax {
   transform: translate3d(0, calc((var(--px, 0) - 0.5) * var(--mo-travel, var(--mo-parallax-1)) * -1), 0);
   will-change: transform;
@@ -118,13 +91,9 @@
 .parallax[data-travel='2'] { --mo-travel: var(--mo-parallax-2); }
 .parallax[data-travel='3'] { --mo-travel: var(--mo-parallax-3); }
 
-/* ------------------------------------------------------------
-   4 · CHART MOTION — charts tell their story on first entry.
-   Each primitive has a static final state; the animation only
-   plays when .is-in arrives, once.
-   ------------------------------------------------------------ */
 
-/* line / area draw-on */
+
+
 .chart-draw .chart-line {
   stroke-dasharray: var(--len, 1200);
   stroke-dashoffset: var(--len, 1200);
@@ -150,7 +119,7 @@
 }
 .chart-draw.is-in .chart-dot { opacity: 1; transform: scale(1); }
 
-/* axes + grid settle first */
+
 .chart-draw .chart-frame {
   opacity: 0;
   transition: opacity 300ms var(--ease-out);
@@ -164,7 +133,7 @@
 }
 .chart-draw.is-in .chart-label { opacity: 1; transform: none; }
 
-/* bars rise into place */
+
 .bar-rise .bar-rect,
 .bar-rise .bar-col {
   transform: scaleY(0);
@@ -176,7 +145,7 @@
 .bar-rise.is-in .bar-rect,
 .bar-rise.is-in .bar-col { transform: scaleY(1); }
 
-/* horizontal bars grow from the axis */
+
 .hbar-grow .hbar-fill {
   transform: scaleX(0);
   transform-origin: left;
@@ -185,7 +154,7 @@
 }
 .hbar-grow.is-in .hbar-fill { transform: scaleX(1); }
 
-/* heatmap reveals column by column, week by week */
+
 .heat-reveal .heat-cell {
   opacity: 0;
   transform: scale(0.6);
@@ -196,18 +165,14 @@
 }
 .heat-reveal.is-in .heat-cell { opacity: 1; transform: scale(1); }
 
-/* donuts sweep */
+
 .donut-sweep .donut-value {
   stroke-dashoffset: var(--c, 300);
   transition: stroke-dashoffset 900ms var(--ease-out) 100ms;
 }
 .donut-sweep.is-in .donut-value { stroke-dashoffset: var(--off, 0); }
 
-/* ------------------------------------------------------------
-   5 · PROGRESS CORE — the signature object.
-   Pure CSS/SVG so it works everywhere; the WebGL field layers
-   behind it only on capable devices.
-   ------------------------------------------------------------ */
+
 .core-wrap {
   position: relative;
   display: grid;
@@ -266,7 +231,7 @@
   50% { opacity: calc(0.36 + var(--pct, 0) * 0.55); transform: scale(1.045); }
 }
 
-/* completion pulse: one shot when progress increases */
+
 .core-pulse {
   position: absolute;
   inset: 6%;
@@ -281,10 +246,7 @@
   100% { opacity: 0; transform: scale(1.28); }
 }
 
-/* ------------------------------------------------------------
-   6 · PARTICLE BURST — reserved for meaningful completions.
-   Canvas-free: a handful of GPU dots, one shot, then removed.
-   ------------------------------------------------------------ */
+
 .burst {
   position: absolute;
   inset: 0;
@@ -302,8 +264,7 @@
   animation: burst-fly 680ms var(--ease-out) 1 forwards;
   animation-delay: var(--d, 0ms);
 }
-/* --dx/--dy are computed by the Burst component (no trig in CSS, so
-   the effect works on every engine that supports custom props). */
+
 @keyframes burst-fly {
   0% { opacity: 0.9; transform: translate3d(0, 0, 0) scale(1); }
   100% {
@@ -312,9 +273,7 @@
   }
 }
 
-/* ------------------------------------------------------------
-   7 · SCENE TRANSITIONS — screens arrive with depth.
-   ------------------------------------------------------------ */
+
 .scene-enter {
   animation: scene-enter 420ms var(--ease-out) 1 both;
 }
@@ -323,7 +282,7 @@
   to { opacity: 1; transform: none; }
 }
 
-/* hero compression: as the page scrolls, the hero settles back */
+
 .hero-compress {
   transform: scale(calc(1 - var(--px, 0) * 0.045)) translateY(calc(var(--px, 0) * -10px));
   opacity: calc(1 - var(--px, 0) * 0.35);
@@ -331,9 +290,7 @@
   will-change: transform, opacity;
 }
 
-/* ------------------------------------------------------------
-   8 · POINTER LIGHT — a whisper of light following the cursor.
-   ------------------------------------------------------------ */
+
 .pointer-light::before {
   content: '';
   position: fixed;
@@ -347,10 +304,7 @@
 }
 .pointer-light[data-pointer='on']::before { opacity: 1; }
 
-/* ------------------------------------------------------------
-   9 · REDUCED MOTION — collapse to the static composition.
-   State stays fully readable; only movement is removed.
-   ------------------------------------------------------------ */
+
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .reveal[data-reveal] {
@@ -383,7 +337,7 @@
   .pointer-light::before { display: none; }
 }
 
-/* Progress Core — arc + ticks + orb internals */
+
 .core-arc {
   transition: stroke-dashoffset 900ms var(--ease-out);
 }
@@ -412,8 +366,7 @@
   .core-orb { transition: none; }
 }
 
-/* dashed reference lines fade in rather than draw (a dash pattern
-   and a draw-on animation cannot share stroke-dasharray) */
+
 .chart-draw .chart-fade {
   opacity: 0;
   transition: opacity 520ms var(--ease-out) 320ms;
@@ -423,7 +376,7 @@
   .chart-draw .chart-fade { opacity: 0.75; transition: none; }
 }
 
-/* deadline pressure: segments light left→right once on entry */
+
 .pressure-fill .pressure-seg {
   transform: scaleX(0.2);
   opacity: 0.35;
@@ -436,7 +389,7 @@
   .pressure-fill .pressure-seg { transform: none; opacity: 1; transition: none; }
 }
 
-/* day clock: arcs sweep from their start hour, staggered by band */
+
 .clock-sweep .dayclock-arc {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -448,7 +401,7 @@
   .clock-sweep .dayclock-arc { stroke-dashoffset: 0; transition: none; }
 }
 
-/* pulse ribbon: the year fills left to right */
+
 .ribbon-in .ribbon-cell .ribbon-fill {
   transform: scaleY(0);
   transform-origin: bottom;
@@ -461,7 +414,7 @@
   .ribbon-in .ribbon-cell .ribbon-fill { transform: none; opacity: 1; transition: none; }
 }
 
-/* mood scatter: dots pop, trend line draws last */
+
 .scatter-pop .scatter-dot {
   opacity: 0;
   transform: scale(0.4);
@@ -482,7 +435,7 @@
   .scatter-pop .scatter-trend { stroke-dashoffset: 0; transition: none; }
 }
 
-/* medal sheen: one light sweep across an earned trophy on first view */
+
 .medal-shine { position: relative; overflow: hidden; }
 .medal-shine::after {
   content: '';
@@ -499,7 +452,7 @@
   .ach-card.is-fresh { animation: none; }
 }
 
-/* calendar density: columns rise left→right when a range mounts */
+
 .cal-dens-fill {
   animation: dens-rise 460ms var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 16ms);
@@ -510,7 +463,7 @@
 }
 .cal-dens-fill { transform-origin: bottom; }
 
-/* deadline lanes: bars grow from their start edge, staggered */
+
 .lanes-in .lane-bar {
   transform: scaleX(0.15);
   transform-origin: left;

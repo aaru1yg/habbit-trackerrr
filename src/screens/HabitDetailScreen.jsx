@@ -1,36 +1,41 @@
 /* ============================================================
-   HABIT DETAIL — everything about one habit (Phase 5 §16-19).
+   HABIT DETAIL (Step 4C) — deep entity view for one habit.
 
-   Hierarchy, top to bottom:
-     HEADER (name, category, schedule, Edit)
-     CURRENT STREAK + TODAY STATUS (with Complete / quick log)
-     CONSISTENCY (rate, window, heatmap)
-     HISTORY (streak runs, notes — progressive disclosure)
-     PATTERNS (habitPatterns.js only: Observation → Evidence → Implication)
-     SCHEDULE (cadence, reminder, start date, pause state)
-     ACTIONS (Edit · Pause/Resume · Archive · Delete, confirmed)
+   Hierarchy:
+     1. IDENTITY     back link · name · category dot · schedule/reminder · Edit
+     2. STATE        ring · today status · primary Complete/Undo
+     3. EVIDENCE     metrics strip + range heatmap (real history)
+     4. PATTERNS     honest observation/evidence/implication cards
+                     (habitPatterns.js); weekday/time breakdown collapsed
+     5. HISTORY      streak runs (top 5); all runs + notes in details
+     6. SCHEDULE     cadence / reminder / start / state
+     7. MANAGEMENT   Edit · Pause · Archive · Delete (confirmed)
 
-   All numbers come from habitDetail() in analytics.js and the
-   stats/schedule engines. Nothing is recomputed here.
+   All data derives from existing analytics/stats/schedule engines;
+   no new metrics are invented. Reducers/actions are reused verbatim.
    ============================================================ */
 import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
 import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
 import { useHabitActions } from '../components/habits/HabitActions.jsx'
-import { Heatmap } from '../components/charts/chartKit.jsx'
-import { HBarList, Sparkline } from '../components/charts/workCharts.jsx'
 import Burst from '../components/motion/Burst.jsx'
 import { habitDetail, consistencyLabel } from '../lib/analytics.js'
 import { heatmapSeries } from '../lib/stats.js'
 import { habitPatterns } from '../lib/habitPatterns.js'
 import { patternCards, NOT_ENOUGH } from '../components/habits/habitPatternsView.js'
-import HabitRing from '../components/habits/HabitRing.jsx'
+import { Heatmap } from '../components/charts/chartKit.jsx'
+import { HBarList, Sparkline } from '../components/charts/workCharts.jsx'
+import Button from '../components/primitives/Button.jsx'
+import IconButton from '../components/primitives/IconButton.jsx'
+import { Status } from '../components/primitives/index.js'
 import { describeHabit } from '../components/habits/habitRowModel.js'
 import { categoryOf, scheduleLabel, WEEKDAY_NAMES } from '../lib/schedule.js'
 import { prettyDate, todayStr, shortDate } from '../lib/dates.js'
 import { Link, navigate } from '../lib/router.jsx'
-import { IconPencil, IconChevronLeft, IconFlame, IconClock, IconCalendar, IconLayers, IconCheck, IconTrash, IconArchive, IconPlus } from '../lib/icons.jsx'
-import '../styles/habits.css'
+import {
+  IconChevronLeft, IconFlame, IconClock, IconCalendar, IconLayers,
+  IconCheck, IconTrash, IconArchive, IconPencil, IconPlus,
+} from '../lib/icons.jsx'
 
 const RANGES = [
   { id: 30, label: '30D' },
@@ -59,326 +64,383 @@ export default function HabitDetailScreen({ id }) {
 
   if (!habit) {
     return (
-      <div className="screen habits-screen" id="habit-detail-screen">
-        <header className="screen-head">
+      <main className="screen habits-screen habit-detail" id="habit-detail-screen">
+        <header className="habits-head">
           <div>
             <h1 className="screen-title">Habit not found</h1>
             <p className="screen-sub">This habit may have been deleted.</p>
           </div>
         </header>
-        <section className="card pad">
-          <Link to="habits" className="btn primary">
-            <IconChevronLeft size={16} /> Back to habits
-          </Link>
+        <section className="hd-section">
+          <Button as={Link} to="habits" variant="primary" icon={<IconChevronLeft size={16} />}>Back to habits</Button>
         </section>
-      </div>
+      </main>
     )
   }
 
   const cat = categoryOf(habit.category)
-  const streaks = detail.streaks?.runs ?? []
-  const rate = detail.rate
-  const pct = rate?.rate != null ? Math.round(rate.rate * 100) : null
-  const { status, done, scheduledToday, paused, archived, miss } = row
+  const { status, done, scheduledToday, paused, archived, miss, streak: currentStreak, atRisk } = row
 
   const complete = () => {
     if (!done) { setBurst((b) => b + 1); habitUI?.fire?.() }
     actions.log(habit, today, { done })
   }
 
-  const facts = [
-    { label: 'Current streak', value: detail.streak, unit: detail.streak === 1 ? 'day' : 'days' },
-    { label: 'Best streak', value: detail.best, unit: detail.best === 1 ? 'day' : 'days' },
-    { label: `Last ${days} days`, value: pct == null ? '—' : pct, unit: pct == null ? 'no eligible days' : `% · ${rate.done} of ${rate.eligible}` },
-    {
-      label: 'Consistency',
-      value: detail.consistency?.enough ? detail.consistency.score : '—',
-      unit: detail.consistency?.enough ? consistencyLabel(detail.consistency.score) : 'not enough data',
-    },
-  ]
+  // Step 4G-2B: small 28px identity ring (same stroke language as HabitObject
+  // compact). No giant hero ring — the habit name is the hero.
+  const isize = 28, istroke = 2.5, ir = (isize - istroke) / 2, icirc = 2 * Math.PI * ir, idash = icirc * (1 - (done ? 1 : 0))
+  const rate = detail.rate
+  const pct = rate?.rate != null ? Math.round(rate.rate * 100) : null
+  const weekdayRows = (detail.weekdays || []).filter((w) => w.rate != null).map((w) => ({ label: w.label, value: Math.round(w.rate * 100) }))
+  const trendValues = (detail.trend || []).filter((t) => t.scheduled).map((t) => (t.pct ? 1 : 0))
+  const streaks = detail.streaks?.runs ?? []
+  const best = detail.best || 0
 
-  const weekdayRows = detail.weekdays
-    .filter((w) => w.rate != null)
-    .map((w) => ({ label: w.label, value: Math.round(w.rate * 100) }))
-  const trendValues = detail.trend.filter((t) => t.scheduled).map((t) => (t.pct ? 1 : 0))
-  const scheduleDays = habit.schedule?.type === 'weekdays' && Array.isArray(habit.schedule.days)
-    ? habit.schedule.days.map((d) => WEEKDAY_NAMES[d]).join(', ')
-    : null
+  const statusTone = status.tone === 'neutral' ? undefined : status.tone
+  const stateClass = [
+    done && 'is-done',
+    paused && 'is-paused',
+    archived && 'is-archived',
+    atRisk && !done && 'is-atrisk',
+  ].filter(Boolean).join(' ')
+
+  const todayDesc =
+    archived ? 'Archived — not scheduled.'
+      : paused ? `Paused${row.pausedUntil ? ` until ${shortDate(row.pausedUntil)}` : ''}.`
+        : scheduledToday
+          ? (done ? 'Completed today.' : 'Scheduled for today.')
+          : row.next ? `Next ${row.next.label}.` : 'Not scheduled today.'
 
   return (
-    <div className="screen habits-screen habit-detail" id="habit-detail-screen" data-status={status.id}>
-      {/* ---------- HEADER ---------- */}
-      <header className="screen-head habits-head">
-        <div style={{ minWidth: 0 }}>
-          <button type="button" className="btn ghost sm back-link" onClick={() => navigate('habits')}>
-            <IconChevronLeft size={15} /> Habits
-          </button>
-          <h1 className="screen-title habit-detail-title">
-            <span className="habit-dot" style={{ background: `var(${cat.cssVar})` }} aria-hidden="true" />
-            {habit.name}
-          </h1>
-          <p className="screen-sub">
-            {cat.label} · {scheduleLabel(habit)}{habit.reminder ? ` · ${habit.reminder}` : ''}
-          </p>
+    <main className="screen habits-screen habit-detail" id="habit-detail-screen"
+      data-status={status.id}
+      style={{ '--cat-color': `var(${cat.cssVar})` }}>
+
+      {/* 1. IDENTITY HEADER — compact, typography-led (Step 4G-2B) */}
+      <header className="hd-hero" data-status={status.id}>
+        <button type="button" className="hd-back" onClick={() => navigate('habits')}>
+          <IconChevronLeft size={14} /> Habits
+        </button>
+        <div className="hd-hero__identity">
+          <span className={`hd-identity__ring${done ? ' is-done' : ''}${paused ? ' is-paused' : ''}${archived ? ' is-archived' : ''}`}>
+            <svg width={isize} height={isize} viewBox={`0 0 ${isize} ${isize}`} focusable="false" aria-hidden="true">
+              <circle className="hd-identity__ring-track" cx={isize/2} cy={isize/2} r={ir} />
+              <circle className="hd-identity__ring-fill" cx={isize/2} cy={isize/2} r={ir}
+                strokeDasharray={icirc} strokeDashoffset={idash}
+                transform={`rotate(-90 ${isize/2} ${isize/2})`} />
+            </svg>
+            <span className="hd-identity__ring-dot" />
+            <span className="hd-identity__ring-mark"><IconCheck size={16} aria-hidden="true" /></span>
+          </span>
+          <div className="hd-hero__text" style={{ minWidth: 0 }}>
+            <div className="hd-hero__eyebrow">
+              <span className="hd-sub__dot" style={{ background: `var(${cat.cssVar})` }} />
+              <span>{cat.label}</span>
+              {currentStreak > 0 && (
+                <span className="hd-hero__streak">
+                  <IconFlame size={11} aria-hidden="true" />
+                  <span className="tnum">{currentStreak}</span>d streak
+                </span>
+              )}
+            </div>
+            <h1 className="hd-title">{habit.name}</h1>
+            <p className="hd-sub">
+              <span>{scheduleLabel(habit)}</span>
+              {habit.reminder && (<><span aria-hidden="true"> · </span><span>{formatReminder(habit.reminder)}</span></>)}
+            </p>
+          </div>
+          <div className="head-actions">
+            <IconButton label={`Edit ${habit.name}`} onClick={() => habitUI.openEdit(habit)} icon={<IconPencil size={16} />} />
+          </div>
         </div>
-        <div className="head-actions">
-          <button type="button" className="btn" onClick={() => habitUI.openEdit(habit)} aria-label={`Edit ${habit.name}`}>
-            <IconPencil size={16} /> Edit
-          </button>
+
+        {/* 2. CURRENT STATE + PRIMARY ACTION — flat row, no giant card/ring */}
+        <div className={`hd-state ${stateClass}`}>
+          <h2 className="hd-state__title" id="hd-today-title">Today</h2>
+          <span className="hd-state__label" aria-labelledby="hd-today-title">
+            <Status tone={statusTone}>{status.label}</Status>
+          </span>
+          <p className="hd-state__desc">{todayDesc}</p>
+          <span className="hd-state__primary">
+            {scheduledToday && !archived ? (
+              <>
+                <Burst fire={burst} count={10} spread={34} size={4} />
+                <Button
+                  variant={done ? 'quiet' : 'primary'}
+                  className={`hrow-complete${done ? ' is-done' : ''}`}
+                  onClick={complete}
+                  aria-pressed={done}
+                  aria-label={`Mark ${habit.name} as ${done ? 'not complete' : 'complete'}`}
+                  icon={done ? <IconCheck size={15} aria-hidden="true" /> : null}
+                >
+                  {done ? 'Completed' : 'Complete'}
+                </Button>
+              </>
+            ) : paused && !archived ? (
+              <Button variant="secondary" onClick={() => actions.togglePause(habit)}>Resume</Button>
+            ) : archived ? (
+              <Button variant="quiet" onClick={() => actions.archive(habit)}>Restore</Button>
+            ) : null}
+          </span>
         </div>
       </header>
+      {miss && !archived && !paused && scheduledToday && !done && (
+        <div className="hd-missed">
+          <span>Missed {miss.label}.</span>
+          <Button variant="quiet" size="sm" onClick={() => actions.log(habit, miss.date)} aria-label={`Log ${habit.name} for ${miss.label}`}>
+            Log it
+          </Button>
+        </div>
+      )}
+      {miss && !archived && !paused && !scheduledToday && (
+        <div className="hd-missed">
+          <span style={{ color: 'var(--text-3)' }}>Not scheduled today.</span>
+          <Button variant="quiet" size="sm" onClick={() => actions.log(habit, miss.date)} aria-label={`Log ${habit.name} for ${miss.label}`}>
+            <IconPlus size={14} aria-hidden="true" /> Log {miss.label}
+          </Button>
+        </div>
+      )}
 
-      <div className="stack habit-detail-stack">
-        {/* ---------- STREAK + TODAY ---------- */}
-        <section className="card pad-lg habit-now" aria-labelledby="habit-now-title">
-          <div className="habit-now-inner">
-            <div className="habit-now-streak" aria-label={`Current streak ${detail.streak} ${detail.streak === 1 ? 'day' : 'days'}`}>
-              <HabitRing done={done} streak={detail.streak} size={88} label={`${habit.name}: ${done ? 'completed today' : 'not completed today'}`} />
-              <span className="habit-now-flame" data-hot={detail.streak >= 3} aria-hidden="true"><IconFlame size={22} /></span>
-              <strong className="tnum">{detail.streak}</strong>
-              <span className="habit-now-unit">day streak</span>
-              {detail.best > detail.streak && <span className="tiny muted tnum">best {detail.best}</span>}
-            </div>
-            <div className="habit-now-today">
-              <h2 id="habit-now-title" className="eyebrow">Today</h2>
-              <p className="habit-now-status">
-                <span className="status-pill" data-tone={status.tone === 'neutral' ? undefined : status.tone} data-status={status.id}>{status.label}</span>
-                <span className="tiny muted">
-                  {archived ? 'Archived habits are not scheduled.'
-                    : paused ? `Paused${row.pausedUntil ? ` until ${shortDate(row.pausedUntil)}` : ''}.`
-                      : scheduledToday ? (done ? 'Logged for today.' : 'Scheduled for today.')
-                        : row.next ? `Not scheduled today · next ${row.next.label}.` : 'Not scheduled today.'}
-                </span>
-              </p>
-              <div className="habit-now-actions">
-                {scheduledToday && !archived && (
-                  <button
-                    type="button"
-                    className={`btn hrow-complete${done ? ' is-done' : ' primary'}`}
-                    aria-pressed={done}
-                    aria-label={`Mark ${habit.name} ${done ? 'not done' : 'complete'}`}
-                    onClick={complete}
-                  >
-                    <span className="hrow-complete-inner">
-                      <Burst fire={burst} count={10} spread={34} size={4} />
-                      {done && <IconCheck size={15} aria-hidden="true" />}
-                      {done ? 'Completed' : 'Complete'}
-                    </span>
-                  </button>
-                )}
-                {paused && !archived && (
-                  <button type="button" className="btn" onClick={() => actions.togglePause(habit)}>Resume</button>
-                )}
-                {miss && !archived && !paused && (
-                  <button type="button" className="btn sm hrow-complete is-missed" onClick={() => actions.log(habit, miss.date)} aria-label={`Log ${habit.name} for ${prettyDate(miss.date)}`}>
-                    <IconPlus size={14} aria-hidden="true" /> Log {miss.label}
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* 4. PERFORMANCE EVIDENCE */}
+      <section className="hd-section" aria-labelledby="hd-evidence-title">
+        <div className="hd-section__head">
+          <h2 className="hd-section__title" id="hd-evidence-title">Performance</h2>
+          <div className="hd-range" role="group" aria-label="Date range">
+            {RANGES.map((r) => (
+              <button key={r.id} type="button" aria-pressed={days === r.id} onClick={() => setDays(r.id)}>{r.label}</button>
+            ))}
           </div>
+        </div>
 
-          <div className="habit-facts">
-            {facts.map((f) => (
-              <div key={f.label} className="habit-fact">
-                <span className="habit-fact-label">{f.label}</span>
-                <strong className="tnum">{f.value}</strong>
-                <span className="habit-fact-unit">{f.unit}</span>
+        <p className="hd-summary-line">
+          {pct == null
+            ? <>Not enough scheduled days yet to show a rate.</>
+            : detail.delta == null
+              ? <>Completed <strong>{pct}%</strong> of scheduled days in the last {days} days.</>
+              : detail.delta === 0
+                ? <>Completed <strong>{pct}%</strong> — level with the previous {days} days.</>
+                : <>Completed <strong>{pct}%</strong> — <span style={{ color: detail.delta > 0 ? 'var(--good)' : 'var(--warn)' }}>{detail.delta > 0 ? 'up' : 'down'} {Math.abs(detail.delta)} points</span> on the previous {days} days.</>}
+        </p>
+
+        <div className="hd-evidence" role="list">
+          <Metric label="Current streak" value={detail.streak} unit={detail.streak === 1 ? 'day' : 'days'} tone={atRisk ? 'warn' : undefined} />
+          <Metric label="Best streak" value={best} unit={best === 1 ? 'day' : 'days'} />
+          <Metric label={`Last ${days} days`} value={pct == null ? '—' : `${pct}%`}
+                  sub={pct == null ? 'no eligible days' : `${rate.done} of ${rate.eligible}`}
+                  tone={pct != null && pct >= 80 ? 'good' : undefined} />
+          <Metric label="Consistency"
+                  value={detail.consistency?.enough ? detail.consistency.score : '—'}
+                  sub={detail.consistency?.enough ? consistencyLabel(detail.consistency.score) : 'not enough data'} />
+        </div>
+
+        {trendValues.length > 2 && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: 12, color:'var(--text-3)', fontSize:'var(--fs-xs)' }}>
+            <Sparkline values={trendValues} width={180} height={28} color={`var(${cat.cssVar})`} />
+            <span>Scheduled days, oldest → newest</span>
+          </div>
+        )}
+
+        <div className="hd-heatmap">
+          <Heatmap weeks={heat} ariaLabel={`${habit.name} completion heatmap`} />
+        </div>
+      </section>
+
+      {/* 6. PATTERNS */}
+      <section className="hd-section" aria-labelledby="hd-patterns-title">
+        <div className="hd-section__head">
+          <h2 className="hd-section__title" id="hd-patterns-title">Patterns</h2>
+          <span className="hd-section__meta">from your check-ins</span>
+        </div>
+        {cards.length === 0 ? (
+          <p className="hd-summary-line">{NOT_ENOUGH}</p>
+        ) : (
+          <div>
+            {cards.map((c) => (
+              <article key={c.id} className="hd-pattern" data-pattern={c.id}>
+                <p className="hd-pattern__obs">{c.observation}</p>
+                <dl className="hd-pattern__dl">
+                  <dt>Evidence</dt><dd>{c.evidence}</dd>
+                  <dt>Implication</dt><dd>{c.implication}</dd>
+                </dl>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {(weekdayRows.length > 0 || detail.times?.enough) && (
+          <details className="hd-details">
+            <summary>Breakdown by weekday and time of day</summary>
+            <div className="hd-breakdown">
+              {weekdayRows.length > 0 && (
+                <div>
+                  <p className="hd-section__meta" style={{ display:'inline-flex', alignItems:'center', gap:4, marginBottom:8 }}>
+                    <IconCalendar size={12} /> By weekday · last 12 weeks
+                  </p>
+                  <HBarList rows={weekdayRows} max={100} unit="%" />
+                </div>
+              )}
+              {detail.times?.enough && (
+                <div>
+                  <p className="hd-section__meta" style={{ display:'inline-flex', alignItems:'center', gap:4, marginBottom:8 }}>
+                    <IconClock size={12} /> When you log it · {detail.times.total} completions
+                  </p>
+                  <HBarList
+                    rows={detail.times.parts.map((p) => ({ label: p.label, value: p.count }))}
+                    max={Math.max(...detail.times.parts.map((p) => p.count))}
+                  />
+                </div>
+              )}
+            </div>
+          </details>
+        )}
+      </section>
+
+      {/* 7. HISTORY */}
+      <section className="hd-section" aria-labelledby="hd-history-title">
+        <div className="hd-section__head">
+          <h2 className="hd-section__title" id="hd-history-title">History</h2>
+          {best > 0 && <span className="hd-section__meta"><IconFlame size={12} /> best {best}</span>}
+        </div>
+        {streaks.length === 0 ? (
+          <p className="hd-summary-line">No completed streaks recorded yet.</p>
+        ) : (
+          <div className="hd-streak-list" role="list">
+            {streaks.slice(0, 5).map((s, i) => (
+              <div key={`${s.start}-${i}`} className="hd-streak-row" role="listitem">
+                <span className="hd-streak-len tnum">{s.length}d</span>
+                <span className="hd-streak-bar" style={{ ['--w']: `${Math.max(8, (s.length / Math.max(1, best)) * 100)}%` }} />
+                <span className="hd-streak-range">{prettyDate(s.start)}{s.end !== s.start ? ` → ${prettyDate(s.end)}` : ''}</span>
+                {s.current && <span className="hd-streak-current">current</span>}
               </div>
             ))}
           </div>
-        </section>
+        )}
 
-        {/* ---------- CONSISTENCY ---------- */}
-        <section className="card pad" aria-labelledby="habit-consistency-title">
-          <div className="card-head">
-            <h2 id="habit-consistency-title" className="card-title">Consistency</h2>
-            <div className="seg" role="group" aria-label="Date range">
-              {RANGES.map((r) => (
-                <button key={r.id} type="button" className={`seg-btn${days === r.id ? ' active' : ''}`} aria-pressed={days === r.id} onClick={() => setDays(r.id)}>
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="habit-summary-line">
-            {pct == null
-              ? 'Not enough data yet.'
-              : detail.delta == null
-                ? `${pct}% of scheduled days in the last ${days} days. Not enough history to compare with the previous period.`
-                : detail.delta === 0
-                  ? `${pct}% — exactly level with the previous ${days} days.`
-                  : `${pct}% — ${detail.delta > 0 ? 'up' : 'down'} ${Math.abs(detail.delta)} points on the previous ${days} days.`}
-          </p>
-          {trendValues.length > 2 && (
-            <div className="habit-spark">
-              <Sparkline values={trendValues} width={180} height={30} />
-              <span className="tiny muted">every scheduled day, oldest first</span>
-            </div>
-          )}
-          <div style={{ marginTop: 14 }}>
-            <Heatmap weeks={heat} ariaLabel={`${habit.name} consistency heatmap`} />
-          </div>
-        </section>
-
-        {/* ---------- HISTORY ---------- */}
-        <section className="card pad" aria-labelledby="habit-history-title">
-          <div className="card-head">
-            <h2 id="habit-history-title" className="card-title">History</h2>
-            <span className="tiny muted"><IconFlame size={13} /> best {detail.best}</span>
-          </div>
-          {streaks.length === 0 ? (
-            <p className="empty-note">No completed streaks recorded yet.</p>
-          ) : (
-            <div className="streak-list">
-              {streaks.slice(0, 5).map((s, i) => (
-                <div key={`${s.start}-${i}`} className="streak-row">
-                  <span className="streak-bar" style={{ width: `${Math.max(8, (s.length / Math.max(1, detail.best)) * 100)}%` }} aria-hidden="true" />
-                  <span className="streak-len tnum">{s.length}d</span>
-                  <span className="streak-range">
-                    {prettyDate(s.start)}{s.end !== s.start ? ` → ${prettyDate(s.end)}` : ''}
-                  </span>
-                  {s.current && <span className="streak-now">current</span>}
-                </div>
-              ))}
-            </div>
-          )}
-          {streaks.length > 5 && (
-            <details className="habit-more">
-              <summary>All {streaks.length} streaks</summary>
-              <div className="streak-list" style={{ marginTop: 10 }}>
+        {(streaks.length > 5 || detail.notes.length > 0) && (
+          <details className="hd-details">
+            <summary>
+              {streaks.length > 5 ? `All ${streaks.length} streaks` : 'Notes'}
+              {streaks.length > 5 && detail.notes.length > 0 ? ' & notes' : ''}
+            </summary>
+            {streaks.length > 5 && (
+              <div className="hd-streak-list" style={{ marginTop: 10 }}>
                 {streaks.slice(5).map((s, i) => (
-                  <div key={`${s.start}-${i}`} className="streak-row">
-                    <span className="streak-bar" style={{ width: `${Math.max(8, (s.length / Math.max(1, detail.best)) * 100)}%` }} aria-hidden="true" />
-                    <span className="streak-len tnum">{s.length}d</span>
-                    <span className="streak-range">{prettyDate(s.start)}{s.end !== s.start ? ` → ${prettyDate(s.end)}` : ''}</span>
+                  <div key={`${s.start}-${i}`} className="hd-streak-row">
+                    <span className="hd-streak-len tnum">{s.length}d</span>
+                    <span className="hd-streak-bar" style={{ ['--w']: `${Math.max(8, (s.length / Math.max(1, best)) * 100)}%` }} />
+                    <span className="hd-streak-range">{prettyDate(s.start)}{s.end !== s.start ? ` → ${prettyDate(s.end)}` : ''}</span>
                   </div>
                 ))}
               </div>
-            </details>
-          )}
-          {detail.notes.length > 0 && (
-            <details className="habit-more">
-              <summary>Notes ({detail.notes.length})</summary>
-              <div className="stack" style={{ gap: 10, marginTop: 10 }}>
+            )}
+            {detail.notes.length > 0 && (
+              <div style={{ marginTop: streaks.length > 5 ? 14 : 0 }}>
+                <p className="hd-section__meta" style={{ marginBottom: 6 }}>Notes</p>
                 {detail.notes.map((n) => (
-                  <div key={n.date} className="habit-note">
-                    <span className="habit-note-date">{prettyDate(n.date)}</span>
+                  <div key={n.date} className="hd-note">
+                    <div className="hd-note__date">{prettyDate(n.date)}</div>
                     <p>{n.note}</p>
                   </div>
                 ))}
               </div>
-            </details>
-          )}
-        </section>
+            )}
+          </details>
+        )}
 
-        {/* ---------- PATTERNS ---------- */}
-        <section className="card pad habit-patterns" aria-labelledby="habit-patterns-title">
-          <div className="card-head">
-            <h2 id="habit-patterns-title" className="card-title">Patterns</h2>
-            <span className="tiny muted">from your check-ins</span>
-          </div>
-          {cards.length === 0 ? (
-            <p className="empty-note">{NOT_ENOUGH} Patterns appear once a habit has a few weeks of scheduled days.</p>
-          ) : (
-            <ul className="pattern-list">
-              {cards.map((c) => (
-                <li key={c.id} className="pattern" data-pattern={c.id}>
-                  <p className="pattern-observation">{c.observation}</p>
-                  <dl className="pattern-detail">
-                    <dt>Evidence</dt><dd>{c.evidence}</dd>
-                    <dt>Implication</dt><dd>{c.implication}</dd>
-                  </dl>
-                </li>
+        {detail.notes.length > 0 && streaks.length <= 5 && (
+          <details className="hd-details">
+            <summary>Notes ({detail.notes.length})</summary>
+            <div>
+              {detail.notes.map((n) => (
+                <div key={n.date} className="hd-note">
+                  <div className="hd-note__date">{prettyDate(n.date)}</div>
+                  <p>{n.note}</p>
+                </div>
               ))}
-            </ul>
-          )}
-          {(weekdayRows.length > 0 || detail.times) && (
-            <details className="habit-more">
-              <summary>Breakdown by weekday and time of day</summary>
-              <div className="habit-breakdown">
-                {weekdayRows.length > 0 && (
-                  <div>
-                    <p className="eyebrow"><IconCalendar size={12} /> By weekday · last 12 weeks</p>
-                    <HBarList rows={weekdayRows} max={100} unit="%" />
-                  </div>
-                )}
-                {detail.times && (
-                  <div>
-                    <p className="eyebrow"><IconClock size={12} /> When you log it · {detail.times.total} completions</p>
-                    <HBarList
-                      rows={detail.times.parts.map((p) => ({ label: p.label, value: p.count }))}
-                      max={Math.max(...detail.times.parts.map((p) => p.count))}
-                    />
-                  </div>
-                )}
-              </div>
-            </details>
-          )}
-        </section>
-
-        {/* ---------- SCHEDULE ---------- */}
-        <section className="card pad" aria-labelledby="habit-schedule-title">
-          <div className="card-head">
-            <h2 id="habit-schedule-title" className="card-title">Schedule</h2>
-            <button type="button" className="btn ghost sm" onClick={() => habitUI.openEdit(habit)}><IconPencil size={13} /> Change</button>
-          </div>
-          <dl className="habit-schedule">
-            <div><dt>Cadence</dt><dd>{scheduleLabel(habit)}{scheduleDays ? ` (${scheduleDays})` : ''}</dd></div>
-            <div><dt>Reminder</dt><dd>{habit.reminder || 'None'}</dd></div>
-            <div><dt>Started</dt><dd>{habit.createdAt ? prettyDate(habit.createdAt) : 'Unknown'}</dd></div>
-            <div><dt>State</dt><dd>{archived ? 'Archived' : paused ? `Paused${row.pausedUntil ? ` until ${prettyDate(row.pausedUntil)}` : ''}` : 'Active'}</dd></div>
-            {Array.isArray(habit.skips) && habit.skips.length > 0 && (
-              <div><dt>Skipped days</dt><dd>{habit.skips.length} (not counted as misses)</dd></div>
-            )}
-          </dl>
-          {(detail.linkedProjects.length > 0 || detail.routines.length > 0) && (
-            <div className="habit-links">
-              <p className="eyebrow"><IconLayers size={12} /> Connected to</p>
-              <div className="wrap-gap">
-                {detail.routines.map((r) => (
-                  <Link key={r.id} to="habits?view=routines" className="chip">{r.name}</Link>
-                ))}
-                {detail.linkedProjects.map((p) => (
-                  <Link key={p.id} to={`projects/${p.id}`} className="btn sm">{p.name}</Link>
-                ))}
-              </div>
             </div>
-          )}
-        </section>
+          </details>
+        )}
+      </section>
 
-        {/* ---------- ACTIONS ---------- */}
-        <section className="card pad habit-manage" aria-labelledby="habit-actions-title">
-          <div className="card-head"><h2 id="habit-actions-title" className="card-title">Manage</h2></div>
-          <div className="habit-manage-row">
-            <button type="button" className="btn" onClick={() => habitUI.openEdit(habit)}><IconPencil size={15} /> Edit</button>
-            {!archived && (
-              <button type="button" className="btn" onClick={() => actions.togglePause(habit)}>{paused ? 'Resume' : 'Pause for a week'}</button>
-            )}
-            <button type="button" className="btn" onClick={() => habitUI.archive(habit)}>
-              <IconArchive size={15} /> {archived ? 'Restore' : 'Archive'}
-            </button>
-            <span className="routine-spacer" />
-            {confirmDelete ? (
-              <>
-                <button type="button" className="btn ghost" onClick={() => setConfirmDelete(false)}>Keep</button>
-                <button type="button" className="btn danger" onClick={() => { setConfirmDelete(false); habitUI.remove(habit); navigate('habits') }}>
-                  <IconTrash size={15} /> Delete for good
-                </button>
-              </>
-            ) : (
-              <button type="button" className="btn ghost danger-text" onClick={() => setConfirmDelete(true)} aria-describedby="habit-delete-note">
-                <IconTrash size={15} /> Delete
-              </button>
-            )}
+      {/* 9. SCHEDULE */}
+      <section className="hd-section" aria-labelledby="hd-schedule-title">
+        <div className="hd-section__head">
+          <h2 className="hd-section__title" id="hd-schedule-title">Schedule</h2>
+          <Button variant="quiet" size="sm" onClick={() => habitUI.openEdit(habit)} icon={<IconPencil size={13} />}>Change</Button>
+        </div>
+        <dl className="hd-facts">
+          <div className="hd-fact"><dt>Cadence</dt><dd>{scheduleLabel(habit)}{habit.schedule?.type === 'weekdays' && Array.isArray(habit.schedule.days) ? ` (${habit.schedule.days.map((d) => WEEKDAY_NAMES[d]).join(', ')})` : ''}</dd></div>
+          <div className="hd-fact"><dt>Reminder</dt><dd>{habit.reminder || 'None'}</dd></div>
+          <div className="hd-fact"><dt>Started</dt><dd>{habit.createdAt ? prettyDate(habit.createdAt) : 'Unknown'}</dd></div>
+          <div className="hd-fact"><dt>State</dt><dd>{archived ? 'Archived' : paused ? `Paused${row.pausedUntil ? ` until ${prettyDate(row.pausedUntil)}` : ''}` : 'Active'}</dd></div>
+          {Array.isArray(habit.skips) && habit.skips.length > 0 && (
+            <div className="hd-fact"><dt>Skipped days</dt><dd>{habit.skips.length} (not counted as misses)</dd></div>
+          )}
+        </dl>
+        {(detail.linkedProjects?.length > 0 || detail.routines?.length > 0) && (
+          <div className="hd-links">
+            <span className="hd-section__meta" style={{ display:'inline-flex', alignItems:'center', gap:4, marginRight:4 }}><IconLayers size={12} /> Connected to</span>
+            {detail.routines.map((r) => (<Link key={r.id} to="habits?view=routines" className="chip">{r.name}</Link>))}
+            {detail.linkedProjects.map((p) => (<Button key={p.id} as={Link} to={`projects/${p.id}`} variant="secondary" size="sm">{p.name}</Button>))}
           </div>
-          <p id="habit-delete-note" className="tiny muted" style={{ marginTop: 10 }}>
+        )}
+      </section>
+
+      {/* 10. MANAGEMENT */}
+      <section className="hd-section" aria-labelledby="hd-manage-title">
+        <div className="hd-section__head">
+          <h2 className="hd-section__title" id="hd-manage-title">Manage</h2>
+        </div>
+        <div className="hd-manage">
+          <Button variant="secondary" size="sm" onClick={() => habitUI.openEdit(habit)}><IconPencil size={14} /> Edit</Button>
+          {!archived && (
+            <Button variant="quiet" size="sm" onClick={() => actions.togglePause(habit)}>{paused ? 'Resume' : 'Pause'}</Button>
+          )}
+          <Button variant="quiet" size="sm" onClick={() => habitUI.archive(habit)}>
+            <IconArchive size={14} /> {archived ? 'Restore' : 'Archive'}
+          </Button>
+          <span className="hd-manage__spacer" />
+          {confirmDelete ? (
+            <>
+              <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(false)}>Keep</Button>
+              <Button variant="danger" size="sm" onClick={() => { setConfirmDelete(false); habitUI.remove(habit); navigate('habits') }}>
+                <IconTrash size={14} /> Delete for good
+              </Button>
+            </>
+          ) : (
+            <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(true)} aria-describedby="hd-delete-note">
+              <IconTrash size={14} /> Delete
+            </Button>
+          )}
+          <p id="hd-delete-note" className="hd-manage__note">
             {confirmDelete
-              ? `This removes ${habit.name} and all of its check-ins. An Undo is offered right after.`
+              ? `This removes ${habit.name} and its check-ins. An Undo is offered right after.`
               : 'Archiving hides a habit from Today and analytics without deleting its history.'}
           </p>
-        </section>
-      </div>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function formatReminder(hhmm) {
+  if (!hhmm) return ''
+  const [h, m] = String(hhmm).split(':').map(Number)
+  if (Number.isNaN(h)) return hhmm
+  const isPm = h >= 12
+  const h12 = ((h + 11) % 12) + 1
+  return `${h12}${m ? ':' + String(m).padStart(2,'0') : ''} ${isPm ? 'PM' : 'AM'}`
+}
+
+function Metric({ label, value, unit, sub, tone }) {
+  return (
+    <div className="hd-metric" role="listitem">
+      <span className="hd-metric__label">{label}</span>
+      <span className={`hd-metric__value${tone === 'good' ? ' is-good' : ''}${tone === 'warn' ? ' is-warn' : ''}`}>
+        {value}{unit && typeof value === 'number' ? <span style={{ fontSize:'.7em', color:'var(--text-3)', fontWeight:'var(--fw-regular)', marginLeft:3 }}>{unit}</span> : ''}
+      </span>
+      {unit && typeof value !== 'number' && <span className="hd-metric__sub">{unit}</span>}
+      {sub && <span className="hd-metric__sub">{sub}</span>}
     </div>
   )
 }

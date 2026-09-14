@@ -1,0 +1,33 @@
+/* DEFAULT (MIDNIGHT) — bridge to legacy palette.
+   New semantic --color-* tokens are mapped to the existing V4 theme
+   already defined on :root by styles/tokens.css, so we do not repeat
+   hex values and grow initial CSS beyond budget. */
+:root{
+  color-scheme:dark;
+  --color-bg:var(--bg); --color-bg-deep:var(--bg-deep); --color-bg-raise:var(--bg-raise);
+  --color-surface:transparent; --color-surface-raised:var(--surface-solid);
+  --color-surface-inset:var(--surface-inset);
+  --color-surface-interactive:rgba(255,255,255,.05);
+  --color-surface-selected:rgba(123,92,255,.12);
+  --color-text:var(--text); --color-text-2:var(--text-2); --color-text-3:var(--text-3);
+  --color-text-disabled:rgba(245,243,239,.35); --color-text-inverse:var(--bg);
+  --color-border-subtle:var(--border); --color-border:var(--border); --color-border-strong:var(--border-2);
+  --color-accent:#7B5CFF; --color-accent-2:var(--accent-2);
+  --color-accent-soft:var(--accent-soft); --color-accent-strong:var(--accent-1-lift);
+  --color-accent-contrast:var(--accent-ink);
+  --color-good:var(--good); --color-good-soft:var(--good-soft);
+  --color-warn:var(--warn); --color-warn-soft:var(--warn-soft);
+  --color-bad:var(--bad); --color-bad-soft:var(--bad-soft);
+  --color-info:var(--info); --color-info-soft:var(--info-soft);
+  --color-focus:var(--focus); --color-scrim:var(--scrim);
+  --shadow-color-low:rgba(2,5,14,.45); --shadow-color-mid:rgba(2,5,14,.55);
+  --shadow-color-high:rgba(2,5,14,.65); --highlight-color:rgba(255,255,255,.05);
+  --color-chart-grid:var(--grid); --color-chart-axis:rgba(255,255,255,.18);
+  --color-chart-text:var(--text-3); --color-chart-tooltip:var(--surface-solid);
+  --color-chart-expected:rgba(255,255,255,.45);
+  --color-series-1:var(--c1); --color-series-2:var(--c2); --color-series-3:var(--c3);
+  --color-series-4:var(--c4); --color-series-5:var(--c5); --color-series-6:var(--c6);
+  --color-series-7:var(--c7); --color-series-8:var(--c8);
+  --color-seq-0:var(--seq-0); --color-seq-1:var(--seq-1); --color-seq-2:var(--seq-2);
+  --color-seq-3:var(--seq-3); --color-seq-4:var(--seq-4);
+}

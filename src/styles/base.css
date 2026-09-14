@@ -1,6 +1,4 @@
-/* ============================================================
-   BASE — reset, document, atmosphere, typography
-   ============================================================ */
+
 
 *,
 *::before,
@@ -18,8 +16,7 @@ body,
 
 html {
   -webkit-text-size-adjust: 100%;
-  /* motion entrances travel on X for cinematic variants; clip keeps the
-     document's scroll box exactly viewport-wide at every frame */
+
   overflow-x: clip;
 }
 
@@ -72,13 +69,13 @@ svg {
   background: var(--accent-soft);
 }
 
-/* ---- Numbers ---- */
+
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
 
-/* ---- Focus visibility (keyboard only) ---- */
+
 :focus {
   outline: none;
 }
@@ -88,7 +85,7 @@ svg {
   border-radius: 6px;
 }
 
-/* ---- Screen-reader only ---- */
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -101,10 +98,7 @@ svg {
   border: 0;
 }
 
-/* ============================================================
-   ATMOSPHERE — one slow aurora mesh + fine noise.
-   Visually quiet; never intercepts input.
-   ============================================================ */
+
 
 .backdrop {
   position: fixed;
@@ -117,7 +111,7 @@ svg {
 }
 
 .backdrop::after {
-  /* fine noise so flat areas don't band */
+
   content: '';
   position: absolute;
   inset: 0;
@@ -133,7 +127,7 @@ svg {
   will-change: transform;
   pointer-events: none;
 }
-/* Geometry + motion live in system.css so the atmosphere has one owner. */
+
 .aurora-blob.a {
   background: radial-gradient(circle, var(--aurora-a) 0%, transparent 62%);
 }
@@ -144,9 +138,7 @@ svg {
   background: radial-gradient(circle, var(--aurora-c) 0%, transparent 64%);
 }
 
-/* ============================================================
-   REDUCED MOTION — kill decorative movement, keep state changes
-   ============================================================ */
+
 
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob {
@@ -162,7 +154,7 @@ svg {
   }
 }
 
-/* ---- Scrollbars ---- */
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

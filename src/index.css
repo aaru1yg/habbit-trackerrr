@@ -8,6 +8,41 @@
  */
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/manrope';
+
+/* New token system — primitives + semantic mappings first so new primitives
+   (--sp-*, --radius-*, motion, z-index, focus) are available everywhere.
+   Theme palettes are loaded AFTER legacy tokens.css so that the new
+   semantic color variables (--color-*) resolve on TOP of the V4 palette
+   without duplicating the legacy :root values, keeping initial CSS small. */
+@import './styles/tokens/primitives.css';
+@import './styles/tokens/semantic.css';
+
+/* Step 1B core primitives — sits above tokens, below legacy components so
+   legacy styles stay visually identical during the rebuild. */
+@import './components/primitives/primitives.css';
+
+/* Step 2 shell */
+@import './components/shell/shell.css';
+
+/* Step 3 Today screen */
+@import './components/today/today.css';
+
+/* Step 4A definitive Habit Object */
+@import './components/habits/HabitObject.css';
+
+/* Step 4B Habits workspace */
+@import './styles/habits-workspace.css';
+
+/* Step 4C Habit detail */
+@import './styles/habit-detail.css';
+@import './styles/habit-calendar.css';
+@import './styles/habit-week.css';
+@import './styles/habit-routines.css';
+
+/* Step 5A Work Foundation entity */
+@import './components/work/WorkEntity.css';
+
+/* Legacy design tokens + all existing UI styles — UNTOUCHED in Step 1A. */
 @import './styles/tokens.css';
 @import './styles/base.css';
 @import './styles/components.css';
@@ -20,6 +55,14 @@
 @import './styles/spatial.css';
 @import './styles/auth.css';
 @import './styles/adaptive.css';
+
+/* Default (Midnight) semantic palette — inline so the initial CSS stays
+   within budget. Other themes are lazy-injected by the runtime in main.jsx. */
+@import './styles/themes/_default.css';
+
+/* Legacy-aliases map old names onto new semantic tokens where it is safe
+   to do so without forcing a visual change. */
+@import './styles/tokens/legacy-aliases.css';
 
 .spinner {
   width: 28px;

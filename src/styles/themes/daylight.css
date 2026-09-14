@@ -1,0 +1,50 @@
+/* ============================================================
+   HABIT OS — THEME: DAYLIGHT (light)
+   ============================================================ */
+html[data-theme='daylight'] {
+  color-scheme: light;
+  --color-bg:#f5f4f0; --color-bg-deep:#eceae4; --color-bg-raise:#fff;
+  --color-surface:transparent; --color-surface-raised:#fff;
+  --color-surface-inset:#f2f0eb; --color-surface-interactive:rgba(20,23,31,.05);
+  --color-surface-selected:rgba(91,61,240,.09);
+  --color-text:#14171f; --color-text-2:#4a5160; --color-text-3:#6a7282;
+  --color-text-disabled:rgba(20,23,31,.35); --color-text-inverse:#fff;
+  --color-border-subtle:rgba(20,23,31,.07); --color-border:rgba(20,23,31,.12);
+  --color-border-strong:rgba(20,23,31,.2);
+  --color-accent:#5B3DF0; --color-accent-2:#0e7490;
+  --color-accent-soft:rgba(91,61,240,.1); --color-accent-strong:#4c2fd6;
+  --color-accent-contrast:#fff;
+  --color-good:#14713a; --color-good-soft:rgba(20,113,58,.1);
+  --color-warn:#8a4b08; --color-warn-soft:rgba(138,75,8,.1);
+  --color-bad:#b3121b; --color-bad-soft:rgba(179,18,27,.09);
+  --color-info:#1d4ed8; --color-info-soft:rgba(29,78,216,.1);
+  --color-focus:#5B3DF0; --color-scrim:rgba(24,28,38,.42);
+  --shadow-color-low:rgba(20,23,31,.06); --shadow-color-mid:rgba(20,23,31,.1);
+  --shadow-color-high:rgba(20,23,31,.18); --highlight-color:rgba(255,255,255,.8);
+  --color-chart-grid:rgba(20,23,31,.08); --color-chart-axis:rgba(20,23,31,.22);
+  --color-chart-text:var(--color-text-3); --color-chart-tooltip:#fff;
+  --color-chart-expected:rgba(20,23,31,.45);
+  --color-series-1:#5B3DF0; --color-series-2:#0e7490; --color-series-3:#14713a;
+  --color-series-4:#8a4b08; --color-series-5:#b3126b; --color-series-6:#1d4ed8;
+  --color-series-7:#b3121b; --color-series-8:#6b21a8;
+  --color-seq-0:rgba(20,23,31,.06); --color-seq-1:rgba(91,61,240,.18);
+  --color-seq-2:rgba(91,61,240,.38); --color-seq-3:rgba(14,116,144,.55);
+  --color-seq-4:#0e7490;
+
+  --cat-fitness:#c2410c; --cat-fitness-soft:rgba(194,65,12,.1);
+  --cat-fitness-muted:rgba(194,65,12,.5); --cat-fitness-strong:#9a340a; --cat-fitness-contrast:#fff;
+  --cat-health:#047857; --cat-health-soft:rgba(4,120,87,.1);
+  --cat-health-muted:rgba(4,120,87,.5); --cat-health-strong:#065f46; --cat-health-contrast:#fff;
+  --cat-mind:#6d28d9; --cat-mind-soft:rgba(109,40,217,.1);
+  --cat-mind-muted:rgba(109,40,217,.5); --cat-mind-strong:#5b21b6; --cat-mind-contrast:#fff;
+  --cat-learning:#0369a1; --cat-learning-soft:rgba(3,105,161,.1);
+  --cat-learning-muted:rgba(3,105,161,.5); --cat-learning-strong:#075985; --cat-learning-contrast:#fff;
+  --cat-creative:#be185d; --cat-creative-soft:rgba(190,24,93,.1);
+  --cat-creative-muted:rgba(190,24,93,.5); --cat-creative-strong:#9d174d; --cat-creative-contrast:#fff;
+  --cat-social:#a16207; --cat-social-soft:rgba(161,98,7,.1);
+  --cat-social-muted:rgba(161,98,7,.5); --cat-social-strong:#854d0e; --cat-social-contrast:#fff;
+  --cat-finance:#15803d; --cat-finance-soft:rgba(21,128,61,.1);
+  --cat-finance-muted:rgba(21,128,61,.5); --cat-finance-strong:#166534; --cat-finance-contrast:#fff;
+  --cat-productivity:#0e7490; --cat-productivity-soft:rgba(14,116,144,.1);
+  --cat-productivity-muted:rgba(14,116,144,.5); --cat-productivity-strong:#155e75; --cat-productivity-contrast:#fff;
+}

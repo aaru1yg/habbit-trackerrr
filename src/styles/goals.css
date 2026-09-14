@@ -308,6 +308,43 @@ details.goals-how .layer-chain { margin-top: var(--sp-2); }
   .goal-detail-actions.manage .btn { flex: 1 1 auto; }
 }
 
-/* Legacy goal-detail styles removed in favor of .dlv primitives, but
-   keep selectors used by GoalDetail test selectors in case. */
-#goal-detail-screen .back-link { display: none; } /* we now use .dlv__back */
+/* Legacy goal-detail selectors removed in favor of .dlv primitives. */
+#goal-detail-screen .back-link { display: none; }
+
+/* Analytics surface (Step 6D) */
+.goal-analytics { display: flex; flex-direction: column; gap: var(--sp-2); }
+.goal-analytics__chart svg { display: block; width: 100%; overflow: visible; }
+.goal-analytics__grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px; margin-top: 6px;
+}
+.goal-analytics__stat {
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 10px 12px; min-width: 0;
+}
+.goal-analytics__stat .k {
+  margin: 0; color: var(--text-3); font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.goal-analytics__stat .v {
+  margin: 4px 0 0; font-family: var(--font-num); font-size: 1.05rem; font-weight: 800;
+  color: var(--text);
+}
+.goal-analytics__stat .n {
+  margin: 4px 0 0; color: var(--text-3); font-size: var(--fs-xs); line-height: 1.35;
+}
+.cons-strip { display: grid; grid-template-columns: repeat(14, 1fr); gap: 2px; margin-top: 6px; height: 14px; }
+.cons-bar { border-radius: 2px; min-height: 10px; }
+.goal-analytics__insight {
+  margin: 6px 0 0; padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--surface-2); border-left: 3px solid var(--text-3);
+  font-size: var(--fs-sm); color: var(--text-2); line-height: 1.5;
+}
+.goal-analytics__insight[data-tone='good'] { border-left-color: var(--good); color: var(--text); }
+.goal-analytics__insight[data-tone='warn'] { border-left-color: var(--warn); color: var(--text); }
+.goal-analytics__insight[data-tone='bad']  { border-left-color: var(--bad); color: var(--text); }
+
+@media (max-width: 560px) {
+  .goal-analytics__chart svg { height: 220px; }
+  .goal-analytics__grid { grid-template-columns: 1fr 1fr; }
+} /* we now use .dlv__back */

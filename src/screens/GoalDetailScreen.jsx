@@ -16,7 +16,7 @@ import { goalAnalytics } from '../lib/goalAnalytics.js'
 import { goalForecast } from '../lib/adaptive.js'
 import { habitStreak, activeHabits } from '../lib/stats.js'
 import { projectProgress, assignmentProgress } from '../lib/work.js'
-import { todayStr, prettyDate, shortDate, dayOf, isValidDayStr, daysUntil } from '../lib/dates.js'
+import { todayStr, prettyDate, shortDate, dayOf, isValidDayStr, daysUntil, daysBetween } from '../lib/dates.js'
 import { Link } from '../lib/router.jsx'
 import {
   IconChevronRight, IconCheck, IconGoals, IconPlus, IconPencil, IconTrash,
@@ -280,6 +280,26 @@ export default function GoalDetailScreen({ id }) {
               ) : (
                 <MilestoneTimeline ms={ms} onToggle={toggleMs} />
               )}
+            </SectionCard>
+
+            <SectionCard className="pad">
+              <CardHead title="Progress analytics">
+                <span className="tiny muted">Actual · expected · projection</span>
+              </CardHead>
+              <AnalyticsSurface
+                actual={analytics.actual}
+                expected={analytics.expected}
+                prog={prog}
+                pace={pace}
+                velocity={analytics.velocity}
+                consistency={analytics.consistency}
+                projection={forecast}
+                milestones={ms}
+                isReached={!!isReached}
+                today={today}
+                areaVar={area.cssVar}
+                tone={health.tone}
+              />
             </SectionCard>
 
             {goal.notes && (
@@ -589,6 +609,280 @@ function MilestoneTimeline({ ms, onToggle }) {
             ))}
           </ol>
         </div>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------
+   ANALYTICS SURFACE — primary trajectory (multi-series) +
+   secondary velocity / consistency / projection summary.
+   Gaps stay null; projection only drawn when supported.
+   ------------------------------------------------------------ */
+function AnalyticsSurface({ actual, expected, prog, pace, velocity, consistency, projection, milestones, isReached, today, areaVar, tone }) {
+  const W = 780, H = 260, L = 48, R = 16, T = 22, B = 46
+  const n = actual.length
+  const projDays = projection?.reason === 'projected' && projection.daysLeft != null
+    ? Math.min(Math.max(0, projection.daysLeft), 30) : 0
+  const total = Math.max(1, n - 1 + projDays)
+  const x = (i) => L + (i / total) * (W - L - R)
+  const y = (v) => T + (1 - Math.max(0, Math.min(100, v)) / 100) * (H - T - B)
+
+  const pts = actual.map((r, i) => ({ ...r, i, x: x(i), y: r.pct == null ? null : y(r.pct) }))
+  let d = ''; let started = false
+  pts.forEach((p) => {
+    if (p.y == null) { started = false; return }
+    d += (started ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1) + ' '; started = true
+  })
+  d = d.trim()
+
+  // Expected line across full window when available
+  let ed = ''
+  if (expected && expected.length > 0 && pace && pace.start && pace.end) {
+    const t0 = new Date(`${pace.start}T00:00`).getTime()
+    const t1 = new Date(`${pace.end}T23:59`).getTime()
+    const tNow = new Date(`${today}T12:00`).getTime()
+    const todayI = Math.max(0, Math.min(total, ((tNow - t0) / (t1 - t0)) * (n - 1)))
+    const todayX = x(todayI)
+    ed = `M${L} ${y(0).toFixed(1)} L${todayX.toFixed(1)} ${y(pace.expected).toFixed(1)}`
+    if (!isReached && tNow <= t1) {
+      const targetI = Math.min(total, n - 1)
+      ed += ` L${x(targetI).toFixed(1)} ${y(100).toFixed(1)}`
+    }
+  }
+
+  // Target marker at deadline (100% point on the last day of window)
+  const targetX = (pace && pace.end) ? x(Math.min(total, n - 1)) : null
+
+  // Projection dashed from last known point to (endI, 100)
+  let projD = ''; let projEndX = null
+  if (projDays > 0 && !isReached) {
+    const last = [...pts].reverse().find((p) => p.y != null)
+    if (last) {
+      const endI = n - 1 + projDays
+      projEndX = x(endI)
+      projD = `M${last.x.toFixed(1)} ${last.y.toFixed(1)} L${projEndX.toFixed(1)} ${projEndY.toFixed(1)}`
+    }
+  }
+
+  const known = pts.filter((p) => p.y != null)
+  const last = known[known.length - 1]
+  const todayIdx = (() => {
+    if (!pace) return n - 1
+    const t0 = new Date(`${pace.start}T00:00`).getTime()
+    const t1 = new Date(`${pace.end}T23:59`).getTime()
+    const tNow = new Date(`${today}T12:00`).getTime()
+    return Math.max(0, Math.min(total, ((tNow - t0) / (t1 - t0)) * (n - 1)))
+  })()
+  const todayX = x(todayIdx)
+
+  // Milestones: same logic as overview but bigger
+  const msDots = milestones.map((m) => {
+    let cx, cy
+    if (m.done) {
+      cx = last ? last.x : x(n - 1); cy = last ? last.y : y(prog.pct)
+      if (m.doneAt && isValidDayStr(dayOf(m.doneAt))) {
+        const day = dayOf(m.doneAt)
+        const hit = pts.find((p) => p.day === day && p.y != null)
+        if (hit) { cx = hit.x; cy = hit.y }
+      }
+    } else if (pace && isValidDayStr(m.targetDate)) {
+      const t0 = new Date(`${pace.start}T00:00`).getTime()
+      const t1 = new Date(`${pace.end}T23:59`).getTime()
+      const tm = new Date(`${m.targetDate}T12:00`).getTime()
+      const pctAlong = Math.max(0, Math.min(1.2, (tm - t0) / (t1 - t0)))
+      const i = pctAlong * total
+      cx = x(Math.min(i, total)); cy = y(Math.min(100, Math.round(pctAlong * 100)))
+    } else {
+      cx = x(n - 1); cy = y(prog.pct)
+    }
+    return { m, cx, cy }
+  })
+
+  const stroke = isReached ? 'var(--good)' : `var(${areaVar})`
+  const expStroke = tone === 'bad' ? 'var(--bad)' : tone === 'warn' ? 'var(--warn)' : 'var(--text-3)'
+  const days = actual.map((r) => r.day)
+  const xLabels = n <= 4 ? days.map((_, i) => i) : Array.from({ length: 6 }, (_, k) => Math.round((k * (n - 1)) / 5))
+
+  // Velocity: 14-day bars (points gained per day across the window, approximate).
+  const velBars = useMemo(() => {
+    const bars = []
+    if (!known.length) return bars
+    for (let i = 1; i < known.length; i++) {
+      const prev = known[i - 1], cur = known[i]
+      const dv = Math.max(0, cur.pct - prev.pct)
+      const span = Math.max(1, daysBetween(prev.day, cur.day))
+      bars.push({ x: cur.x, h: dv / span })
+    }
+    return bars
+  }, [known])
+  const maxBar = Math.max(1, ...velBars.map(b => b.h))
+
+  // Consistency: a strip of recent 14-day contributions.
+  const consStrip = useMemo(() => {
+    if (!consistency || consistency.pct == null) return null
+    const arr = []
+    for (let i = 13; i >= 0; i--) {
+      const p = pts[pts.length - 1 - i]
+      arr.push({ active: p && p.pct != null && i > 0 && pts[pts.length - i] && pts[pts.length - i].pct != null && pts[pts.length - i].pct > (p.pct || 0) })
+    }
+    return { pct: consistency.pct, arr }
+  }, [pts, consistency])
+
+  const insight = (() => {
+    if (isReached) return 'Goal reached.'
+    if (!pace) return 'Set a start date and target date to see expected pace and projection.'
+    if (projection.reason === 'stalled') return 'Progress has stalled — recent velocity is zero.'
+    if (projection.reason === 'insufficient') return 'Not enough progress data yet for a reliable projection.'
+    const behind = pace.expected - prog.pct
+    if (projection.reason === 'projected') {
+      const late = projection.day && pace.end && projection.day > pace.end
+      if (late) return `Current velocity (${velocity?.perWeek ?? '—'} pts/wk) projects completion after the target.`
+      if (behind > 15) return `${behind} points behind pace; projected finish ${prettyDate(dayOf(projection.projectedCompletion))}.`
+      if (behind < -10) return `Tracking ${Math.abs(behind)} points ahead of expected pace.`
+      return `On pace — projected finish ${prettyDate(dayOf(projection.projectedCompletion))}.`
+    }
+    if (behind > 15) return `${behind} points behind expected pace.`
+    if (behind < -10) return `${Math.abs(behind)} points ahead of pace.`
+    return `On pace — ${prog.pct}% done vs ${pace.expected}% expected.`
+  })()
+
+  const enoughData = known.length >= 2
+  const hasExpected = !!ed
+
+  return (
+    <div className="goal-analytics">
+      {!enoughData ? (
+        <p className="tiny muted" style={{ margin: 0 }}>
+          Not enough progress history yet to draw a trajectory. As milestones are reached or linked work moves, the arc will appear here.
+        </p>
+      ) : (
+        <>
+          <div className="goal-analytics__chart">
+            <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
+              aria-label={`Progress analytics for this goal. ${prog.pct}% complete${pace ? `; expected ${pace.expected}% by today` : ''}.`}
+              preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="analytics-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={stroke} stopOpacity="0.28" />
+                  <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {/* guides */}
+              {[0, 25, 50, 75, 100].map((v) => (
+                <g key={v}>
+                  <line x1={L} y1={y(v)} x2={W - R} y2={y(v)} stroke="var(--border)" strokeDasharray={v === 0 ? '0' : '2 4'} />
+                  <text x={L - 8} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--text-3)" style={{ fontVariantNumeric: 'tabular-nums' }}>{v}%</text>
+                </g>
+              ))}
+              {/* target line */}
+              {targetX != null && (
+                <g>
+                  <line x1={targetX} y1={T - 4} x2={targetX} y2={H - B + 6} stroke="var(--text-3)" strokeWidth="1" strokeDasharray="2 3" opacity="0.5" />
+                  <text x={targetX} y={T - 8} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--text-3)">Target</text>
+                </g>
+              )}
+              {/* expected */}
+              {hasExpected && <path d={ed} fill="none" stroke={expStroke} strokeWidth="1.6" strokeDasharray="4 5" opacity="0.85" />}
+              {/* projected */}
+              {projD && <path d={projD} fill="none" stroke={stroke} strokeWidth="2" strokeDasharray="3 4" opacity="0.55" />}
+              {/* area fill under actual */}
+              {d && (() => {
+                let area = `M${known[0].x.toFixed(1)} ${y(0).toFixed(1)}`
+                known.forEach((p) => { area += `L${p.x.toFixed(1)} ${p.y.toFixed(1)}` })
+                area += `L${known[known.length - 1].x.toFixed(1)} ${y(0).toFixed(1)}Z`
+                return <path d={area} fill="url(#analytics-fill)" />
+              })()}
+              {/* velocity bars */}
+              {velBars.map((b, i) => (
+                <rect key={i} x={b.x - 3} y={y(Math.min(100, b.h * 4)) - 0} width={3} height={Math.max(2, (b.h / maxBar) * 14)} fill={stroke} opacity="0.35" rx="1" />
+              ))}
+              {/* actual */}
+              {d && <path d={d} fill="none" stroke={stroke} strokeWidth="2.8" strokeLinejoin="round" strokeLinecap="round" />}
+              {/* last dot */}
+              {last && <circle cx={last.x} cy={last.y} r="5" fill="var(--surface-solid)" stroke={stroke} strokeWidth="2.4" />}
+              {/* milestones */}
+              {msDots.map(({ m, cx, cy }, i) => (
+                <g key={m.id || i}>
+                  <circle cx={cx} cy={cy} r={m.done || isReached ? 5 : 4.5}
+                    fill={m.done || isReached ? stroke : 'var(--surface-solid)'}
+                    stroke={stroke} strokeWidth="2" />
+                  {isValidDayStr(m.targetDate) && !m.done && (
+                    <text x={cx} y={cy - 10} textAnchor="middle" fontSize="9.5" fill="var(--text-2)">
+                      {m.name.length > 12 ? m.name.slice(0, 11) + '…' : m.name}
+                    </text>
+                  )}
+                </g>
+              ))}
+              {/* today */}
+              <line x1={todayX} y1={T - 4} x2={todayX} y2={H - B + 8} stroke={stroke} strokeWidth="1.5" strokeDasharray="1 2" opacity="0.7" />
+              <polygon points={`${todayX - 4},${H - B + 10} ${todayX + 4},${H - B + 10} ${todayX},${H - B + 2}`} fill={stroke} opacity="0.8" />
+              <text x={todayX} y={H - 2} textAnchor="middle" fontSize="10" fontWeight="700" fill={stroke}>Today</text>
+              {/* projected end marker */}
+              {projD && projEndX != null && (
+                <g>
+                  <line x1={projEndX} y1={T} x2={projEndX} y2={H - B + 6} stroke={stroke} strokeWidth="1" strokeDasharray="2 3" opacity="0.5" />
+                  <text x={projEndX} y={T - 6} textAnchor="middle" fontSize="9.5" fontWeight="700" fill={stroke} opacity="0.85">Projected</text>
+                </g>
+              )}
+              {/* date axis labels */}
+              {xLabels.filter((i) => days[i]).map((i) => (
+                <text key={i} x={i === 0 ? L : i >= n - 1 ? W - R : x(i)} y={H - 20}
+                  textAnchor={i === 0 ? 'start' : i >= n - 1 ? 'end' : 'middle'}
+                  fontSize="10" fill="var(--text-3)">{shortDate(days[i])}</text>
+              ))}
+            </svg>
+          </div>
+
+          <div className="pace-legend" aria-hidden="true">
+            <span><i style={{ background: stroke, height: 3, top: -1 }} /> actual</span>
+            {hasExpected && <span><i style={{ borderTop: `2px dashed ${expStroke}`, background: 'transparent', height: 0 }} /> expected</span>}
+            {projD && <span><i style={{ display: 'inline-block', width: 16, height: 0, borderTop: `2px dashed ${stroke}`, opacity: 0.6, marginRight: 6, position: 'relative', top: -3 }} /> projected</span>}
+            {milestones.length > 0 && <span><i className="dot" style={{ background: stroke, width: 8, height: 8, borderRadius: '50%', display: 'inline-block', marginRight: 6 }} /> milestone</span>}
+          </div>
+
+          {/* Secondary analytics row */}
+          <div className="goal-analytics__grid">
+            <div className="goal-analytics__stat">
+              <p className="k">Velocity</p>
+              <p className="v tnum">{velocity?.perWeek != null ? `${velocity.perWeek} pts/wk` : '—'}</p>
+              <p className="n">{velocity ? `across ${velocity.points} points, ${daysBetween(velocity.fromDay, velocity.toDay)} days` : 'Not enough data yet.'}</p>
+            </div>
+            <div className="goal-analytics__stat">
+              <p className="k">Consistency</p>
+              <p className="v tnum">{consistency?.pct != null ? `${consistency.pct}%` : '—'}</p>
+              {consStrip && (
+                <div className="cons-strip" aria-label={`Consistency ${consStrip.pct}%`}>
+                  {consStrip.arr.map((c, i) => (
+                    <span key={i} className={`cons-bar${c.active ? ' is-on' : ''}`} style={{ background: c.active ? stroke : 'var(--surface-2)' }} />
+                  ))}
+                </div>
+              )}
+              <p className="n">{consistency?.detail || ''}</p>
+            </div>
+            <div className="goal-analytics__stat">
+              <p className="k">Projection</p>
+              <p className="v tnum">
+                {projection.reason === 'projected' ? prettyDate(dayOf(projection.projectedCompletion))
+                  : projection.reason === 'stalled' ? 'Stalled'
+                  : projection.reason === 'complete' ? 'Reached'
+                  : '—'}
+              </p>
+              <p className="n">{projection.reason === 'projected'
+                ? `${projection.daysLeft}d from now at current velocity`
+                : projection.reason === 'stalled' ? 'Recent velocity is zero.'
+                : projection.reason === 'insufficient' ? 'Need more progress data.'
+                : ''}</p>
+            </div>
+            <div className="goal-analytics__stat">
+              <p className="k">Pace</p>
+              <p className="v tnum">{pace ? `${pace.expected}% expected` : '—'}</p>
+              <p className="n">{pace ? `${prog.pct}% actual · ${Math.abs(pace.expected - prog.pct)} pts ${pace.expected > prog.pct ? 'behind' : 'ahead'}` : 'Set a target date for a pace line.'}</p>
+            </div>
+          </div>
+
+          <p className="goal-analytics__insight" data-tone={tone}>{insight}</p>
+        </>
       )}
     </div>
   )

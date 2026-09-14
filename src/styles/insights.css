@@ -1,8 +1,13 @@
 /* ============================================================
-   INSIGHTS (lazy) — Overview + Deep Dive + Lab styling.
-   Imported from InsightsScreen.jsx so this stays out of initial CSS.
-   Mind / Record / Achievements screens have their own rules kept in
-   system.css to avoid redesigning them in 7B (see 7A audit §12).
+   INSIGHTS (lazy) — the pillar's shared stylesheet: Overview,
+   Deep Dive, Lab frames, plus the rows Mind reuses (signal tiles,
+   chart head, legend, correlation rows). Imported from
+   InsightsScreen.jsx and MindScreen.jsx, so none of it is in the
+   initial CSS chunk.
+
+   Step 7C moved the pillar-only half of work.css/system.css in here
+   (stat/corr/dayclock/scatter). Record and Achievements still read
+   from the eager layers — they are 7D's envelope, not this step's.
    ============================================================ */
 
 /* ---- Overview shell ---- */
@@ -313,6 +318,78 @@
   color: var(--text-3);
   margin: 2px 0 0;
 }
+
+/* ---- rows shared by Deep Dive and Mind ----
+   Moved out of the eager work.css/system.css pair in Step 7C. Nothing outside
+   the Insights pillar uses these classes (verified by grep), so the initial CSS
+   chunk no longer pays for them. The system.css refinements are folded in
+   rather than restated, which is what made the old pair duplicate itself. */
+.stat-trio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  text-align: center;
+}
+.stat-trio > div {
+  padding: 12px 8px;
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-inset);
+}
+.stat-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.corr-row {
+  padding: 12px 14px;
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-inset);
+}
+.corr-pair {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  color: var(--accent-2);
+  margin-bottom: 5px;
+}
+.corr-text { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.6; }
+.corr-text b { color: var(--text); font-weight: 700; }
+/* Delta direction is a real state, so the semantic tones belong here. */
+.corr-up { color: var(--good); font-weight: 700; }
+.corr-down { color: var(--warn); font-weight: 700; }
+
+/* Day Clock + Mood Scatter: Deep Dive's own primitives. */
+.dayclock { display: grid; gap: 12px; }
+@media (min-width: 720px) {
+  .dayclock { grid-template-columns: minmax(0, 260px) 1fr; align-items: center; }
+}
+.dayclock-dial { max-width: 260px; margin-inline: auto; width: 100%; }
+.dayclock-legend {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px;
+}
+@media (min-width: 720px) { .dayclock-legend { grid-template-columns: 1fr; } }
+.dayclock-legend li {
+  display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 8px;
+  font-size: var(--fs-sm); color: var(--text-2);
+}
+.dayclock-legend i {
+  width: 10px; height: 10px; border-radius: 3px; background: var(--accent-2); opacity: .62;
+}
+.dayclock-legend i.peak { background: var(--accent-1); opacity: .95; }
+.dayclock-legend b { color: var(--text); font-weight: 700; }
+.dayclock-legend em { font-style: normal; color: var(--text-3); font-size: var(--fs-xs); min-width: 34px; text-align: right; }
+
+.scatter { display: grid; gap: 6px; }
+.scatter-box svg { display: block; width: 100%; }
+.scatter-caption { margin: 0; }
 
 /* ---- Responsive ---- */
 @media (max-width: 1023px) {

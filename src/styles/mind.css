@@ -1,0 +1,228 @@
+/* ============================================================
+   MIND (Step 7C, lazy) — imported from MindScreen.jsx so none of
+   this ships in the initial CSS chunk.
+
+   Two things live here:
+   1. the write-surface rules that used to sit in the eager
+      work.css/system.css layer pair (.mood-row, .dim-label,
+      .level-*). They are Mind-only — verified by grep — so moving
+      them here removed their eager cost, including the duplicated
+      system.css refinement of rules work.css had already defined.
+   2. the behaviour-analysis layout, which stays scoped to
+      #mind-screen. Shared vocabulary (.ins-surface, .ins-chart-*,
+      .ins-legend, .ins-signal, .ins-trust, .dist*, .meter, .corr-*)
+      comes from insights.css / the design system and is not
+      re-declared here.
+
+   Color rule (7A §9): the four logged dimensions are neutral
+   identities, so they take accent/category colours only. Semantic
+   --good/--warn/--bad appear solely on window-over-window deltas,
+   where a real state exists.
+   ============================================================ */
+
+/* ---- window switch ----
+   The Overview's .ins-range control is 36px tall, which is fine as an
+   inline chart affordance but not as this screen's primary control: Mind
+   scopes the whole analysis with it, so it meets the 44px target here. */
+#mind-screen .ins-range button { min-height: 44px; }
+
+/* ---- today's check-in (controls unchanged, envelope is new) ---- */
+#mind-screen .screen-head { flex-wrap: wrap; }
+
+#mind-screen .mind-checkin__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px 26px;
+}
+
+#mind-screen .mind-checkin__col {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+#mind-screen .mind-block-label {
+  margin: 0;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+#mind-screen .mind-opt { color: var(--text-3); font-weight: 500; }
+
+#mind-screen .mind-note-line { display: grid; gap: 6px; }
+
+#mind-screen .mind-note-hint {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+#mind-screen .mind-checkin__foot { margin: 2px 0 0; }
+
+#mind-screen .mind-checkin__reflect {
+  padding-top: 14px;
+  border-top: var(--bd-1) solid var(--border);
+}
+
+/* Group titles inside a card: real headings, editorial weight, no h3 default. */
+#mind-screen .ins-surface h3.mind-block-label { margin: 0 0 8px; }
+
+#mind-screen .mind-reflect__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+#mind-screen .mind-saved {
+  margin: 10px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--good);
+}
+
+/* ---- signal tiles: identity rail, semantic only on the value ---- */
+#mind-screen .ins-signal.is-id { border-left-color: var(--dim-c, var(--text-3)); }
+#mind-screen .ins-signal.is-id .ins-signal-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+#mind-screen .ins-signal-of {
+  margin-left: 2px;
+  font-size: 0.6em;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+/* ---- weekday reading: completion + mood on one row ---- */
+#mind-screen .mind-wd__row {
+  grid-template-columns: 38px minmax(0, 1fr) 84px 58px;
+  min-height: 30px;
+}
+#mind-screen .mind-wd__row[data-today='true'] .dist-label {
+  color: var(--accent-1);
+  font-weight: 800;
+}
+#mind-screen .mind-wd__mood {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+#mind-screen .mind-wd__mood i {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  flex: none;
+}
+#mind-screen .mind-wd__mood b { color: var(--text); font-weight: 700; }
+
+/* ---- correlation rows ---- */
+#mind-screen .corr-pair { margin: 0 0 8px; }
+#mind-screen .corr-pair svg { flex: none; }
+#mind-screen .corr-row .dist { margin: 2px 0 6px; }
+#mind-screen .corr-row .dist-row { grid-template-columns: 76px minmax(0, 1fr) 46px; }
+#mind-screen .corr-row .corr-text { margin: 0; }
+#mind-screen .mind-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+#mind-screen .mind-note > span:first-child { color: var(--text-3); margin-top: 2px; }
+
+#mind-screen .mind-trust {
+  padding-top: 12px;
+  border-top: var(--bd-1) solid var(--border);
+  line-height: 1.5;
+}
+
+/* ---- legend keeps its series key with the number ---- */
+#mind-screen .mind-legend b {
+  color: var(--text-3);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- moved out of work.css (Mind-only) ---- */
+#mind-screen .mood-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#mind-screen .dim-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
+#mind-screen .level-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+#mind-screen .level-btn {
+  appearance: none;
+  min-height: var(--touch);
+  padding: 9px 0;
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), transform 120ms var(--ease);
+}
+
+#mind-screen .level-btn:hover { border-color: var(--border-2); color: var(--text); }
+
+#mind-screen .level-btn[data-on='true'] {
+  background: var(--accent-1);
+  border-color: transparent;
+  color: var(--accent-ink);
+}
+
+/* ---- responsive: re-flowed, not shrunk ---- */
+@media (max-width: 1023px) {
+  #mind-screen .mind-checkin__grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+
+@media (max-width: 620px) {
+  #mind-screen .mind-reflect__fields { grid-template-columns: minmax(0, 1fr); }
+  #mind-screen .mind-wd__row { grid-template-columns: 34px minmax(0, 1fr) 74px 52px; gap: 8px; }
+  #mind-screen .ins-chart-head h2 { font-size: 1.02rem; }
+  #mind-screen .mood-row { gap: 6px; }
+  #mind-screen .mood-btn { flex: 1 1 calc(33.333% - 6px); }
+}
+
+/* The four identity tiles are the chart's legend, so they stay 2x2 as far
+   down as they can: one column would push the primary visual below a full
+   screen of scrolling before the pattern is even visible. */
+@media (max-width: 390px) {
+  #mind-screen .ins-signal-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #mind-screen .ins-signal { padding: 12px 13px; }
+  #mind-screen .mind-wd__mood { font-size: 0.625rem; }
+  #mind-screen .level-row { gap: 5px; }
+}
+
+@media (max-width: 340px) {
+  #mind-screen .ins-signal-strip { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #mind-screen .level-btn { transition: none; }
+  #mind-screen .level-btn:active { transform: none; }
+}

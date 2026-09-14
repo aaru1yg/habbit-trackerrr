@@ -1286,49 +1286,8 @@
 .tile-title { font-size: var(--fs-sm); font-weight: 700; max-width: 100%; }
 .tile-sub { font-size: var(--fs-xs); color: var(--text-2); font-weight: 600; }
 
-.stat-trio {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  text-align: center;
-}
-
-.stat-trio > div {
-  padding: 12px 8px;
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-
-.stat-num {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.75rem;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-}
-
-.corr-row {
-  padding: 12px 14px;
-  border-radius: var(--r-md);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-
-.corr-pair {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-weight: 700;
-  font-size: var(--fs-sm);
-  color: var(--accent-2);
-  margin-bottom: 5px;
-}
-
-.corr-text { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.6; }
-.corr-text b { color: var(--text); font-weight: 700; }
-.corr-up { color: var(--good); font-weight: 700; }
-.corr-down { color: var(--warn); font-weight: 700; }
+/* stat-trio / stat-num / corr-* moved to the lazy insights.css — they style
+   the Insights pillar only (Deep Dive + Mind), never a Work surface. */
 
 @media (prefers-reduced-motion: reduce) {
   .tile-btn { transition: none; }
@@ -1336,66 +1295,9 @@
 }
 
 
-.mood-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.dim-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  color: var(--text);
-}
-
-.level-row {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.level-btn {
-  appearance: none;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-3);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--fs-sm);
-  font-variant-numeric: tabular-nums;
-  border-radius: 12px;
-  padding: 9px 0;
-  cursor: pointer;
-  transition: background 160ms var(--ease), color 160ms var(--ease), border-color 160ms var(--ease), transform 120ms var(--ease);
-}
-
-.level-btn:hover { border-color: var(--border-2); color: var(--text-2); }
-
-.level-btn[data-on='true'] {
-  background: var(--accent);
-  border-color: transparent;
-  color: var(--surface);
-}
-
-.mood-strip {
-  display: grid;
-  grid-template-columns: repeat(30, minmax(0, 1fr));
-  gap: 3px;
-  margin-top: 14px;
-}
-
-.mood-strip > span {
-  aspect-ratio: 1;
-  border-radius: 4px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .level-btn { transition: none; }
-  .level-btn:active { transform: none; }
-}
+/* .mood-row / .dim-label / .level-* now live in the lazy mind.css (Mind-only).
+   .mood-strip was deleted outright: the 7C primary chart shows every logged
+   day, so the strip was a second reading of the same series. */
 
 
 .goal-name {

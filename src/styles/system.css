@@ -1438,32 +1438,6 @@
   color: var(--accent-1-lift);
 }
 
-.level-btn {
-  min-height: var(--touch);
-  border-radius: var(--r-sm);
-  border: var(--bd-1) solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-weight: var(--fw-semibold);
-}
-
-.level-btn[data-on='true'] {
-  background: var(--accent-1);
-  border-color: transparent;
-  color: var(--accent-ink);
-}
-
-.mood-strip > span {
-  color: var(--text-3);
-  font-size: var(--fs-xs);
-}
-
-.corr-row,
-.stat-trio > div {
-  border: var(--bd-1) solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--surface-inset);
-}
 
 
 .badge {
@@ -3308,26 +3282,7 @@ button.lb-row:hover {
 }
 
 
-.dayclock { display: grid; gap: 12px; }
-@media (min-width: 720px) {
-  .dayclock { grid-template-columns: minmax(0, 260px) 1fr; align-items: center; }
-}
-.dayclock-dial { max-width: 260px; margin-inline: auto; width: 100%; }
-.dayclock-legend {
-  list-style: none; margin: 0; padding: 0;
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px;
-}
-@media (min-width: 720px) { .dayclock-legend { grid-template-columns: 1fr; } }
-.dayclock-legend li {
-  display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 8px;
-  font-size: var(--fs-sm); color: var(--text-2);
-}
-.dayclock-legend i {
-  width: 10px; height: 10px; border-radius: 3px; background: var(--accent-2); opacity: .62;
-}
-.dayclock-legend i.peak { background: var(--accent-1); opacity: .95; }
-.dayclock-legend b { color: var(--text); font-weight: 650; }
-.dayclock-legend em { font-style: normal; color: var(--text-3); font-size: var(--fs-xs); min-width: 34px; text-align: right; }
+/* .dayclock* moved to the lazy insights.css (Day Clock belongs to Deep Dive only). */
 
 .ribbon { display: grid; gap: 8px; }
 .ribbon-strip {
@@ -3358,9 +3313,7 @@ button.lb-row:hover {
 }
 .ribbon-detail { margin: 0; min-height: 1.2em; font-size: var(--fs-sm); color: var(--text-2); }
 
-.scatter { display: grid; gap: 6px; }
-.scatter-box svg { display: block; width: 100%; }
-.scatter-caption { margin: 0; }
+/* .scatter* moved to the lazy insights.css (Mood Scatter is Deep Dive-only). */
 
 
 .ach-medal { position: relative; display: inline-flex; flex: none; }

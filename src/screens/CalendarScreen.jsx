@@ -21,6 +21,7 @@ import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
 import Sheet from '../components/ui/Sheet.jsx'
 import Button from '../components/primitives/Button.jsx'
 import IconButton from '../components/primitives/IconButton.jsx'
+import EmptyState from '../components/primitives/EmptyState.jsx'
 import {
   todayStr, monthDays, monthLabel, weekdayInitial, dayNum, isFuture,
   prettyDate, shortDate, addDaysStr, subDaysStr,
@@ -381,15 +382,24 @@ export default function CalendarScreen({ ymParam }) {
 
       {/* 3. THE CALENDAR VISUALIZATION */}
       {!hasHabits ? (
-        <div className="hc-empty">
-          <EmptyStateFallback habitUI={habitUI} />
-        </div>
+        <EmptyState
+          className="hc-empty"
+          role="status"
+          icon={<IconCalendar size={20} />}
+          title="No habits yet"
+          action={<Button variant="primary" icon={<IconPlus size={14} />} onClick={habitUI.openAdd}>Create habit</Button>}
+        >
+          Create a habit and its calendar will fill in as you check in each day.
+        </EmptyState>
       ) : habits.length === 0 ? (
-        <div className="hc-empty">
-          <p style={{ color: 'var(--text-2)', margin: 0 }}>
-            Nothing was scheduled in this range. Try another range or check your habits' schedules.
-          </p>
-        </div>
+        <EmptyState
+          className="hc-empty"
+          role="status"
+          icon={<IconCalendar size={20} />}
+          title="Nothing scheduled in this range"
+        >
+          Try another range or check your habits' schedules.
+        </EmptyState>
       ) : (
         <section className="hc-wrap" aria-label={`Habit calendar, ${title}`}>
           <div className="hc-scroll">
@@ -594,23 +604,6 @@ export default function CalendarScreen({ ymParam }) {
           </div>
         )}
       </Sheet>
-    </div>
-  )
-}
-
-/* Simple inline empty state so we don't depend on a UI-system EmptyState
-   that couples to a different surface language. */
-function EmptyStateFallback({ habitUI }) {
-  return (
-    <div style={{ textAlign: 'center', padding: '24px 12px', display: 'grid', gap: 12, justifyItems: 'center' }}>
-      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--surface-2)', display: 'grid', placeItems: 'center', color: 'var(--text-2)' }}>
-        <IconCalendar size={20} />
-      </div>
-      <p style={{ margin: 0, color: 'var(--text)', fontWeight: 600 }}>No habits yet</p>
-      <p style={{ margin: 0, color: 'var(--text-2)', maxWidth: '40ch' }}>
-        Create a habit and its calendar will fill in as you check in each day.
-      </p>
-      <Button variant="primary" icon={<IconPlus size={14} />} onClick={habitUI.openAdd}>Create habit</Button>
     </div>
   )
 }

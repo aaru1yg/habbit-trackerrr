@@ -20,6 +20,7 @@ import { useStore } from '../store.jsx'
 import { useHabitUI } from '../components/habits/HabitUIProvider.jsx'
 import Button from '../components/primitives/Button.jsx'
 import IconButton from '../components/primitives/IconButton.jsx'
+import EmptyState from '../components/primitives/EmptyState.jsx'
 import { useHabitActions } from '../components/habits/HabitActions.jsx'
 import { Link } from '../lib/router.jsx'
 import {
@@ -200,22 +201,24 @@ export default function WeekScreen() {
       </div>
 
       {!hasHabits ? (
-        <section className="wr-empty" role="status">
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--surface-2)', display: 'grid', placeItems: 'center', color: 'var(--text-2)' }}>
-            <IconWeek size={20} />
-          </div>
-          <strong>No habits yet</strong>
-          <p>Create a habit and check in through the week — your review will appear here.</p>
-          <Button variant="primary" icon={<IconPlus size={14} />} onClick={habitUI.openAdd}>Create habit</Button>
-        </section>
+        <EmptyState
+          className="wr-empty"
+          role="status"
+          icon={<IconWeek size={20} />}
+          title="No habits yet"
+          action={<Button variant="primary" icon={<IconPlus size={14} />} onClick={habitUI.openAdd}>Create habit</Button>}
+        >
+          Create a habit and check in through the week — your review will appear here.
+        </EmptyState>
       ) : habits.length === 0 || stats.total === 0 ? (
-        <section className="wr-empty" role="status">
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--surface-2)', display: 'grid', placeItems: 'center', color: 'var(--text-2)' }}>
-            <IconWeek size={20} />
-          </div>
-          <strong>Nothing scheduled this week</strong>
-          <p>None of your habits fall in this range. Try another week or adjust a habit's schedule.</p>
-        </section>
+        <EmptyState
+          className="wr-empty"
+          role="status"
+          icon={<IconWeek size={20} />}
+          title="Nothing scheduled this week"
+        >
+          None of your habits fall in this range. Try another week or adjust a habit's schedule.
+        </EmptyState>
       ) : (
         <>
           {/* 2. SUMMARY */}

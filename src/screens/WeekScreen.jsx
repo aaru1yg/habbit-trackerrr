@@ -36,6 +36,7 @@ import {
   IconTrendUp, IconTrendDown,
   IconFlame, IconPlus, IconWeek,
 } from '../lib/icons.jsx'
+import '../styles/habit-week.css'
 
 function HabitDot({ habit, size = 8 }) {
   return (

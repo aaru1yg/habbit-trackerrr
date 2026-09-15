@@ -26,6 +26,7 @@ import Button from '../components/primitives/Button.jsx'
 import { IconPlus } from '../lib/icons.jsx'
 import '../styles/habits.css'
 import '../styles/habits-workspace.css'
+import '../styles/habit-routines.css'
 
 const CalendarView = lazy(() => import('./CalendarScreen.jsx'))
 const WeekView = lazy(() => import('./WeekScreen.jsx'))

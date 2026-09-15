@@ -118,11 +118,13 @@ describe('Insights Overview (Step 7B)', () => {
     })
   })
 
-  it('Advanced button lazy-loads the Lab (fallback text then view)', async () => {
+  it('Advanced is a deep link to /analytics-lab (Lab stays lazy-only)', async () => {
     await mount()
-    const adv = screen.getByRole('button', { name: 'Advanced' })
-    fireEvent.click(adv)
-    await waitFor(() => expect(screen.getByText(/Loading advanced analytics/i)).toBeTruthy())
+    // The Advanced control is a Link (deep link) rather than an in-page toggle, so
+    // the Lab chunk stays double-lazy (App -> InsightsScreen lazy-imports AnalyticsLab).
+    const adv = screen.getByRole('link', { name: 'Open Advanced analytics lab' })
+    expect(adv).toBeTruthy()
+    expect(adv.getAttribute('href')).toMatch(/analytics-lab/)
   })
 
   it('Deep dive toggle still renders Deep dive content', async () => {

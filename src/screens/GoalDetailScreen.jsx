@@ -322,7 +322,7 @@ export default function GoalDetailScreen({ id }) {
           <aside className="dlv__side stack">
             <SectionCard className="pad">
               <CardHead title="Forecast">
-                <span className="adaptive-risk" style={{
+                <span className="goal-risk" style={{
                   color: health.tone === 'good' ? 'var(--good)' : health.tone === 'warn' ? 'var(--warn)' : health.tone === 'bad' ? 'var(--bad)' : 'var(--text-2)',
                 }}>{health.text}</span>
               </CardHead>

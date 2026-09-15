@@ -27,30 +27,33 @@
 /* Step 3 Today screen */
 @import './components/today/today.css';
 
-/* Step 4A definitive Habit Object */
+/* Step 4A definitive Habit Object — shared with Today's TodayWorkList so
+   this stays in the initial CSS (Today is eager). */
 @import './components/habits/HabitObject.css';
 
-/* Step 4B Habits workspace */
-@import './styles/habits-workspace.css';
+/* Step 4B–4E Habits WORKSPACE, DETAIL, CALENDAR, WEEK, ROUTINES styles
+   live in LAZY HabitsScreen/HabitDetailScreen imports (see those files).
+   They must not be pulled into the initial bundle. */
 
-/* Step 4C Habit detail */
-@import './styles/habit-detail.css';
-@import './styles/habit-calendar.css';
-@import './styles/habit-week.css';
-@import './styles/habit-routines.css';
+/* Step 5A Work Foundation entity — only used from lazy Work routes
+   (WorkScreen, Project/Assignment detail) and the dev-only showcase,
+   so WorkEntity.css is lazy-imported from WorkScreen. Workspace-level
+   styles (workspace.css) are lazy-imported by WorkScreen and the work
+   detail screens. */
 
-/* Step 5A Work Foundation entity */
-@import './components/work/WorkEntity.css';
-
-/* Legacy design tokens + all existing UI styles — UNTOUCHED in Step 1A. */
+/* Legacy design tokens + all existing UI styles — UNTOUCHED in Step 1A.
+   Domain-specific screen styles (habit-detail/calendar/week/routines,
+   habits-workspace, workspace, goals) are imported from their LAZY
+   screen entry points, not from index.css, so they stay out of the
+   initial bundle. */
 @import './styles/tokens.css';
 @import './styles/base.css';
 @import './styles/components.css';
 @import './styles/work.css';
 @import './styles/system.css';
 @import './styles/today-v3.css';
-@import './styles/work-v3.css';
 @import './styles/habits-v3.css';
+/* work-v3.css is a shim used only from lazy Work routes; imported from WorkScreen. */
 @import './styles/motion.css';
 @import './styles/spatial.css';
 @import './styles/auth.css';

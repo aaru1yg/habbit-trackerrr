@@ -11,6 +11,8 @@ import { minutesLabel, prettyDate, dayStr, addDaysStr, weekDays } from '../lib/d
 import { EmptyState } from '../components/primitives/index.js'
 import { IconPlus } from '../lib/icons.jsx'
 import '../styles/workspace.css'
+import '../styles/work-v3.css'
+import '../components/work/WorkEntity.css'
 const ProjectGallery = lazy(() => import('../components/work/ProjectGallery.jsx'))
 const WorkPlanning = lazy(() => import('../components/work/WorkPlanning.jsx'))
 

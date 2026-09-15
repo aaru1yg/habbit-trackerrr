@@ -31,6 +31,7 @@ import { Link } from '../lib/router.jsx'
 import {
   IconChevronLeft, IconChevronRight, IconCheck, IconPlus, IconCalendar, IconX,
 } from '../lib/icons.jsx'
+import '../styles/habit-calendar.css'
 
 const MODES = [
   { id: 'month', label: 'Month' },

@@ -27,9 +27,13 @@
 /* Step 3 Today screen */
 @import './components/today/today.css';
 
-/* Step 4A definitive Habit Object — shared with Today's TodayWorkList so
-   this stays in the initial CSS (Today is eager). */
-@import './components/habits/HabitObject.css';
+/* Step 4A HabitObject CSS is co-located (imported from HabitObject.jsx) so
+   styles always travel with the component. Because TodayScreen is eager
+   (it IS the product, see App.jsx), HabitObject.jsx ends up in the initial
+   chunk and Vite hoists HabitObject.css into the initial CSS accordingly. */
+
+/* components/work/WorkEntity.css is lazy-imported by WorkScreen and the
+   work detail screens (see those files). It is NOT imported here. */
 
 /* Step 4B–4E Habits WORKSPACE, DETAIL, CALENDAR, WEEK, ROUTINES styles
    live in LAZY HabitsScreen/HabitDetailScreen imports (see those files).

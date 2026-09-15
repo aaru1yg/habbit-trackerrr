@@ -1,5 +1,6 @@
 import { Button, IconButton } from '../primitives/index.js'
 import { IconCheck, IconMore, IconFlame } from '../../lib/icons.jsx'
+import './HabitObject.css'
 
 /**
  * HabitObject — the definitive reusable visual representation of one habit.

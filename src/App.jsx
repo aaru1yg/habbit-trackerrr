@@ -58,6 +58,7 @@ const WorkFoundationShowcase = import.meta.env.DEV
 const ROUTES = [
   'today', 'work', 'calendar', 'week', 'insights', 'mind', 'goals', 'library', 'settings',
   'projects', 'assignments', 'workload', 'timeline', 'record', 'habits', 'achievements',
+  'analytics-lab',
 ]
 const DEV_ROUTES = import.meta.env.DEV ? ['__primitives'] : []
 
@@ -246,7 +247,8 @@ export default function App() {
                         {route === 'work' && <WorkScreen />}
                         {route === 'calendar' && <HabitsScreen view="calendar" ymParam={param} />}
                         {route === 'week' && <HabitsScreen view="week" />}
-                        {route === 'insights' && (view === 'mind' ? <MindScreen /> : view === 'record' ? <RecordScreen /> : view === 'achievements' ? <AchievementsScreen route="achievements" /> : <InsightsScreen />)}
+                        {route === 'insights' && (view === 'mind' ? <MindScreen /> : view === 'record' ? <RecordScreen /> : view === 'achievements' ? <AchievementsScreen route="achievements" /> : <InsightsScreen initialView={view} />)}
+                        {route === 'analytics-lab' && <InsightsScreen initialView="lab" />}
                         {route === 'mind' && <MindScreen />}
                         {route === 'goals' && (param ? <GoalDetailScreen id={param} /> : <GoalsScreen />)}
                         {route === 'library' && <HabitsScreen view="active" />}

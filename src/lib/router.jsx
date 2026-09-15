@@ -66,7 +66,7 @@ export function Link({ to, children, className, onClick, ...rest }) {
 export const canonicalParent = (route) => {
   if (['projects', 'assignments', 'workload', 'timeline', 'work'].includes(route)) return 'work'
   if (['library', 'calendar', 'week', 'habits'].includes(route)) return 'habits'
-  if (['mind', 'record', 'achievements', 'insights'].includes(route)) return 'insights'
+  if (['mind', 'record', 'achievements', 'insights', 'analytics-lab'].includes(route)) return 'insights'
   return route
 }
 

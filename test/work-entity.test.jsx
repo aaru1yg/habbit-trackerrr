@@ -6,13 +6,15 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { workWorkspace } from '../src/components/work/workViewModel.js'
 import { baseProject, baseAssignment } from '../src/store.jsx'
-import { todayStr, addDaysStr, subDaysStr } from '../src/lib/dates.js'
+import { dayStr, addDaysStr, subDaysStr } from '../src/lib/dates.js'
 import WorkEntity from '../src/components/work/WorkEntity.jsx'
 import { readFileSync } from 'node:fs'
 
 function fixture() {
   const now = new Date('2026-09-13T12:00:00')
-  const today = todayStr(now)
+  // Freeze the fixture clock: dayStr(now) honors the passed date. todayStr()
+  // deliberately takes no argument (always real today) and must not be used here.
+  const today = dayStr(now)
   const past = (n) => subDaysStr(today, n)
   const future = (n) => addDaysStr(today, n)
   const p = baseProject({

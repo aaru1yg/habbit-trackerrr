@@ -119,9 +119,11 @@ describe('core flows', () => {
     await addHabit('Read')
     const markBtn = await screen.findByRole('button', { name: /Mark Read as complete/i })
     expect(markBtn).toBeTruthy()
-    // Habit rows on Today link to their detail via Open arrow
-    const links = screen.getAllByRole('link', { name: /Open Read/i })
+    // Habit rows on Today render the canonical HabitObject whose name link
+    // opens the detail page (link text = habit name).
+    const links = screen.getAllByRole('link', { name: 'Read' })
     expect(links.length).toBeGreaterThan(0)
+    expect(links[0].getAttribute('href')).toMatch(/habits\//)
     // The Habits screen still exposes the library for management
     go('habits')
     await waitFor(() => expect(screen.getByText('Read')).toBeTruthy())
@@ -171,7 +173,8 @@ describe('core flows', () => {
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Ship v1' } })
     fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Scope\nBuild' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
-    await screen.findByText('Ship v1')
+    // The row model renders the project name in the row and its entity links.
+    await screen.findAllByText('Ship v1')
 
     // open the project and add one task per milestone
     fireEvent.click(screen.getByRole('link', { name: /View Ship v1/i }))
@@ -184,9 +187,10 @@ describe('core flows', () => {
     await screen.findAllByText('Write spec')
     await screen.findAllByText('Frontend')
 
-    // 1 of 2 tasks done is exactly 50%
+    // 1 of 2 tasks done is exactly 50% (Project snapshot pill renders the pct
+    // as plain tnum text under the 5G detail redesign)
     fireEvent.click(screen.getByRole('button', { name: 'Mark Write spec done' }))
-    await waitFor(() => expect(screen.getAllByText(textContentMatcher('50%')).length).toBeGreaterThan(0), { timeout: 5000 })
+    await waitFor(() => expect(screen.getAllByText('50%').length).toBeGreaterThan(0), { timeout: 5000 })
 
     // 2 of 2 is 100% and earns the big celebration (§84). Wait for the
     // project detail to settle, then click and await the dialog.
@@ -214,12 +218,14 @@ describe('core flows', () => {
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Write a novella' } })
     fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Draft' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
-    await screen.findByText('Write a novella')
+    // Row + milestone rel-lines both render the project name under WorkEntity.
+    await screen.findAllByText('Write a novella')
 
     // Goals are a first-class entity, not a re-labelled project list.
     go('goals')
     await screen.findByRole('heading', { name: 'Goals' })
-    await screen.findByText('No goals yet')
+    // 6B: the empty state is an outcome-first EmptyState, not the old copy.
+    await screen.findByText('What are you moving toward?')
 
     fireEvent.click(screen.getByRole('button', { name: /Set your first goal/i }))
     const goalForm = await screen.findByRole('dialog', { name: 'New goal' })
@@ -233,19 +239,26 @@ describe('core flows', () => {
     // nothing has been reached yet, so progress is honestly 0
     expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
 
-    fireEvent.click(screen.getByRole('button', { name: /Link work/i }))
+    // 6B/6C contract: linking and milestones live on the goal's detail page.
+    fireEvent.click(await screen.findByRole('link', { name: 'Write a novella' }))
+    await screen.findByRole('heading', { level: 1, name: 'Write a novella' })
+    fireEvent.click(screen.getByRole('button', { name: 'Link work' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Write' }))
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-
-    // a real completion today means a real rate, never a placeholder
-    await waitFor(() => expect(screen.getByText(/100% 30d/)).toBeTruthy())
-    // the summary reports the open goal
-    expect(screen.getByText('Open goals')).toBeTruthy()
+    // the link is registered honestly in the detail snapshot
+    await waitFor(() => expect(screen.getByText('Linked')).toBeTruthy())
 
     // completing the only milestone completes the goal and moves it out of Open
-    fireEvent.click(screen.getByRole('button', { name: 'Finish a draft', pressed: false }))
-    await waitFor(() => expect(screen.getAllByText('Reached').length).toBeGreaterThan(0))
-    fireEvent.click(screen.getByRole('tab', { name: /Reached/ }))
+    // (both the "next" hero toggle and the timeline entry toggle the same milestone)
+    const msBtns = screen.getAllByRole('button', { name: 'Finish a draft' })
+    fireEvent.click(msBtns.find((b) => b.getAttribute('aria-pressed') === 'false') || msBtns[0])
+    await waitFor(() => expect(screen.getByText('Outcome reached.')).toBeTruthy())
+    expect(screen.getAllByText('Reached').length).toBeGreaterThan(0)
+
+    // back on the overview, the goal now lives under the Completed filter (6B)
+    go('goals')
+    await screen.findByRole('heading', { name: 'Goals' })
+    fireEvent.click(screen.getByRole('tab', { name: /Completed/ }))
     await screen.findByText('Write a novella')
   })
 
@@ -392,14 +405,16 @@ describe('work layer', () => {
     go('library')
     await screen.findByText('No habits yet')
     go('record')
-    await screen.findByText('Nothing recorded yet')
+    // 7D Record: the empty state is a calm CardHead, not the old hero copy.
+    await screen.findByText('Your record starts with one event')
   })
 
   it('Work sections switch from legacy Projects to canonical Deliverables', async () => {
     await onboard()
     go('projects')
     await screen.findByText('Your work starts here.')
-    const seg = document.querySelector('.tabbar')
+    // Step 5B: Work sections live in the .wo-tabs nav (aria-label "Work sections").
+    const seg = document.querySelector('[aria-label="Work sections"]')
     expect(seg).toBeTruthy()
     fireEvent.click(within(seg).getByText('Deliverables'))
     await screen.findByRole('link', { name: 'Deliverables' })
@@ -415,10 +430,12 @@ describe('work layer', () => {
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Portfolio site' } })
     fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Plan\nBuild\nLaunch' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
-    await screen.findByText('Portfolio site')
+    // Row + milestone rel-lines both render the project name under WorkEntity.
+    await screen.findAllByText('Portfolio site')
     // The compact default keeps progress honest and milestones available.
-    await screen.findByText('0% complete')
-    expect(screen.getByText(/0\/0 tasks/)).toBeTruthy()
+    // Row + snapshot both surface the honest zero under WorkEntity.
+    await screen.findAllByText('0% complete')
+    expect(screen.getAllByText(/0\/0 tasks/).length).toBeGreaterThan(0)
     expect(screen.getByText('Project tasks and milestones')).toBeTruthy()
   })
 
@@ -431,7 +448,8 @@ describe('work layer', () => {
     fireEvent.change(within(form).getByLabelText(/^Assignment$/i), { target: { value: 'DS Lab 3' } })
     fireEvent.change(within(form).getByLabelText(/^Subject/i), { target: { value: 'Data Structures' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create assignment/i }))
-    await screen.findByText('DS Lab 3')
+    // Row + rel-lines can both render the assignment name under WorkEntity.
+    await screen.findAllByText('DS Lab 3')
     fireEvent.click(screen.getByRole('link', { name: 'View DS Lab 3' }))
     await screen.findAllByText(/Data Structures/)
   })
@@ -447,7 +465,7 @@ describe('work layer', () => {
     const pform = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(pform).getByLabelText(/^Project$/i), { target: { value: 'Thesis draft' } })
     fireEvent.click(within(pform).getByRole('button', { name: /Create project/i }))
-    await screen.findByText('Thesis draft')
+    await screen.findAllByText('Thesis draft')
 
     go('assignments')
     await screen.findByRole('link', { name: 'Deliverables' })
@@ -456,7 +474,7 @@ describe('work layer', () => {
     fireEvent.change(within(aform).getByLabelText(/^Assignment$/i), { target: { value: 'Physics problem set' } })
     fireEvent.change(within(aform).getByLabelText(/^Subject/i), { target: { value: 'Physics' } })
     fireEvent.click(within(aform).getByRole('button', { name: /Create assignment/i }))
-    await screen.findByText('Physics problem set')
+    await screen.findAllByText('Physics problem set')
 
     // open the palette and search
     fireEvent.keyDown(window, { key: '/' })

@@ -653,18 +653,21 @@ describe('habit row model', () => {
 })
 
 /* ============================================================
-   Insights pattern line — same habitPatterns contract as the detail page
+   Habit patterns — same habitPatterns contract as before, now surfaced
+   on the Habit Detail page as Observation → Evidence → Implication
+   cards (7B intentionally removed the old Insights pattern rows).
    ============================================================ */
-describe('insights habit patterns', () => {
+describe('habit patterns (Habit Detail contract)', () => {
   it('prints the previous-period rate as a number, never an object', async () => {
     // 60 days of history: 2 of every 3 days done → trend is comparable
     const ck = {}
     for (let i = 1; i <= 60; i++) if (i % 3) ck[ago(i)] = { done: true, at: `${ago(i)}T07:30` }
-    mount(seed({ habits: [habit('h-long', 'Long habit')], checkins: { 'h-long': ck }, routines: [] }), '#/insights')
-    await screen.findByRole('heading', { level: 1, name: 'Insights' })
-    await waitFor(() => expect(document.querySelector('.habit-pattern-row')).toBeTruthy())
-    const line = within(document.querySelector('.habit-pattern-row')).getByText(/previously/).textContent
-    expect(line).toMatch(/^(improving|declining|stable) · \d+% vs \d+% previously$/)
+    mount(seed({ habits: [habit('h-long', 'Long habit')], checkins: { 'h-long': ck }, routines: [] }), '#/habits/h-long')
+    await screen.findByRole('heading', { level: 1, name: 'Long habit' })
+    await waitFor(() => expect(document.querySelector('.hd-pattern[data-pattern="trend"]')).toBeTruthy())
+    const card = document.querySelector('.hd-pattern[data-pattern="trend"]')
+    expect(card.textContent).toMatch(/Completion is (improving|declining|stable) over the last 30 days/i)
+    expect(card.textContent).toMatch(/\d+% in the last 30 days versus \d+% in the 30 before/)
     expect(document.body.textContent).not.toMatch(/\[object Object\]|NaN|undefined/)
   })
 })

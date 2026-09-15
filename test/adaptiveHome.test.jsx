@@ -78,6 +78,8 @@ describe('preferences editor (Settings → How you work)', () => {
       preferences: { focusStartHour: null, focusEndHour: null, planningTime: null, breakStyle: null, dailyCapacityMin: 60, planningBufferPct: 15, weekStartsOn: 1, reminderWindow: null },
       assignments: [{ id: 'a1', name: 'Essay', priority: 'high', progress: 0, estimateMin: 120, deadline: iso(1), subtasks: [], progressLog: [], milestones: [] }],
     })
+    // Rebuilt Today: the planner is a panel opened from the "Plan" tool.
+    fireEvent.click(await screen.findByRole('button', { name: /open day planner/i }))
     fireEvent.click(await screen.findByRole('button', { name: /build my day/i }))
     // 120 min of work against 60 min of capacity is an overload, not a mystery
     await waitFor(() => expect(screen.getByText('OVERLOADED')).toBeTruthy())
@@ -248,7 +250,8 @@ describe('focus session record — the source of actuals', () => {
      scoped to the focus card rather than the page. */
   const focusCard = () => within(document.querySelector('.focus-mode'))
   const openFocus = async () => {
-    fireEvent.click(await screen.findByRole('button', { name: /^focus mode$/i }))
+    // Rebuilt Today: Focus lives in the tools dock, exposed as "Open focus mode".
+    fireEvent.click(await screen.findByRole('button', { name: /open focus mode/i }))
     await waitFor(() => expect(document.querySelector('.focus-mode .focus-timer')).toBeTruthy())
   }
 

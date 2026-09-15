@@ -118,13 +118,23 @@ describe('Insights Overview (Step 7B)', () => {
     })
   })
 
-  it('Advanced is a deep link to /analytics-lab (Lab stays lazy-only)', async () => {
+  it('Advanced is an in-page lazy toggle (Lab stays double-lazy behind it)', async () => {
     await mount()
-    // The Advanced control is a Link (deep link) rather than an in-page toggle, so
-    // the Lab chunk stays double-lazy (App -> InsightsScreen lazy-imports AnalyticsLab).
-    const adv = screen.getByRole('link', { name: 'Open Advanced analytics lab' })
-    expect(adv).toBeTruthy()
-    expect(adv.getAttribute('href')).toMatch(/analytics-lab/)
+    // 7B renamed the old "Lab" button to "Advanced" and made it an in-page toggle,
+    // so the Lab chunk stays double-lazy (App -> InsightsScreen lazy-imports AnalyticsLab).
+    expect(screen.queryByText('Your data story')).toBeNull() // lazy — not loaded yet
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced' }))
+    await screen.findByText('Your data story')
+  })
+
+  it('Lab deep links (?view=advanced and legacy /analytics-lab) land on the Lab', async () => {
+    // Release contract: Advanced is deep-linkable. ?view=advanced initializes the
+    // in-page Lab view; the legacy /analytics-lab hash renders the same surface.
+    const first = await mount('insights?view=advanced')
+    await screen.findByText('Your data story')
+    first.unmount()
+    await mount('analytics-lab')
+    await screen.findByText('Your data story')
   })
 
   it('Deep dive toggle still renders Deep dive content', async () => {

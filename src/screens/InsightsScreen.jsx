@@ -182,11 +182,14 @@ function addDaysLocal(d, n = 1) {
   return dt.toISOString().slice(0, 10)
 }
 
-export default function InsightsScreen() {
+export default function InsightsScreen({ initialView = null }) {
   const { state } = useStore()
   const today = todayStr()
   const habits = activeHabits(state)
-  const [view, setView] = useState('overview')
+  /* Deep-linkable Lab (release contract): #/insights?view=advanced|lab and the
+     legacy #/analytics-lab route land on the Lab; the in-page Advanced toggle
+     still owns the state afterwards. */
+  const [view, setView] = useState(() => (initialView === 'advanced' || initialView === 'lab') ? 'lab' : 'overview')
   const [range, setRange] = useState('30d')
 
   const hasData = habits.length > 0 && Object.values(state.checkins || {}).some((days) => Object.keys(days || {}).length > 0)
@@ -451,7 +454,7 @@ export default function InsightsScreen() {
                     </div>
                     <p className="ins-insight-text">{ins.text}</p>
                     {href && (
-                      <Link to={href} className="ins-insight-action">
+                      <Link to={href.to} className="ins-insight-action">
                         {href.label}
                         <IconChevronRight size={13} />
                       </Link>

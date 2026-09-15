@@ -62,10 +62,11 @@ function mountApp(seed = seedState()) {
   return render(<StoreProvider><App /></StoreProvider>)
 }
 
-/** Insights → Lab. The Lab is React.lazy, so this also proves the await works. */
+/** Insights → Advanced (7B renamed the "Lab" button). The Lab is React.lazy,
+    so this also proves the await works. */
 async function openLab(seed = seedState()) {
   mountApp(seed)
-  fireEvent.click(await screen.findByRole('button', { name: /^Lab$/ }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Advanced' }))
   return screen.findByText('Your data story')
 }
 
@@ -78,21 +79,22 @@ beforeEach(() => {
 describe('Analytics Lab shell', () => {
   it('offers the Lab as a separate control and lazy-loads it', async () => {
     mountApp()
-    await screen.findByRole('button', { name: /^Lab$/ })
-    expect(screen.getByRole('button', { name: /^Overview$/ })).toBeTruthy()
-    // the overview also has a "Deep dive" shortcut button, so scope by count
-    expect(screen.getAllByRole('button', { name: /^Deep dive$/ }).length).toBeGreaterThanOrEqual(2)
+    await screen.findByRole('button', { name: 'Advanced' })
+    const switchGroup = document.querySelector('[aria-label="Insights view"]')
+    expect(within(switchGroup).getByRole('button', { name: /^Overview$/ })).toBeTruthy()
+    expect(within(switchGroup).getByRole('button', { name: /^Deep dive$/ })).toBeTruthy()
     expect(screen.queryByText('Your data story')).toBeNull() // not loaded yet
-    fireEvent.click(screen.getByRole('button', { name: /^Lab$/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced' }))
     await screen.findByText('Your data story')
   })
 
   it('keeps the Insights switch a two-way choice, with the Lab outside it', async () => {
     /* Mirrors the browser check "insights has an Overview / Deep dive switch".
        The Lab is its own surface, so it must not join that group — otherwise
-       the switch stops describing a two-way choice. */
+       the switch stops describing a two-way choice. (7B: the Lab control is
+       the separate "Advanced" button outside the switch.) */
     mountApp()
-    await screen.findByRole('button', { name: /^Lab$/ })
+    await screen.findByRole('button', { name: 'Advanced' })
     const labels = [...document.querySelectorAll('[aria-label="Insights view"] .seg-btn')]
       .map((b) => b.textContent.trim())
     expect(labels).toEqual(['Overview', 'Deep dive'])
@@ -110,7 +112,7 @@ describe('Analytics Lab shell', () => {
        defensive net behind that gate, not a second onboarding screen. */
     mountApp(seedState({ habits: [], checkins: {}, projects: [], assignments: [], goals: [], focusLog: [] }))
     await screen.findByText('Nothing to analyze yet')
-    expect(screen.queryByRole('button', { name: /^Lab$/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Advanced' })).toBeNull()
   })
 })
 

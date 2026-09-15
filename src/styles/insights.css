@@ -1,8 +1,9 @@
 /* ============================================================
-   INSIGHTS (lazy) — Overview + Deep Dive + Lab styling.
-   Imported from InsightsScreen.jsx so this stays out of initial CSS.
-   Mind / Record / Achievements screens have their own rules kept in
-   system.css to avoid redesigning them in 7B (see 7A audit §12).
+   INSIGHTS (lazy) — Overview, Mind, Deep Dive, Lab styling.
+   Imported only from lazy InsightsScreen.jsx and MindScreen.jsx
+   so this file stays out of initial CSS.
+   Record / Achievements screens have their own rules kept in
+   system.css (out of scope for 7B/7C).
    ============================================================ */
 
 /* ---- Overview shell ---- */
@@ -332,4 +333,210 @@
 @media (max-width: 390px) {
   .ins-signal-strip { grid-template-columns: 1fr; }
   .ins-pillars { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   MIND (Step 7C) — behavioral patterns
+   Identity colors for capacity dimensions. These are WHAT colors,
+   not state colors — no semantic good/warn/bad on series.
+   ============================================================ */
+:root {
+  --mind-cap-score:      var(--cat-mind);
+  --mind-cap-energy:     #e0a03b;     /* warm amber — identity only */
+  --mind-cap-focus:      #6ea8ff;     /* calm blue — identity only */
+  --mind-cap-motivation: #c76d8f;     /* muted rose — identity only */
+}
+
+/* ---- Today check-in card ---- */
+.mind-checkin {
+  padding: 18px 20px;
+}
+.mind-checkin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.mind-checkin-grid > div { min-width: 0; }
+.mind-note-row { margin-top: 14px; }
+
+.mind-dim { min-width: 0; }
+
+/* Capacity chip toggle (primary dimension selector) */
+.mind-dim-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+.mind-dim-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: var(--bd-1) solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  min-height: 36px;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-out), color var(--dur-1), border-color var(--dur-1);
+}
+.mind-dim-chip i {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--chip-c, var(--text-3));
+}
+.mind-dim-chip[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--chip-c) 14%, var(--surface-2));
+  border-color: var(--chip-c);
+  color: var(--text);
+}
+
+/* ---- Pattern primary chart ---- */
+.mind-pattern-card { padding: 18px 20px; }
+.mind-chart { width: 100%; }
+.mind-chart svg { display: block; width: 100%; overflow: visible; }
+.mind-legend {
+  margin-top: 10px;
+  gap: 14px;
+}
+.mind-legend span i {
+  background: currentColor;
+}
+.mind-legend span:nth-child(1) i { background: var(--accent-2); }
+.mind-trust { margin: 10px 0 0; }
+
+/* ---- Secondary 2x2 grid ---- */
+.mind-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.mind-grid .ins-surface,
+.mind-grid .section-card { min-width: 0; }
+
+.mind-split { min-width: 0; }
+.mind-split-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-xs); font-weight: 600; color: var(--text-2);
+  margin-bottom: 4px;
+}
+
+.mind-pair {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  border: var(--bd-1) solid var(--border);
+  background: var(--surface-inset);
+}
+.mind-pair-labels {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-sm); color: var(--text-2); font-weight: 500;
+}
+.mind-pair-labels i {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+}
+.mind-pair-delta { font-weight: 700; font-size: var(--fs-xs); }
+.corr-up { color: var(--good); }
+.corr-down { color: var(--warn); }
+
+/* ---- Pattern insight cards ---- */
+.mind-insights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.mind-insight {
+  border: var(--bd-1) solid var(--border);
+  border-left: 3px solid var(--text-3);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mind-insight.data-tone-good { border-left-color: var(--good); }
+.mind-insight.data-tone-warn { border-left-color: var(--warn); }
+.mind-insight.data-tone-bad { border-left-color: var(--bad); }
+.mind-insight.data-tone-neutral { border-left-color: var(--text-3); }
+.mind-insight-signal {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.mind-insight-evidence {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  margin: 0;
+}
+.mind-insight-meaning {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  margin: 2px 0 0;
+  line-height: 1.45;
+}
+.mind-insight-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent-1-lift, var(--accent-1));
+  text-decoration: none;
+  align-self: flex-start;
+}
+.mind-insight-action:hover { text-decoration: underline; }
+
+/* ---- Reflections / notes ---- */
+.mind-refl {
+  padding: 10px 12px;
+}
+
+/* ---- Footer cross-links ---- */
+.mind-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 2px 20px;
+}
+.mind-foot-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+  text-decoration: none;
+}
+.mind-foot-link:hover { color: var(--text); }
+.mind-foot-link.muted { font-weight: 500; color: var(--text-3); }
+
+/* ---- Responsive ---- */
+@media (max-width: 1023px) {
+  .mind-grid { grid-template-columns: 1fr; }
+  .mind-insights { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .mind-checkin-grid { grid-template-columns: 1fr; gap: 18px; }
+}
+@media (max-width: 620px) {
+  .mind-pattern-card, .mind-checkin { padding: 16px; }
+  .mind-insights { grid-template-columns: 1fr; }
+  .mind-dim-chip { font-size: 0.7rem; padding: 6px 8px; }
+  .mind-pair { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+@media (max-width: 390px) {
+  .mind-chart svg { height: auto; }
+  .mind-dim-toggle { gap: 4px; }
+  .mind-dim-chip { padding: 6px 7px; min-height: 34px; }
+  .mood-row > .mood-btn { min-height: 64px; }
+  .mind-foot { flex-direction: column; align-items: flex-start; }
 }

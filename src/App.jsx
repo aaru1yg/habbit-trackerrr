@@ -135,6 +135,18 @@ export default function App() {
 
   useEffect(() => { setMoreOpen(false) }, [route, param])
 
+  // Legacy pillar aliases — canonical URLs are /insights?view=mind|record
+  // (P2 #11). Redirect /mind and /record hashes to the Insights sub-view
+  // without creating a history entry, so deep-link bookmarks keep working.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (route === 'mind') {
+      window.history.replaceState(null, '', '#/insights?view=mind')
+    } else if (route === 'record') {
+      window.history.replaceState(null, '', '#/insights?view=record')
+    }
+  }, [route])
+
   const lastVisited = useRef(null)
   useEffect(() => {
     const knownRoutes = [...ROUTES, ...DEV_ROUTES]

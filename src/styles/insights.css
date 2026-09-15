@@ -540,3 +540,9 @@
   .mood-row > .mood-btn { min-height: 64px; }
   .mind-foot { flex-direction: column; align-items: flex-start; }
 }
+
+/* FINAL 2G (P2 #8): Record timeline entries wrap their body text at narrow
+   widths instead of it getting clipped by the parent flex row. rec-kind
+   stays inline; rec-body stacks onto its own line and wraps. */
+.rec-item .tl-meta { flex-wrap: wrap; align-items: flex-start; }
+.rec-item .rec-body { display: block; width: 100%; margin-top: 2px; overflow-wrap: anywhere; word-break: break-word; }

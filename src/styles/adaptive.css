@@ -54,6 +54,10 @@
 
 
 .lab{display:grid;gap:14px}
+/* Lab view tabs: horizontal scroll on narrow viewports (P2 #9) so the tab
+   strip never wraps into two lines and pushes the chart down. */
+.lab-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -4px;padding:0 4px}
+.lab-tabs::-webkit-scrollbar{display:none}
 .lab-tab{flex:none;min-height:var(--touch,44px);padding:0 14px;font-weight:600}
 .lab-sub{margin:0;color:var(--text-2);font-size:var(--fs-xs)}
 .lab-story,.lab-timeline,.lab-trajectory,.lab-workload,.lab-habits,.lab-goals,.lab-trends{display:grid;gap:14px}

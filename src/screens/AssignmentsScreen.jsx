@@ -119,7 +119,7 @@ export default function AssignmentsScreen({ route = 'assignments' }) {
                     placeholder="Search assignments, subjects, notes…"
                     onChange={(e) => setQuery(e.target.value)}
                   />
-                  {query && <button className="btn ghost icon" style={{ width: 32, height: 32, minHeight: 32 }} aria-label="Clear search" onClick={() => setQuery('')}><IconX size={15} /></button>}
+                  {query && <button className="btn ghost icon" aria-label="Clear search" onClick={() => setQuery('')}><IconX size={15} /></button>}
                 </div>
                 <FilterBar filters={WORK_FILTERS} value={filter} onChange={setFilter} counts={counts} ariaLabel="Filter assignments" />
                 <div className="row-between">

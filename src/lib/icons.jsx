@@ -9,7 +9,7 @@ const base = {
 }
 
 const wrap = (children, size) => (
-  <svg width={size || 20} height={size || 20} viewBox="0 0 24 24" {...base}>
+  <svg width={size || 20} height={size || 20} viewBox="0 0 24 24" focusable="false" {...base}>
     {children}
   </svg>
 )
@@ -260,4 +260,20 @@ export const IconRecord = ({ size }) => wrap(<>
   <circle cx="12" cy="12" r="8.5" />
   <circle cx="12" cy="12" r="3.4" />
   <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2" />
+</>, size)
+
+export const IconShield = ({ size }) => wrap(<>
+  <path d="M12 3l7 3v5c0 4.5-3.2 8.3-7 10-3.8-1.7-7-5.5-7-10V6l7-3z" />
+  <path d="M9 12l2 2 4-4" />
+</>, size)
+
+export const IconKey = ({ size }) => wrap(<>
+  <circle cx="8" cy="14" r="3.5" />
+  <path d="M11.5 11.5 20 3M16 7l2-2M14 9l2-2" />
+</>, size)
+
+export const IconChart = ({ size }) => wrap(<>
+  <rect x="3.5" y="9" width="4" height="11" rx="1" />
+  <rect x="10" y="4" width="4" height="16" rx="1" />
+  <rect x="16.5" y="12" width="4" height="8" rx="1" />
 </>, size)

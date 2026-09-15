@@ -114,7 +114,7 @@ export default function NowRing({
       </svg>
       <div className="now-ring__center" aria-hidden="true">
         {complete
-          ? <svg className="now-ring__check" width={size * 0.34} height={size * 0.34} viewBox="0 0 24 24" fill="none" stroke={strokeColor} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+          ? <svg className="now-ring__check" width={size * 0.34} height={size * 0.34} viewBox="0 0 24 24" fill="none" stroke={strokeColor} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" focusable="false" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
           : children}
       </div>
       {/* Suppress unused-id warning; gid kept in case we ever add a gradient */}

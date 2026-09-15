@@ -26,6 +26,11 @@ const SIZES = {
  *   trailing?: ReactNode
  *   as?:      'button'|'a'|React component (default 'button')
  *   type?:    'button'|'submit'|'reset' (default 'button')
+ *
+ * Accessibility: when rendering an icon-only button (variant="icon", or an
+ * icon without children text), callers MUST supply an aria-label (or
+ * aria-labelledby) so screen readers announce the action. We warn in dev
+ * rather than throw to avoid breaking existing screens.
  */
 const Button = forwardRef(function Button({
   as: Tag = 'button',
@@ -43,6 +48,15 @@ const Button = forwardRef(function Button({
 }, ref) {
   const isDisabled = disabled || loading
   const isIconOnly = variant === 'icon' || (!!icon && !children)
+  if (process.env.NODE_ENV !== 'production' && isIconOnly) {
+    // An href alone does not give an anchor an accessible name. Require an
+    // explicit aria-label/aria-labelledby/title, or visible children text
+    // (which isIconOnly already excludes).
+    const hasName = rest['aria-label'] || rest['aria-labelledby'] || rest.title
+    if (!hasName) {
+      console.warn('Button: icon-only buttons must have an accessible name (aria-label, aria-labelledby, or title).')
+    }
+  }
   const classes = [
     'p-btn',
     'p-focus',

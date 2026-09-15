@@ -1,16 +1,18 @@
 /* ============================================================
-   RECORD — the behavioural timeline (§29).
-   Derived entirely from stored events: habit starts, notes,
-   streak records, project and assignment milestones, reflections
-   and badges. Nothing here is invented.
+   RECORD (§29) — the behavioural timeline.
+   What actually happened. Derived entirely from stored events.
+   Nothing invented, no empty-state heroics.
    ============================================================ */
 import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
-import SectionCard from '../components/ui/SectionCard.jsx'
-import { FilterBar, WorkEmpty, FadeIn } from '../components/work/WorkKit.jsx'
+import SectionCard, { CardHead } from '../components/ui/SectionCard.jsx'
+import { FilterBar, FadeIn } from '../components/work/WorkKit.jsx'
 import { timelineEvents } from '../lib/analytics.js'
 import { prettyDate, shortDate } from '../lib/dates.js'
-import { IconTimeline, IconFlame, IconNote, IconProjects, IconAssignment, IconAward, IconMind, IconPlus } from '../lib/icons.jsx'
+import {
+  IconTimeline, IconFlame, IconNote, IconProjects,
+  IconAssignment, IconAward, IconMind, IconPlus,
+} from '../lib/icons.jsx'
 
 const FILTERS = [
   { id: 'all', label: 'Everything' },
@@ -21,27 +23,68 @@ const FILTERS = [
 ]
 
 const KIND_META = {
-  'habit-created': { Icon: IconPlus, group: 'habit', label: 'Habit started' },
-  note: { Icon: IconNote, group: 'habit', label: 'Note' },
-  streak: { Icon: IconFlame, group: 'habit', label: 'Streak' },
-  'project-start': { Icon: IconProjects, group: 'work', label: 'Project started' },
-  'project-progress': { Icon: IconProjects, group: 'work', label: 'Project progress' },
-  'project-complete': { Icon: IconProjects, group: 'work', label: 'Project complete' },
-  'assignment-progress': { Icon: IconAssignment, group: 'work', label: 'Assignment progress' },
-  'assignment-complete': { Icon: IconAssignment, group: 'work', label: 'Assignment complete' },
-  reflection: { Icon: IconMind, group: 'reflection', label: 'Reflection' },
-  achievement: { Icon: IconAward, group: 'achievement', label: 'Achievement' },
+  'habit-created':     { Icon: IconPlus,       group: 'habit',       label: 'Habit started' },
+  note:                { Icon: IconNote,       group: 'habit',       label: 'Note' },
+  streak:              { Icon: IconFlame,      group: 'habit',       label: 'Streak' },
+  'project-start':     { Icon: IconProjects,   group: 'work',        label: 'Project started' },
+  'project-progress':  { Icon: IconProjects,   group: 'work',        label: 'Project progress' },
+  'project-complete':  { Icon: IconProjects,   group: 'work',        label: 'Project complete' },
+  'assignment-progress': { Icon: IconAssignment, group: 'work',      label: 'Assignment progress' },
+  'assignment-complete': { Icon: IconAssignment, group: 'work',      label: 'Assignment complete' },
+  reflection:          { Icon: IconMind,       group: 'reflection',  label: 'Reflection' },
+  achievement:         { Icon: IconAward,      group: 'achievement', label: 'Achievement' },
+}
+
+/* ---------- Signal header: what you see at a glance ---------- */
+function RecordHeader({ events }) {
+  const total = events.length
+  const firstDay = total ? events[events.length - 1].day : null
+  const habits = events.filter((e) => KIND_META[e.kind]?.group === 'habit').length
+  const work = events.filter((e) => KIND_META[e.kind]?.group === 'work').length
+  const reflections = events.filter((e) => (KIND_META[e.kind]?.group) === 'reflection').length
+  return (
+    <div className="rec-head">
+      <p className="insights-eyebrow">Record</p>
+      <h1 className="screen-title">What actually happened</h1>
+      <p className="screen-sub rec-sub">
+        Every check-in, note, streak milestone and completed task, newest first.
+      </p>
+      <div className="rec-stats" role="list" aria-label="Record summary">
+        <div className="rec-stat" role="listitem">
+          <span className="rec-stat-num">{total}</span>
+          <span className="rec-stat-lbl">recorded events</span>
+        </div>
+        <div className="rec-stat" role="listitem">
+          <span className="rec-stat-num">{habits}</span>
+          <span className="rec-stat-lbl">habit events</span>
+        </div>
+        <div className="rec-stat" role="listitem">
+          <span className="rec-stat-num">{work}</span>
+          <span className="rec-stat-lbl">work events</span>
+        </div>
+        <div className="rec-stat" role="listitem">
+          <span className="rec-stat-num">{reflections}</span>
+          <span className="rec-stat-lbl">reflections</span>
+        </div>
+        {firstDay && (
+          <div className="rec-stat" role="listitem">
+            <span className="rec-stat-num">{shortDate(firstDay)}</span>
+            <span className="rec-stat-lbl">earliest entry</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export default function RecordScreen() {
   const { state } = useStore()
   const [filter, setFilter] = useState('all')
 
-  const events = useMemo(() => timelineEvents(state, 120), [state])
+  const events = useMemo(() => timelineEvents(state, 180), [state])
   const filtered = useMemo(() => {
     if (filter === 'all') return events
-    const group = filter
-    return events.filter((e) => (KIND_META[e.kind]?.group || 'habit') === group)
+    return events.filter((e) => (KIND_META[e.kind]?.group || 'habit') === filter)
   }, [events, filter])
 
   const counts = useMemo(() => {
@@ -62,56 +105,53 @@ export default function RecordScreen() {
 
   return (
     <div className="screen" id="record-screen">
-      <header className="screen-head">
-        <div>
-          <h1 className="screen-title">Record</h1>
-          <p className="screen-sub">Your behavioural history, newest first.</p>
-        </div>
-      </header>
+      <RecordHeader events={events} />
 
       <div className="stack">
         <FilterBar filters={FILTERS} value={filter} onChange={setFilter} counts={counts} ariaLabel="Filter record" />
 
         {groups.length === 0 ? (
           <SectionCard>
-            <WorkEmpty icon={<IconTimeline size={40} />} title="Nothing recorded yet">
-              Check off a habit, log a note, or finish a project — your record builds itself from what actually happened.
-            </WorkEmpty>
+            <CardHead
+              eyebrow="Nothing yet"
+              title="Your record starts with one event"
+              sub="Check off a habit, log a note, or finish a project. Your record builds itself from what you do."
+            />
           </SectionCard>
         ) : (
-          <div className="tl">
+          <ol className="tl rec-tl" aria-label="Record timeline">
             {groups.map((group, gi) => (
-              <FadeIn key={group.day} delay={Math.min(gi * 0.03, 0.3)}>
-                <div className="tl-group">
+              <FadeIn key={group.day} delay={Math.min(gi * 0.025, 0.3)}>
+                <li className="tl-group">
                   <p className="tl-day">{prettyDate(group.day)}</p>
-                  {group.events.map((e, i) => {
-                    const meta = KIND_META[e.kind] || { Icon: IconTimeline, label: 'Event' }
-                    const Icon = meta.Icon
-                    return (
-                      <div className="tl-item" key={`${e.day}-${e.title}-${i}`} style={{ cursor: 'default' }}>
-                        <span style={{ color: e.tone === 'good' ? 'var(--good)' : 'var(--text-3)', flex: 'none', display: 'grid', placeItems: 'center', width: 28 }}>
-                          <Icon size={17} />
-                        </span>
-                        <span className="tl-main">
-                          <span className="tl-name">{e.title}</span>
-                          <span className="tl-meta">
-                            <span className="tiny muted">{meta.label}</span>
-                            {e.body && <span className="tiny soft" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{e.body}</span>}
+                  <ol className="tl-group-items">
+                    {group.events.map((e, i) => {
+                      const meta = KIND_META[e.kind] || { Icon: IconTimeline, label: 'Event' }
+                      const Icon = meta.Icon
+                      return (
+                        <li className="tl-item rec-item" key={`${e.day}-${e.title}-${i}`}>
+                          <span className="rec-icon" aria-hidden="true">
+                            <Icon size={16} />
                           </span>
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
+                          <span className="tl-main">
+                            <span className="tl-name">{e.title}</span>
+                            <span className="tl-meta">
+                              <span className="tiny rec-kind">{meta.label}</span>
+                              {e.body && (
+                                <span className="tiny soft rec-body">
+                                  {e.body}
+                                </span>
+                              )}
+                            </span>
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                </li>
               </FadeIn>
             ))}
-          </div>
-        )}
-
-        {events.length > 0 && (
-          <p className="tiny muted" style={{ textAlign: 'center' }}>
-            {events.length} recorded event{events.length === 1 ? '' : 's'} · earliest {shortDate(events[events.length - 1].day)}
-          </p>
+          </ol>
         )}
       </div>
     </div>

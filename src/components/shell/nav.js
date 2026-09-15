@@ -6,7 +6,7 @@ import {
   IconToday, IconInsights, IconGoals, IconSettings, IconProjects,
   IconHabits, IconSearch, IconSparkle,
   IconCalendar, IconWeek, IconMind, IconRecord, IconTrophy,
-  IconWorkload, IconTimeline, IconAssignment,
+  IconWorkload, IconTimeline, IconAssignment, IconChart,
 } from '../../lib/icons.jsx'
 
 /* Primary pillars. The `group` array lists the routes that should
@@ -15,7 +15,7 @@ export const PRIMARY = [
   { id: 'today',    to: 'today',                        label: 'Today',    Icon: IconToday,    group: ['today'] },
   { id: 'work',     to: 'work',                         label: 'Work',     Icon: IconProjects, group: ['work', 'projects', 'assignments', 'workload', 'timeline'] },
   { id: 'habits',   to: 'habits',                       label: 'Habits',   Icon: IconHabits,   group: ['habits', 'library', 'calendar', 'week'] },
-  { id: 'insights', to: 'insights',                     label: 'Insights', Icon: IconInsights, group: ['insights', 'mind', 'record', 'achievements'] },
+  { id: 'insights', to: 'insights',                     label: 'Insights', Icon: IconInsights, group: ['insights', 'mind', 'record', 'achievements', 'analytics-lab'] },
 ]
 
 /* Secondary items shown in the sidebar/More sheet, grouped by pillar.
@@ -48,6 +48,7 @@ export const SECONDARY_GROUPS = [
       { to: 'insights?view=mind',         label: 'Mind',         Icon: IconMind },
       { to: 'insights?view=achievements', label: 'Achievements', Icon: IconTrophy },
       { to: 'insights?view=record',       label: 'Record',       Icon: IconRecord },
+      { to: 'analytics-lab',              label: 'Analytics lab', Icon: IconChart },
     ],
   },
 ]
@@ -84,6 +85,7 @@ const TITLES = {
   mind: 'Mind',
   record: 'Record',
   achievements: 'Achievements',
+  'analytics-lab': 'Analytics lab',
   goals: 'Goals',
   settings: 'Settings',
 }
@@ -106,6 +108,7 @@ export function pageTitle(route, view) {
     if (view === 'mind') return 'Mind'
     if (view === 'record') return 'Record'
     if (view === 'achievements') return 'Achievements'
+    if (view === 'lab') return 'Analytics lab'
   }
   return TITLES[route] || 'Today'
 }

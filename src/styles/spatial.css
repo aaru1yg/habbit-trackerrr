@@ -579,29 +579,8 @@
 }
 
 
-.badge3d { perspective: 900px; position: relative; }
-.badge3d .ach-medal {
-  transform: translateZ(calc(10px * var(--sp-k)));
-  transition: transform var(--cam-focus) var(--cam-ease);
-  transform-style: preserve-3d;
-}
-.badge3d:hover .ach-medal,
-.badge3d:focus-within .ach-medal { transform: translateZ(calc(22px * var(--sp-k))) rotateY(8deg) rotateX(-4deg); }
-.badge3d::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.07) 50%, transparent 58%);
-  background-size: 260% 100%;
-  opacity: 0;
-  transition: opacity var(--dur-3);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .badge3d:hover::after, .badge3d:focus-within::after { opacity: 1; animation: badge-sheen 1.1s var(--cam-ease) both; }
-}
-@keyframes badge-sheen { from { background-position: 160% 0; } to { background-position: -80% 0; } }
+/* 3D badge treatments + glow keyframes removed per 7D: identity-palette only,
+   no good/warn/bad semantic tint, no sheen or glow animation. */
 
 .rarity-label {
   display: inline-flex; align-items: center; gap: 6px;
@@ -612,16 +591,12 @@
   border: 1px solid var(--border-1);
   color: var(--text-2);
 }
-.rarity-common { --rar: var(--text-3); }
-.rarity-rare { --rar: #0ea5e9; border-color: color-mix(in oklab, var(--rar) 40%, var(--border-1)); }
-.rarity-epic { --rar: var(--accent-1); border-color: color-mix(in oklab, var(--rar) 52%, var(--border-1)); }
-.rarity-legendary {
-  --rar: #f5b53c; color: #f5b53c;
-  border-color: color-mix(in oklab, #f5b53c 56%, var(--border-1));
-  box-shadow: 0 0 22px color-mix(in oklab, #f5b53c 30%, transparent);
+.rarity-common, .rarity-rare, .rarity-epic, .rarity-legendary {
+  --rar: var(--text-3);
+  color: var(--text-2);
+  border-color: var(--border-1);
+  box-shadow: none;
 }
-[data-rarity='legendary']:not([data-locked]) { box-shadow: 0 0 0 1px color-mix(in oklab, #f5b53c 34%, transparent), 0 20px 52px rgba(5, 8, 18, 0.42); }
-[data-rarity='epic']:not([data-locked]) { box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent-1) 30%, transparent), 0 18px 46px rgba(5, 8, 18, 0.4); }
 
 
 
@@ -664,7 +639,6 @@
   .sp-cam, .sp-stage .sp-depth { transition: none; }
   .sp-stack .sp-slot { transition: none; }
   .boot-plane, .boot-mark, .boot-title span, .boot-sub { animation: boot-io 220ms linear both; }
-  .badge3d::after { display: none; }
   .world-layer { display: none; }
 }
 

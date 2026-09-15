@@ -124,55 +124,6 @@
   gap: var(--sp-3);
 }
 
-.work-card {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: var(--sp-4);
-  border-radius: var(--r-md);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  transition: border-color var(--dur-fast) ease, background var(--dur-fast) ease;
-}
-.work-card:hover { border-color: var(--border-2); background: var(--surface-2); }
-.work-card.is-done { opacity: 0.72; }
-
-.work-top {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-3);
-  min-width: 0;
-}
-.work-title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--fs-h2);
-  line-height: 1.25;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  word-break: break-word;
-}
-.work-sub {
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-  margin-top: 3px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  align-items: center;
-}
-.work-body { margin-top: var(--sp-3); }
-.work-foot {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-  flex-wrap: wrap;
-}
-
-
 .deadline-hero {
   display: flex;
   align-items: baseline;
@@ -1499,19 +1450,4 @@
     display: grid;
     place-items: center;
   }
-
-
-  a.work-title,
-  button.work-title {
-    padding-top: 12px;
-    padding-bottom: 12px;
-    margin-top: -12px;
-    margin-bottom: -12px;
-  }
-}
-
-
-button.work-title {
-  padding-left: 0;
-  padding-right: 0;
 }

@@ -1,12 +1,31 @@
+/* ============================================================
+   WorkEntity — CANONICAL visual language for all Work rows.
+   Two variants share the same tokens/typography/rail:
+
+     .we       → compact row (list/deadline/timeline/Today)
+     .we-card  → detailed card (Projects / Assignments list views)
+
+   Both use:
+     - identity lead (kind icon)
+     - strong title
+     - meta chips (status / deadline / risk / effort)
+     - 3px progress rail
+     - hairline separators (.we uses border-bottom; .we-card uses surface)
+     - semantic tones on risk only (good/warn/bad), never on the card body
+     - contextual actions with 44px touch targets
+   ============================================================ */
+
+/* ---------- compact row ---------- */
 .we-kind{display:inline-flex;align-items:center;color:var(--text-3)}
-.we{display:grid;grid-template-columns:auto 1fr auto;column-gap:var(--sp-3);align-items:start;padding:var(--sp-3) 0;border-bottom:1px solid var(--line);text-decoration:none;cursor:pointer;min-height:44px}
-.we:focus-visible{outline:2px solid var(--focus-ring,var(--accent))}
+.we{display:grid;grid-template-columns:auto 1fr auto;column-gap:var(--sp-3);align-items:start;padding:var(--sp-3) 0;border-bottom:1px solid var(--line);text-decoration:none;cursor:pointer;min-height:44px;color:inherit}
+.we:focus-visible{outline:2px solid var(--focus-ring,var(--accent));outline-offset:2px;border-radius:var(--r-sm)}
+.we:hover{background:color-mix(in srgb,var(--accent-2) 4%,transparent)}
 .we.is-complete{color:var(--text-3)}
 .we.is-complete .we-title{text-decoration:line-through}
 .we__lead{display:inline-flex;color:var(--text-3)}
 .we__body{min-width:0;display:grid;gap:4px}
 .we-title{font-weight:var(--fw-medium);font-size:var(--fs-base);line-height:1.35;color:var(--text);margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.we-rel{font-size:var(--fs-xs);color:var(--text-3);display:inline-flex;align-items:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.we-rel{font-size:var(--fs-xs);color:var(--text-3);display:inline-flex;align-items:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;gap:6px}
 .we-rel__link{text-decoration:underline;text-decoration-color:transparent;cursor:pointer}
 .we-rel__link:hover{text-decoration-color:currentColor}
 .we-rel__link:focus-visible{outline:2px solid var(--focus-ring,var(--accent));outline-offset:2px;border-radius:2px}
@@ -20,3 +39,87 @@
 .we-progress__pct{font-weight:var(--fw-medium);font-size:var(--fs-xs);color:var(--text-3);font-variant-numeric:tabular-nums}
 .we__actions{display:inline-flex;align-items:center;gap:var(--sp-2);flex:none}
 .we__actions .we-complete{min-height:36px}
+.we__actions .btn.icon{min-width:36px;min-height:36px}
+
+/* ---------- detailed card ---------- */
+.we-card{
+  display:block;
+  width:100%;
+  text-align:left;
+  padding:var(--sp-4);
+  border-radius:var(--r-lg);
+  border:1px solid var(--border-1);
+  background:var(--surface);
+  color:var(--text);
+  transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease;
+  text-decoration:none;
+}
+.we-card:hover{border-color:var(--border-2);background:var(--surface-1)}
+.we-card:focus-visible{outline:2px solid var(--focus-ring,var(--accent));outline-offset:2px}
+.we-card.is-done{opacity:.72}
+.we-card.is-done .wec-title{text-decoration:line-through}
+
+.wec-head{display:flex;align-items:flex-start;gap:var(--sp-3);min-width:0}
+.wec-lead{display:inline-flex;flex:none;color:var(--text-3);margin-top:2px}
+.wec-kind{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--border-1);color:var(--text-2)}
+.wec-kind[data-kind=project]{color:var(--cat-mind,var(--accent-2));background:color-mix(in srgb,var(--cat-mind,var(--accent-2)) 10%,var(--surface-2));border-color:color-mix(in srgb,var(--cat-mind,var(--accent-2)) 28%,var(--border-1))}
+.wec-kind[data-kind=assignment]{color:var(--cat-body,#b97343);background:color-mix(in srgb,var(--cat-body,#b97343) 10%,var(--surface-2));border-color:color-mix(in srgb,var(--cat-body,#b97343) 28%,var(--border-1))}
+
+.wec-main{flex:1;min-width:0}
+.wec-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.wec-title{
+  display:block;
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:var(--fs-h2);
+  line-height:1.25;
+  color:var(--text);
+  margin:0;
+  word-break:break-word;
+  text-decoration:none;
+}
+a.wec-title,a .wec-title{color:inherit}
+.wec-sub{font-size:var(--fs-xs);color:var(--text-3);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+
+.wec-side{flex:none;text-align:right;display:grid;gap:4px;justify-items:end}
+.wec-pct{font-family:var(--font-display);font-weight:800;font-size:1.5rem;line-height:1;font-variant-numeric:tabular-nums;color:var(--text)}
+.wec-side-note{font-size:var(--fs-xs);color:var(--text-3);font-variant-numeric:tabular-nums}
+
+.wec-body{margin-top:var(--sp-3);display:grid;gap:var(--sp-3)}
+.wec-facts{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:10px 14px;
+  margin-top:2px;
+}
+.wec-fact{display:grid;gap:2px}
+.wec-fact__label{font-size:var(--fs-micro);text-transform:uppercase;letter-spacing:var(--tr-caps);color:var(--text-3);font-weight:700}
+.wec-fact__value{font-size:var(--fs-sm);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.wec-fact__note{font-size:0.72rem;color:var(--text-3)}
+
+.wec-foot{
+  display:flex;align-items:center;gap:var(--sp-2);
+  margin-top:var(--sp-3);padding-top:var(--sp-3);
+  border-top:1px solid var(--border-1);
+  flex-wrap:wrap;
+}
+.wec-foot .count-chip{margin-right:2px}
+.wec-foot__spacer{flex:1}
+.wec-foot .btn.icon{min-width:36px;min-height:36px}
+
+/* Milestone stepper sits cleanly inside the card body */
+.wec-body .ms-stepper{margin-top:4px}
+
+/* Deadline-pressure / hero blocks inherit card padding rhythm */
+.wec-hero{margin-top:6px}
+.wec-hero .deadline-hero{margin-top:2px}
+
+/* lists of cards use consistent gap */
+.we-list{display:flex;flex-direction:column;gap:var(--sp-3)}
+
+@media (max-width:480px){
+  .we-card{padding:16px}
+  .wec-facts{grid-template-columns:1fr 1fr}
+  .wec-head{flex-wrap:wrap}
+  .wec-side{flex-basis:100%;justify-items:start;grid-auto-flow:column;justify-content:space-between;width:100%}
+}

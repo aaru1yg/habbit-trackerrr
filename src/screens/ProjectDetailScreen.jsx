@@ -17,6 +17,7 @@ import { useRoute } from '../lib/router.jsx'
 import UniversalWorkRow from '../components/work/UniversalWorkRow.jsx'
 import { workWorkspace } from '../components/work/workViewModel.js'
 import '../styles/workspace.css'
+import '../components/work/WorkEntity.css'
 import {
   projectStatus, projectProgress, milestoneTrack, TASK_STATUSES, PRIORITIES,
   projectPhase, phaseTone, PROJECT_PHASES,

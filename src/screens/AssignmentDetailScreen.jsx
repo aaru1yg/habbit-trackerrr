@@ -15,6 +15,7 @@ import { AssignmentDeadlineField } from '../components/work/DeadlineField.jsx'
 import WorkFocus from '../components/work/WorkFocus.jsx'
 import { assignmentPace } from '../lib/adaptive.js'
 import '../styles/workspace.css'
+import '../components/work/WorkEntity.css'
 const AssignmentAnalytics = lazy(() => import('../components/work/AssignmentAnalytics.jsx'))
 import {
   assignmentStatus, assignmentProgress, timeVsWork, itemHistory,

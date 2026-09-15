@@ -19,6 +19,7 @@ import {
 import {   shortDate, dayOf } from '../lib/dates.js'
 import PressureRow from '../components/work/PaceRibbon.jsx'
 import { IconAssignment, IconPlus, IconSearch, IconX, IconAlert } from '../lib/icons.jsx'
+import '../components/work/WorkEntity.css'
 
 const SORTS = [
   { id: 'urgency', label: 'Urgency' },

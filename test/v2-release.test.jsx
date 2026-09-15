@@ -32,7 +32,7 @@ describe('V2 shipping regressions', () => {
 
   it('habit detail heatmap contains only that habit, not the aggregate', () => {
     mount(state({ habits: [habit('A'), habit('B')], checkins: { A: doneDays(1) } }), <HabitDetailScreen id="A" />)
-    const heatmap = screen.getByRole('img', { name: 'A consistency heatmap' })
+    const heatmap = screen.getByRole('img', { name: /completion heatmap/ })
     expect(heatmap.querySelector(`[data-date="${todayStr()}"]`).dataset.pct).toBe('100')
   })
 

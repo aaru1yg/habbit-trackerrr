@@ -178,7 +178,12 @@ export default function Sheet({ open, onClose, title, children, labelledBy, foot
             <div className="sheet-grab" aria-hidden="true" />
             <div className="sheet-head">
               <h3 id={labelledBy} className="sheet-title">{title}</h3>
-              <button className="btn ghost icon" onClick={onClose} aria-label="Close">
+              <button
+                type="button"
+                className="btn ghost icon"
+                onClick={onClose}
+                aria-label={title ? `Close ${title}` : 'Close dialog'}
+              >
                 <IconX />
               </button>
             </div>

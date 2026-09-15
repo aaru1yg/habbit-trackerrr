@@ -1,0 +1,548 @@
+/* ============================================================
+   INSIGHTS (lazy) — Overview, Mind, Deep Dive, Lab styling.
+   Imported only from lazy InsightsScreen.jsx and MindScreen.jsx
+   so this file stays out of initial CSS.
+   Record / Achievements screens have their own rules kept in
+   system.css (out of scope for 7B/7C).
+   ============================================================ */
+
+/* ---- Overview shell ---- */
+#insights-screen .insights-overview {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.insights-eyebrow {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin: 0 0 4px;
+}
+
+/* ---- Surface cards used as section frames ---- */
+.ins-surface {
+  background: var(--surface-2);
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ins-surface.pad-lg { padding: 22px 24px; }
+.ins-surface h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: var(--tr-title);
+  margin: 0;
+  color: var(--text);
+}
+.ins-surface .ins-sub {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+.ins-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.ins-head .ins-head-actions { flex: none; display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ---- Signal strip (top) ---- */
+.ins-signal-strip {
+  display: grid;
+  grid-template-columns: 1.25fr repeat(3, 1fr);
+  gap: 10px;
+}
+.ins-signal {
+  background: var(--surface-2);
+  border: var(--bd-1) solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  min-width: 0;
+}
+.ins-signal[data-tone="good"]    { border-left-color: var(--good); }
+.ins-signal[data-tone="warn"]    { border-left-color: var(--warn); }
+.ins-signal[data-tone="bad"]     { border-left-color: var(--bad); }
+.ins-signal[data-tone="neutral"] { border-left-color: var(--text-3); }
+.ins-signal .ins-signal-title {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 700;
+  margin: 0;
+}
+.ins-signal .ins-signal-value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.55rem;
+  line-height: 1.05;
+  letter-spacing: var(--tr-title);
+  margin: 4px 0 2px;
+  font-variant-numeric: tabular-nums;
+}
+.ins-signal[data-tone="good"] .ins-signal-value { color: var(--good); }
+.ins-signal[data-tone="warn"] .ins-signal-value { color: var(--warn); }
+.ins-signal[data-tone="bad"]  .ins-signal-value { color: var(--bad); }
+.ins-signal .ins-signal-sub {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  margin: 0;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Primary chart card ---- */
+.ins-chart-card {
+  padding: 20px 22px 16px;
+}
+.ins-chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.ins-chart-head h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: var(--tr-title);
+  margin: 0;
+}
+.ins-chart-head p { margin: 3px 0 0; color: var(--text-3); font-size: var(--fs-xs); }
+.ins-range {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--surface-inset);
+  flex: none;
+}
+.ins-range button {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  padding: 7px 12px;
+  min-height: 36px;
+  cursor: pointer;
+}
+.ins-range button[aria-pressed="true"] {
+  background: var(--surface-solid);
+  color: var(--text);
+  box-shadow: var(--e-1);
+}
+
+.ins-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 6px 0 10px;
+}
+.ins-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.ins-legend i {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  flex: none;
+}
+.ins-legend i.is-dash {
+  background: none;
+  height: 0;
+  border-top: 2px dashed var(--text-3);
+}
+
+.ins-svg-wrap {
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--r-md);
+}
+
+/* ---- Insight cards (signal → evidence → meaning → action) ---- */
+.ins-insights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.ins-insight {
+  background: var(--surface-2);
+  border: var(--bd-1) solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  min-width: 0;
+}
+.ins-insight[data-tone="good"]    { border-left-color: var(--good); }
+.ins-insight[data-tone="warn"]    { border-left-color: var(--warn); }
+.ins-insight[data-tone="bad"]     { border-left-color: var(--bad); }
+.ins-insight[data-tone="neutral"] { border-left-color: var(--text-3); }
+.ins-insight-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ins-insight-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 0.92rem;
+  letter-spacing: var(--tr-title);
+  color: var(--text);
+}
+.ins-insight-metric {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  flex: none;
+}
+.ins-insight-text {
+  margin: 6px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.ins-insight-action {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--accent-2);
+  text-decoration: none;
+  min-height: 32px;
+  padding: 6px 0;
+}
+.ins-insight-action:hover { color: var(--accent-1); text-decoration: underline; }
+
+/* ---- Quick entry tiles (Mind / Records / Achievements / Advanced) ---- */
+.ins-pillars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.ins-pillar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-2);
+  border: var(--bd-1) solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  color: inherit;
+  text-decoration: none;
+  min-height: 60px;
+  transition: border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.ins-pillar:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.ins-pillar-icon {
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: var(--r-md);
+  background: var(--surface-inset);
+  color: var(--text-2);
+  flex: none;
+}
+.ins-pillar[data-cat="mind"]         .ins-pillar-icon { color: var(--cat-mind); }
+.ins-pillar[data-cat="record"]       .ins-pillar-icon { color: var(--accent-1); }
+.ins-pillar[data-cat="achievements"] .ins-pillar-icon { color: #f5b53c; }
+.ins-pillar[data-cat="advanced"]     .ins-pillar-icon { color: var(--accent-2); }
+.ins-pillar-label {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tr-title);
+  margin: 0;
+}
+.ins-pillar-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: 1.35;
+}
+
+/* ---- Empty state for insights overview ---- */
+.ins-empty {
+  padding: 34px 22px;
+  text-align: center;
+}
+.ins-empty .ins-empty-icon {
+  width: 48px; height: 48px;
+  margin: 0 auto 10px;
+  display: grid; place-items: center;
+  border-radius: var(--r-lg);
+  background: var(--surface-inset);
+  color: var(--text-3);
+}
+.ins-empty h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin: 0;
+}
+.ins-empty p { color: var(--text-3); font-size: var(--fs-sm); margin: 6px 0 0; }
+
+/* ---- Context note (trust footer) ---- */
+.ins-trust {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  margin: 2px 0 0;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1023px) {
+  .ins-signal-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ins-pillars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .ins-surface { padding: 16px; }
+  .ins-surface.pad-lg { padding: 18px 16px; }
+  .ins-signal-strip { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ins-signal .ins-signal-value { font-size: 1.35rem; }
+  .ins-insights { grid-template-columns: 1fr; gap: 8px; }
+  .ins-pillars { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ins-chart-head { flex-direction: column; align-items: stretch; }
+  .ins-range { align-self: flex-start; }
+}
+@media (max-width: 390px) {
+  .ins-signal-strip { grid-template-columns: 1fr; }
+  .ins-pillars { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   MIND (Step 7C) — behavioral patterns
+   Identity colors for capacity dimensions. These are WHAT colors,
+   not state colors — no semantic good/warn/bad on series.
+   ============================================================ */
+:root {
+  --mind-cap-score:      var(--cat-mind);
+  --mind-cap-energy:     #e0a03b;     /* warm amber — identity only */
+  --mind-cap-focus:      #6ea8ff;     /* calm blue — identity only */
+  --mind-cap-motivation: #c76d8f;     /* muted rose — identity only */
+}
+
+/* ---- Today check-in card ---- */
+.mind-checkin {
+  padding: 18px 20px;
+}
+.mind-checkin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.mind-checkin-grid > div { min-width: 0; }
+.mind-note-row { margin-top: 14px; }
+
+.mind-dim { min-width: 0; }
+
+/* Capacity chip toggle (primary dimension selector) */
+.mind-dim-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+.mind-dim-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: var(--bd-1) solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  min-height: 36px;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease-out), color var(--dur-1), border-color var(--dur-1);
+}
+.mind-dim-chip i {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--chip-c, var(--text-3));
+}
+.mind-dim-chip[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--chip-c) 14%, var(--surface-2));
+  border-color: var(--chip-c);
+  color: var(--text);
+}
+
+/* ---- Pattern primary chart ---- */
+.mind-pattern-card { padding: 18px 20px; }
+.mind-chart { width: 100%; }
+.mind-chart svg { display: block; width: 100%; overflow: visible; }
+.mind-legend {
+  margin-top: 10px;
+  gap: 14px;
+}
+.mind-legend span i {
+  background: currentColor;
+}
+.mind-legend span:nth-child(1) i { background: var(--accent-2); }
+.mind-trust { margin: 10px 0 0; }
+
+/* ---- Secondary 2x2 grid ---- */
+.mind-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.mind-grid .ins-surface,
+.mind-grid .section-card { min-width: 0; }
+
+.mind-split { min-width: 0; }
+.mind-split-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-xs); font-weight: 600; color: var(--text-2);
+  margin-bottom: 4px;
+}
+
+.mind-pair {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  border: var(--bd-1) solid var(--border);
+  background: var(--surface-inset);
+}
+.mind-pair-labels {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-sm); color: var(--text-2); font-weight: 500;
+}
+.mind-pair-labels i {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+}
+.mind-pair-delta { font-weight: 700; font-size: var(--fs-xs); }
+.corr-up { color: var(--good); }
+.corr-down { color: var(--warn); }
+
+/* ---- Pattern insight cards ---- */
+.mind-insights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.mind-insight {
+  border: var(--bd-1) solid var(--border);
+  border-left: 3px solid var(--text-3);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mind-insight.data-tone-good { border-left-color: var(--good); }
+.mind-insight.data-tone-warn { border-left-color: var(--warn); }
+.mind-insight.data-tone-bad { border-left-color: var(--bad); }
+.mind-insight.data-tone-neutral { border-left-color: var(--text-3); }
+.mind-insight-signal {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.mind-insight-evidence {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  margin: 0;
+}
+.mind-insight-meaning {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  margin: 2px 0 0;
+  line-height: 1.45;
+}
+.mind-insight-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent-1-lift, var(--accent-1));
+  text-decoration: none;
+  align-self: flex-start;
+}
+.mind-insight-action:hover { text-decoration: underline; }
+
+/* ---- Reflections / notes ---- */
+.mind-refl {
+  padding: 10px 12px;
+}
+
+/* ---- Footer cross-links ---- */
+.mind-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 2px 20px;
+}
+.mind-foot-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+  text-decoration: none;
+}
+.mind-foot-link:hover { color: var(--text); }
+.mind-foot-link.muted { font-weight: 500; color: var(--text-3); }
+
+/* ---- Responsive ---- */
+@media (max-width: 1023px) {
+  .mind-grid { grid-template-columns: 1fr; }
+  .mind-insights { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .mind-checkin-grid { grid-template-columns: 1fr; gap: 18px; }
+}
+@media (max-width: 620px) {
+  .mind-pattern-card, .mind-checkin { padding: 16px; }
+  .mind-insights { grid-template-columns: 1fr; }
+  .mind-dim-chip { font-size: 0.7rem; padding: 6px 8px; }
+  .mind-pair { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+@media (max-width: 390px) {
+  .mind-chart svg { height: auto; }
+  .mind-dim-toggle { gap: 4px; }
+  .mind-dim-chip { padding: 6px 7px; min-height: 34px; }
+  .mood-row > .mood-btn { min-height: 64px; }
+  .mind-foot { flex-direction: column; align-items: flex-start; }
+}
+
+/* FINAL 2G (P2 #8): Record timeline entries wrap their body text at narrow
+   widths instead of it getting clipped by the parent flex row. rec-kind
+   stays inline; rec-body stacks onto its own line and wraps. */
+.rec-item .tl-meta { flex-wrap: wrap; align-items: flex-start; }
+.rec-item .rec-body { display: block; width: 100%; margin-top: 2px; overflow-wrap: anywhere; word-break: break-word; }

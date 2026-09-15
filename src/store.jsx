@@ -750,8 +750,8 @@ function reducer(state, action) {
 
 const StoreContext = createContext(null)
 
-export function StoreProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, undefined, loadState)
+export function StoreProvider({ children, initialState }) {
+  const [state, dispatch] = useReducer(reducer, undefined, () => initialState || loadState())
 
   useEffect(() => {
     try {

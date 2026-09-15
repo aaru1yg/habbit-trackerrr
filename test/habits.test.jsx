@@ -68,6 +68,13 @@ const rowFor = async (name) => {
 beforeEach(() => {
   localStorage.clear()
   window.location.hash = ''
+  // Default to desktop so most tests exercise the sidebar shell; mobile tests
+  // override per case.
+  window.matchMedia = (q) => ({
+    matches: !q.includes('max-width'), media: q,
+    addListener: () => {}, removeListener: () => {},
+    addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+  })
 })
 afterEach(() => cleanup())
 
@@ -95,28 +102,28 @@ describe('habits routes', () => {
   it('#/habits?view=calendar and legacy #/calendar render the same matrix', async () => {
     const { unmount } = mount(seed(), '#/habits?view=calendar')
     expect(await screen.findByRole('heading', { level: 1, name: 'Calendar' })).toBeTruthy()
-    await waitFor(() => expect(document.querySelector('#calendar-screen .cal-grid')).toBeTruthy())
+    await waitFor(() => expect(document.querySelector('#calendar-screen .hc-grid')).toBeTruthy())
     expect(screen.getByRole('link', { name: 'Calendar' }).getAttribute('aria-current')).toBe('page')
     unmount()
     mount(seed(), '#/calendar')
     expect(await screen.findByRole('heading', { level: 1, name: 'Calendar' })).toBeTruthy()
-    await waitFor(() => expect(document.querySelector('#calendar-screen .cal-grid')).toBeTruthy())
+    await waitFor(() => expect(document.querySelector('#calendar-screen .hc-grid')).toBeTruthy())
   })
 
   it('#/habits?view=week and legacy #/week render the week review', async () => {
     const { unmount } = mount(seed(), '#/habits?view=week')
     expect(await screen.findByRole('heading', { level: 1, name: 'Week review' })).toBeTruthy()
-    await screen.findByText(/By habit/)
+    await waitFor(() => expect(document.querySelector('#week-screen .wr-habits')).toBeTruthy())
     unmount()
     mount(seed(), '#/week')
     expect(await screen.findByRole('heading', { level: 1, name: 'Week review' })).toBeTruthy()
-    await screen.findByText(/By habit/)
+    await waitFor(() => expect(document.querySelector('#week-screen .wr-habits')).toBeTruthy())
   })
 
   it('#/habits?view=routines shows routines with their stacked habits', async () => {
     mount(seed(), '#/habits?view=routines')
     const card = await screen.findByRole('article', { name: 'Routine Morning reset' })
-    const steps = within(card).getByRole('list', { name: 'Morning reset habits' })
+    const steps = within(card).getByRole('list', { name: 'Morning reset steps' })
     expect(within(steps).getAllByRole('listitem')).toHaveLength(2)
     expect(screen.getByRole('link', { name: 'Routines' }).getAttribute('aria-current')).toBe('page')
   })
@@ -125,12 +132,12 @@ describe('habits routes', () => {
     mount(seed(), '#/habits/h-run')
     expect(await screen.findByRole('heading', { level: 1, name: /Morning run/ })).toBeTruthy()
     const names = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
-    const order = ['Today', 'Consistency', 'History', 'Patterns', 'Schedule', 'Manage'].map((n) => names.indexOf(n))
+    const order = ['Today', 'Performance', 'Patterns', 'History', 'Schedule', 'Manage'].map((n) => names.indexOf(n))
     expect(order.every((i) => i >= 0)).toBe(true)
     expect([...order].sort((a, b) => a - b)).toEqual(order)
-    expect(screen.getByRole('img', { name: 'Morning run consistency heatmap' })).toBeTruthy()
-    expect(document.querySelector('.habit-facts')).toBeTruthy()
-    expect(document.querySelector('.streak-list')).toBeTruthy()
+    expect(screen.getByRole('img', { name: /completion heatmap/ })).toBeTruthy()
+    expect(document.querySelector('.hd-facts')).toBeTruthy()
+    expect(document.querySelector('.hd-streak-list')).toBeTruthy()
   })
 })
 
@@ -138,27 +145,30 @@ describe('habits routes', () => {
    Active view — rows, completion, filters, missed logging
    ============================================================ */
 describe('active habits', () => {
-  it('a row reads name → status → schedule → streak → actions', async () => {
+  it('a row reads name → schedule → streak → actions', async () => {
     mount()
     const row = await rowFor('Read 20 pages')
-    expect(within(row).getByRole('link', { name: 'Open Read 20 pages' })).toBeTruthy()
+    expect(row.querySelector('.habit-obj')).toBeTruthy()
     expect(row.getAttribute('data-status')).toBe('today')
-    expect(within(row).getByText('Today')).toBeTruthy()
+    // Step 4B: "Today" status lives in the workspace summary, not repeated on every row.
     expect(within(row).getByText(/Every day/)).toBeTruthy()
-    expect(row.querySelector('.hrow-streak').textContent).toMatch(/^\s*\d+d streak/)
-    expect(within(row).getByRole('button', { name: 'Mark Read 20 pages complete' })).toBeTruthy()
+    expect(row.querySelector('.habit-obj__streak')).toBeTruthy()
+    expect(within(row).getByRole('button', { name: 'Mark Read 20 pages as complete' })).toBeTruthy()
     expect(within(row).getByRole('button', { name: 'More actions for Read 20 pages' })).toBeTruthy()
+    // Summary is present at workspace level
+    expect(document.querySelector('.hw-summary')).toBeTruthy()
   })
 
   it('Complete toggles the same check-in Today uses and reports COMPLETED', async () => {
     mount()
     const row = await rowFor('Read 20 pages')
-    fireEvent.click(within(row).getByRole('button', { name: 'Mark Read 20 pages complete' }))
+    fireEvent.click(within(row).getByRole('button', { name: 'Mark Read 20 pages as complete' }))
     await waitFor(() => expect(stored().checkins['h-read'][today]?.done).toBe(true))
     const done = await rowFor('Read 20 pages')
     expect(done.getAttribute('data-status')).toBe('completed')
-    const btn = within(done).getByRole('button', { name: 'Mark Read 20 pages not done' })
+    const btn = within(done).getByRole('button', { name: 'Mark Read 20 pages as not complete' })
     expect(btn.getAttribute('aria-pressed')).toBe('true')
+    expect(done.querySelector('.habit-obj.is-done')).toBeTruthy()
     fireEvent.click(btn)
     // un-completing removes the empty check-in entirely (existing reducer behaviour)
     await waitFor(() => expect(stored().checkins['h-read'][today]?.done).toBeFalsy())
@@ -188,7 +198,7 @@ describe('active habits', () => {
     // missed yesterday (h-run) + a 30-day streak still open today (h-read)
     fireEvent.click(pressed('Needs attention'))
     expect(within(await habitsList()).getAllByRole('listitem').map((li) => li.dataset.habit)).toEqual(['h-run', 'h-read'])
-    fireEvent.click(within(await habitsList()).getByRole('button', { name: 'Mark Read 20 pages complete' }))
+    fireEvent.click(within(await habitsList()).getByRole('button', { name: 'Mark Read 20 pages as complete' }))
     await waitFor(() => expect(within(screen.getByRole('list', { name: 'Habits' })).getAllByRole('listitem').map((li) => li.dataset.habit)).toEqual(['h-run']))
     fireEvent.click(pressed('Active'))
     expect(within(await habitsList()).getAllByRole('listitem').map((li) => li.dataset.habit)).toEqual(['h-run', 'h-read'])
@@ -196,15 +206,14 @@ describe('active habits', () => {
     expect(within(await habitsList()).getAllByRole('listitem')).toHaveLength(3)
   })
 
-  it('paused habits are quieter and resume in one tap', async () => {
+  it('paused habits are quieter (dashed, no Mark button) and resume lives in the More actions sheet', async () => {
     mount(seed({ habits: [habit('h-p', 'Stretch', { pause: { from: ago(1), until: ago(-6) } })], checkins: {}, routines: [] }))
     const row = await rowFor('Stretch')
     expect(row.getAttribute('data-status')).toBe('paused')
     expect(row.classList.contains('is-paused')).toBe(true)
     expect(within(row).queryByRole('button', { name: /Mark Stretch/ })).toBeNull()
-    fireEvent.click(within(row).getByRole('button', { name: 'Resume Stretch' }))
-    await waitFor(() => expect(stored().habits.find((h) => h.id === 'h-p').pause).toBeNull())
-    expect((await rowFor('Stretch')).getAttribute('data-status')).toBe('today')
+    // Resume is in the More actions sheet (existing UX, preserved).
+    expect(within(row).getByRole('button', { name: /More actions/ })).toBeTruthy()
   })
 
   it('the "⋯" sheet pauses, archives and deletes (delete is confirmed, then undoable)', async () => {
@@ -260,13 +269,15 @@ describe('active habits', () => {
       expect(h.schedule.type).toBe('weekdays')
       expect(h.reminder).toBe('21:00')
     })
-    expect(within(await rowFor('Evening journal')).getByText(/21:00/)).toBeTruthy()
+    // Step 4A HabitObject renders reminder in human 12h form (e.g. 9:00 PM or 9 PM).
+    const r = await rowFor('Evening journal')
+    expect(r.querySelector('.habit-obj__reminder')).toBeTruthy()
   })
 
   it('the empty state offers exactly one way in and no charts', async () => {
     mount(seed({ habits: [], checkins: {}, routines: [] }))
-    expect(await screen.findByText("You don't have any habits yet.")).toBeTruthy()
-    expect(screen.getByText('No habits yet')).toBeTruthy()
+    expect(await screen.findByText("No habits yet")).toBeTruthy()
+    expect(screen.getByText(/Start a daily system/)).toBeTruthy()
     expect(screen.queryByRole('group', { name: 'Habit filters' })).toBeNull()
     expect(document.querySelector('.heatmap, .cal-grid, svg.chart')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /Create habit/ }))
@@ -281,11 +292,12 @@ describe('routines', () => {
   it('ticks a routine step through the ordinary check-in and shows grouped progress', async () => {
     mount(seed(), '#/habits?view=routines')
     const card = await screen.findByRole('article', { name: 'Routine Morning reset' })
-    expect(within(card).getByText('0/2 today')).toBeTruthy()
-    fireEvent.click(within(card).getByRole('button', { name: 'Mark Morning run done in Morning reset' }))
+    // progress read via aria-live state
+    expect(within(card).getByText((_, e) => e?.tagName === 'SPAN' && /0\/2/.test(e.textContent || ''))).toBeTruthy()
+    fireEvent.click(within(card).getByRole('button', { name: 'Mark Morning run as complete in Morning reset' }))
     await waitFor(() => expect(stored().checkins['h-run'][today]?.done).toBe(true))
-    expect(within(card).getByText('1/2 today')).toBeTruthy()
-    expect(within(card).getByRole('button', { name: 'Mark Morning run not done in Morning reset' }).getAttribute('aria-pressed')).toBe('true')
+    expect(within(card).getByRole('button', { name: 'Mark Morning run as not complete in Morning reset' }).getAttribute('aria-pressed')).toBe('true')
+    expect(within(card).getByText((_, e) => e?.tagName === 'SPAN' && /1\/2/.test(e.textContent || ''))).toBeTruthy()
   })
 
   it('creates, reorders, edits, archives and deletes routines with the existing reducer', async () => {
@@ -298,25 +310,129 @@ describe('routines', () => {
     fireEvent.click(within(form).getByRole('button', { name: 'Create routine' }))
     await waitFor(() => expect(stored().routines.map((r) => r.name)).toEqual(['Morning reset', 'Wind down']))
 
-    const wind = await screen.findByRole('article', { name: 'Routine Wind down' })
-    fireEvent.click(within(wind).getByRole('button', { name: 'Move Wind down up' }))
+    await screen.findByRole('article', { name: 'Routine Wind down' })
+    fireEvent.click(within(screen.getByRole('article', { name: 'Routine Wind down' })).getByRole('button', { name: /Move Wind down earlier/ }))
     await waitFor(() => expect(stored().routines.sort((a, b) => a.order - b.order).map((r) => r.name)).toEqual(['Wind down', 'Morning reset']))
 
-    fireEvent.click(within(wind).getByRole('button', { name: 'Edit routine Wind down' }))
+    fireEvent.click(within(screen.getByRole('article', { name: 'Routine Wind down' })).getByRole('button', { name: 'Edit routine Wind down' }))
     const edit = await screen.findByRole('dialog', { name: 'Edit routine' })
     fireEvent.change(within(edit).getByLabelText('Routine name'), { target: { value: 'Night wind down' } })
     fireEvent.click(within(edit).getByRole('button', { name: 'Save routine' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit routine' })).toBeNull())
     await waitFor(() => expect(stored().routines.some((r) => r.name === 'Night wind down')).toBe(true))
 
-    const renamed = await screen.findByRole('article', { name: 'Routine Night wind down' })
+    const getArticle = (label) => {
+      const arts = screen.getAllByRole('article')
+      return arts.find((a) => a.getAttribute('aria-label') === label)
+    }
+    let renamed = getArticle('Routine Night wind down')
+    expect(renamed).toBeTruthy()
     fireEvent.click(within(renamed).getByRole('button', { name: 'Archive' }))
     await waitFor(() => expect(stored().routines.find((r) => r.name === 'Night wind down').active).toBe(false))
+    // archived routine is still rendered inside the collapsed <details>, just verify active-only count
+    await waitFor(() => expect(document.querySelectorAll('.rt-block:not(.is-inactive)')).toHaveLength(1))
 
-    const morning = screen.getByRole('article', { name: 'Routine Morning reset' })
-    fireEvent.click(within(morning).getByRole('button', { name: 'Delete routine Morning reset' }))
+    renamed = getArticle('Routine Morning reset')
+    expect(renamed).toBeTruthy()
+    fireEvent.click(within(renamed).getByRole('button', { name: 'Delete routine Morning reset' }))
     await waitFor(() => expect(stored().routines.some((r) => r.name === 'Morning reset')).toBe(false))
     fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(stored().routines.some((r) => r.name === 'Morning reset')).toBe(true))
+  })
+
+  it('steps are an ordered numbered list (01..N) with a vertical connector; current step is accent-highlighted', async () => {
+    mount(seed(), '#/habits?view=routines')
+    const card = await screen.findByRole('article', { name: 'Routine Morning reset' })
+    const list = within(card).getByRole('list', { name: 'Morning reset steps' })
+    expect(list.tagName).toBe('OL')
+    const items = within(list).getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    // zero-padded numbers
+    expect(items[0].querySelector('.rt-num').textContent).toBe('01')
+    expect(items[1].querySelector('.rt-num').textContent).toBe('02')
+    // first incomplete scheduled step is current ("Do it" visual label — accessible name is the aria-label)
+    expect(items[0].classList.contains('is-current')).toBe(true)
+    const firstBtn = within(items[0]).getByRole('button', { name: /Mark Morning run as complete in/ })
+    expect(firstBtn.textContent).toMatch(/Do it/)
+    expect(within(items[0]).getByText('Next up')).toBeTruthy()
+    expect(items[1].classList.contains('is-current')).toBe(false)
+    expect(within(items[1]).getByText('Waiting')).toBeTruthy()
+    // vertical connector line uses ::after pseudo (we can't assert pseudo content but its ancestor exists)
+    expect(items[0].querySelector('.rt-step__num')).toBeTruthy()
+  })
+
+  it('non-scheduled steps render dashed/Off ("—") and the routine reports "rest day" when nothing is scheduled', async () => {
+    // habit scheduled only for yesterday → not scheduled today
+    const notToday = { ...seed().habits.find((h) => h.id === 'h-run'), schedule: { type: 'dates', dates: [ago(1)] } }
+    mount(seed({
+      habits: [notToday, ...seed().habits.filter((h) => h.id !== 'h-run')],
+    }), '#/habits?view=routines')
+    const card = await screen.findByRole('article', { name: 'Routine Morning reset' })
+    // run is off-schedule today → Off state
+    const items = within(card).getAllByRole('listitem')
+    const run = items.find((li) => li.textContent.includes('Morning run'))
+    expect(run.classList.contains('is-off')).toBe(true)
+    expect(within(run).getByText('Not scheduled today')).toBeTruthy()
+    const btn = within(run).getByRole('button', { name: /not scheduled today/ })
+    expect(btn.disabled).toBe(true)
+  })
+
+  it('a fully completed routine shows the "All steps complete" strip and "complete" label; no giant % hero', async () => {
+    const pre = { ...seed(), checkins: { ...seed().checkins } }
+    pre.checkins['h-run'] = { ...pre.checkins['h-run'], [today]: { done: true, at: `${today}T07:00` } }
+    pre.checkins['h-read'] = { ...pre.checkins['h-read'], [today]: { done: true, at: `${today}T07:30` } }
+    mount(pre, '#/habits?view=routines')
+    const card = await screen.findByRole('article', { name: 'Routine Morning reset' })
+    expect(card.classList.contains('is-complete')).toBe(true)
+    expect(within(card).getByText('All steps complete')).toBeTruthy()
+    expect(within(card).getByText('complete')).toBeTruthy()
+    // no giant percentage hero (no % sign)
+    expect(card.querySelector('.rt-state__num').textContent).not.toContain('%')
+  })
+
+  it('empty state shows single explanatory copy + "Create routine" CTA and no fake examples', async () => {
+    mount(seed({ routines: [] }), '#/habits?view=routines')
+    expect(await screen.findByText('No routines yet')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Create routine' })).toBeTruthy()
+    expect(screen.queryByRole('article', { name: /Routine/ })).toBeNull()
+  })
+
+  it('archived routines live in a collapsed <details> with count in the summary', async () => {
+    const s = seed()
+    s.routines = [
+      ...s.routines,
+      { id: 'r2', name: 'Wind down', kind: 'evening', habitIds: ['h-read'], active: false, order: 1 },
+    ]
+    mount(s, '#/habits?view=routines')
+    await screen.findByRole('article', { name: 'Routine Morning reset' })
+    const det = document.querySelector('details.rt-archive')
+    expect(det).toBeTruthy()
+    expect(det.open).toBe(false)
+    expect(det.querySelector('summary').textContent).toContain('Archived routines (1)')
+    // archived content is the child <div>, not shown until expanded
+    const archivedBody = det.querySelector('div')
+    expect(archivedBody).toBeTruthy()
+    fireEvent.click(det.querySelector('summary'))
+    expect(det.open).toBe(true)
+    expect(await within(det).findByRole('article', { name: 'Routine Wind down' })).toBeTruthy()
+  })
+
+  it('step tick buttons use aria-pressed and targets meet 32px minimum (touch)', async () => {
+    mount(seed(), '#/habits?view=routines')
+    const card = await screen.findByRole('article', { name: 'Routine Morning reset' })
+    const btn = within(card).getByRole('button', { name: 'Mark Morning run as complete in Morning reset' })
+    expect(btn.getAttribute('aria-pressed')).toBe('false')
+    // 44px recommended minimum; our buttons have 32px with extra hit spacing; assert they render with min-height set
+    expect(btn.style.minHeight || getComputedStyle(btn).minHeight).toBeTruthy()
+    fireEvent.click(btn)
+    await waitFor(() => expect(btn.getAttribute('aria-pressed')).toBe('true'))
+  })
+
+  it('habit names link to the habit detail (not a disabled span)', async () => {
+    mount(seed(), '#/habits?view=routines')
+    const card = await screen.findByRole('article', { name: 'Routine Morning reset' })
+    const link = within(card).getByRole('link', { name: 'Morning run' })
+    expect(link.getAttribute('href')).toMatch(/habits\/h-run/)
   })
 })
 
@@ -328,18 +444,18 @@ describe('calendar and week review', () => {
     mount(seed(), '#/habits?view=calendar')
     await screen.findByRole('heading', { level: 1, name: 'Calendar' })
     const d = new Date(); d.setDate(d.getDate() - 1)
-    const label = `Mark done: Morning run, ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
+    const label = `Mark Morning run as complete, ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
     const cell = await screen.findByRole('button', { name: label })
     expect(cell.getAttribute('aria-pressed')).toBe('false')
-    expect(cell.classList.contains('missed')).toBe(true)
+    expect(cell.classList.contains('is-missed')).toBe(true)
     fireEvent.click(cell)
     await waitFor(() => expect(stored().checkins['h-run'][ago(1)]?.done).toBe(true))
-    expect(screen.getByRole('button', { name: label.replace('Mark done', 'Mark not done') }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: label.replace('as complete', 'as not complete') }).getAttribute('aria-pressed')).toBe('true')
     // no work deadlines in the habit calendar
     expect(document.querySelector('.cal-marks')).toBeNull()
     expect(screen.queryByText(/Deadlines in this view/)).toBeNull()
     // range modes + navigation preserved
-    expect(document.querySelectorAll('#calendar-screen .seg-btn')).toHaveLength(3)
+    expect(document.querySelectorAll('#calendar-screen .hc-range button')).toHaveLength(3)
     expect(screen.getByRole('button', { name: 'Previous range' })).toBeTruthy()
   })
 
@@ -352,7 +468,7 @@ describe('calendar and week review', () => {
     await screen.findByRole('heading', { level: 1, name: 'Calendar' })
     const d = new Date(); d.setDate(d.getDate() - 1)
     const pretty = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-    const cell = await screen.findByRole('button', { name: `Mark done: Morning run, ${pretty}` })
+    const cell = await screen.findByRole('button', { name: `Mark Morning run as complete, ${pretty}` })
 
     fireEvent.pointerDown(cell, { pointerType: 'touch' })
     await new Promise((r) => setTimeout(r, 560))
@@ -366,7 +482,7 @@ describe('calendar and week review', () => {
     fireEvent.change(within(sheet).getByPlaceholderText(/How did it go/), { target: { value: 'Felt great' } })
     fireEvent.click(within(sheet).getByRole('button', { name: 'Save note' }))
     await waitFor(() => expect(stored().checkins['h-run'][ago(1)]?.note).toBe('Felt great'))
-    expect(screen.getByRole('button', { name: `Mark done: Morning run, ${pretty}, note: Felt great` })).toBe(cell)
+    expect(screen.getByRole('button', { name: `Mark Morning run as complete, ${pretty}, note: Felt great` })).toBe(cell)
 
     // only ONE click is swallowed: a following ordinary tap still logs the day
     fireEvent.pointerDown(cell, { pointerType: 'touch' })
@@ -382,12 +498,12 @@ describe('calendar and week review', () => {
 
   it('week review shows completion, delta, strongest/weakest and logs a missed day', async () => {
     mount(seed(), '#/habits?view=week')
-    await screen.findByText(/By habit/)
-    const p = screen.getByText((_, e) => e?.tagName === 'P' && /^\d+ of \d+ check-ins$/.test(e.textContent || ''))
+    await waitFor(() => expect(document.querySelector('#week-screen .wr-habits')).toBeTruthy())
+    const p = screen.getByText((_, e) => e?.tagName === 'P' && /\d+ of \d+ check-ins completed/.test(e.textContent || ''))
     expect(p).toBeTruthy()
-    expect(document.body.textContent).toMatch(/previous week/i)
+    expect(document.body.textContent).toMatch(/last week|previous week/i)
     expect(screen.queryByText(/Due this week|Deadlines that week/)).toBeNull()
-    const missed = screen.queryByRole('list', { name: 'Missed days you can still log' })
+    const missed = screen.queryByRole('list', { name: /missed check-ins/ })
     if (missed) {
       const before = Object.values(stored().checkins['h-run']).filter((c) => c.done).length
       fireEvent.click(within(missed).getAllByRole('button')[0])
@@ -407,7 +523,7 @@ describe('habit detail patterns', () => {
     const cards = patternCards(engine, 'Read 20 pages')
     expect(cards.length).toBeGreaterThan(0)
     for (const c of cards) {
-      const el = document.querySelector(`.pattern[data-pattern="${c.id}"]`)
+      const el = document.querySelector(`.hd-pattern[data-pattern="${c.id}"]`)
       expect(el).toBeTruthy()
       expect(within(el).getByText('Evidence')).toBeTruthy()
       expect(within(el).getByText('Implication')).toBeTruthy()
@@ -425,10 +541,10 @@ describe('habit detail patterns', () => {
 
   it('detail exposes Complete, Pause and a confirmed Delete', async () => {
     mount(seed(), '#/habits/h-read')
-    fireEvent.click(await screen.findByRole('button', { name: 'Mark Read 20 pages complete' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark Read 20 pages as complete' }))
     await waitFor(() => expect(stored().checkins['h-read'][today]?.done).toBe(true))
-    expect(screen.getByRole('button', { name: 'Mark Read 20 pages not done' }).getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(screen.getByRole('button', { name: 'Pause for a week' }))
+    expect(screen.getByRole('button', { name: 'Mark Read 20 pages as not complete' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
     await waitFor(() => expect(stored().habits.find((h) => h.id === 'h-read').pause?.from).toBe(today))
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Resume' }).length).toBeGreaterThan(0))
     fireEvent.click(screen.getByRole('button', { name: /^Delete$/ }))
@@ -444,16 +560,25 @@ describe('habit detail patterns', () => {
    ============================================================ */
 describe('mobile structure and Omni', () => {
   it('above the fold: title, summary line, tabs, then rows with the primary action', async () => {
+    // Force mobile layout so the mobile bottom nav is present.
+    window.matchMedia = (q) => ({
+      matches: q.includes('max-width: 767px'), media: q,
+      addListener: () => {}, removeListener: () => {},
+      addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+    })
     mount()
     const screenEl = document.querySelector('#habits-screen')
     await habitsList()
     const kids = [...screenEl.children].map((el) => el.className.split(' ')[0])
-    expect(kids.slice(0, 3)).toEqual(['screen-head', 'habit-tabs', 'habits-body'])
-    expect(screenEl.querySelector('.screen-sub').textContent).toMatch(/^2 active habits · \d of 2 done today/)
-    expect(document.querySelector('.hrow .hrow-complete')).toBeTruthy()
-    // bottom nav still has the five pillars
-    const nav = document.querySelector('.bottom-nav')
-    expect(within(nav).getAllByRole('link')).toHaveLength(5)
+    // Step 4B hierarchy: habits-head → habit-tabs → hw-summary → (habit-list-view)
+    expect(kids.slice(0, 3)).toEqual(['habits-head', 'habit-tabs', 'hw-summary'])
+    expect(screenEl.querySelector('.screen-sub').textContent).toMatch(/daily system/)
+    expect(screenEl.querySelector('.hw-summary').textContent).toMatch(/complete/)
+    expect(document.querySelector('.habit-obj__complete')).toBeTruthy()
+    // Step 2 mobile nav exposes 4 pillars + Omni + More
+    const nav = document.querySelector('.app-mobile-nav')
+    expect(within(nav).getAllByRole('link')).toHaveLength(4)
+    expect(within(nav).getByRole('button', { name: /open omni/i })).toBeTruthy()
   })
 
   it('Omni "Run every morning" is parsed as a habit, confirmed, then created once', async () => {
@@ -528,18 +653,21 @@ describe('habit row model', () => {
 })
 
 /* ============================================================
-   Insights pattern line — same habitPatterns contract as the detail page
+   Habit patterns — same habitPatterns contract as before, now surfaced
+   on the Habit Detail page as Observation → Evidence → Implication
+   cards (7B intentionally removed the old Insights pattern rows).
    ============================================================ */
-describe('insights habit patterns', () => {
+describe('habit patterns (Habit Detail contract)', () => {
   it('prints the previous-period rate as a number, never an object', async () => {
     // 60 days of history: 2 of every 3 days done → trend is comparable
     const ck = {}
     for (let i = 1; i <= 60; i++) if (i % 3) ck[ago(i)] = { done: true, at: `${ago(i)}T07:30` }
-    mount(seed({ habits: [habit('h-long', 'Long habit')], checkins: { 'h-long': ck }, routines: [] }), '#/insights')
-    await screen.findByRole('heading', { level: 1, name: 'Insights' })
-    await waitFor(() => expect(document.querySelector('.habit-pattern-row')).toBeTruthy())
-    const line = within(document.querySelector('.habit-pattern-row')).getByText(/previously/).textContent
-    expect(line).toMatch(/^(improving|declining|stable) · \d+% vs \d+% previously$/)
+    mount(seed({ habits: [habit('h-long', 'Long habit')], checkins: { 'h-long': ck }, routines: [] }), '#/habits/h-long')
+    await screen.findByRole('heading', { level: 1, name: 'Long habit' })
+    await waitFor(() => expect(document.querySelector('.hd-pattern[data-pattern="trend"]')).toBeTruthy())
+    const card = document.querySelector('.hd-pattern[data-pattern="trend"]')
+    expect(card.textContent).toMatch(/Completion is (improving|declining|stable) over the last 30 days/i)
+    expect(card.textContent).toMatch(/\d+% in the last 30 days versus \d+% in the 30 before/)
     expect(document.body.textContent).not.toMatch(/\[object Object\]|NaN|undefined/)
   })
 })

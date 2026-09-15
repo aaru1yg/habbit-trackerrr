@@ -86,6 +86,8 @@ export default function BootSequence() {
   return (
     <div
       className={`boot${out ? ' is-out' : ''}`}
+      role="presentation"
+      aria-label="Loading Habit OS"
       onPointerDown={() => {
         window.__aaruBoot = false
         setOut(true)

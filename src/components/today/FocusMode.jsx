@@ -5,7 +5,7 @@
    of actual durations the product has, so nothing about "learning from
    your actuals" can be honest until a session is written down.
    ============================================================ */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { focusRecommendation } from '../../lib/planning.js'
 import { completionAction, hrefFor, isCompletable } from '../../lib/completion.js'
 import { estimateSuggestion } from '../../lib/learning.js'
@@ -15,8 +15,20 @@ import { Link } from '../../lib/router.jsx'
 const fmt = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${Math.floor(s % 60).toString().padStart(2, '0')}`
 const DURATIONS = [25, 45, 60, 90]
 
-export default function FocusMode({ state, dispatch, now = new Date(), openTick = 0, selectedItem = null }) {
-  const [open, setOpen] = useState(false)
+/**
+ * FocusMode — focus timer sheet.
+ *
+ * When embedded inside a Sheet (Work screen), `onClose` is NOT passed — the
+ * parent Sheet owns Escape/close. The legacy closed-state ghost button
+ * ("Focus mode") remains for that path.
+ *
+ * When embedded directly on Today, `onClose` IS passed. When the user exits,
+ * skips-without-starting, or finishes, `onClose()` fires and Today unmounts
+ * this component entirely, so the ghost "Focus mode" button never appears
+ * inline under Tools. Escape also exits.
+ */
+export default function FocusMode({ state, dispatch, now = new Date(), openTick = 0, selectedItem = null, defaultOpen = false, onClose }) {
+  const [open, setOpen] = useState(defaultOpen)
   const [minutes, setMinutes] = useState(25)
   const [elapsed, setElapsed] = useState(0)
   const [started, setStarted] = useState(null)
@@ -25,15 +37,14 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
 
   const toast = useToast()
   const rec = useMemo(() => selectedItem ? { item: selectedItem, reason: 'Work you chose to focus on.', suggestedDuration: selectedItem.estimateMin ?? null } : focusRecommendation(state, { now }), [state, now, selectedItem])
-  /* #25 — the same evidence as before, but now actionable. */
   const advice = useMemo(
     () => (rec ? estimateSuggestion(rec.item, state, { now }) : null),
     [rec, state, now],
   )
   const [estimateApplied, setEstimateApplied] = useState(false)
 
-  /* One record, one number, named on the button, undoable. Nothing here
-     runs unless the user presses it. */
+  const close = useCallback(() => { setOpen(false); onClose?.() }, [onClose])
+
   const acceptEstimate = () => {
     if (!advice?.action) return
     dispatch(advice.action)
@@ -46,7 +57,16 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
     })
   }
 
-  useEffect(() => { if (openTick > 0) setOpen(true) }, [openTick])
+  // External open tick (Today's Focus button or WorkFocus) — reopen the sheet.
+  useEffect(() => { if (openTick > 0) { setOpen(true); setDone(false); setElapsed(0); setStarted(null); setPaused(false); setEstimateApplied(false) } }, [openTick])
+
+  // Escape-to-close when an onClose owner is provided (Today embedding).
+  useEffect(() => {
+    if (!open || !onClose) return
+    const onKey = (e) => { if (e.key === 'Escape') close() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose, close])
 
   useEffect(() => {
     if (!started || paused || done) return
@@ -54,21 +74,30 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
     return () => clearInterval(id)
   }, [started, paused, done])
 
-  if (!open) return <button className="btn ghost focus-launch" onClick={() => setOpen(true)}>Focus mode</button>
+  // Today-embedding closed state: return null. The legacy ghost "Focus mode"
+  // launch button is only rendered when onClose is absent (Sheet embedding /
+  // legacy inline usage) — not on Today.
+  if (!open) {
+    return onClose ? null : <button className="btn ghost focus-launch" onClick={() => setOpen(true)}>Focus mode</button>
+  }
 
   if (!rec) {
     return (
-      <section className="card pad focus-mode">
+      <section
+        role="dialog"
+        aria-modal={onClose ? 'true' : undefined}
+        aria-label="Focus mode"
+        className="card pad focus-mode"
+      >
         <h2>Focus mode</h2>
         <p>Not enough data yet. There is no open next action.</p>
-        <button className="btn ghost" onClick={() => setOpen(false)}>Exit</button>
+        <button className="btn ghost" onClick={close}>Exit</button>
       </section>
     )
   }
 
   const item = rec.item
 
-  /** Write down what actually happened. Only a session that ran is stored. */
   const endSession = (completed, interrupted = false) => {
     if (!started) return
     const endedAt = new Date().toISOString()
@@ -90,9 +119,6 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
   }
 
   const complete = () => {
-    /* One mapping for every kind. A project has no honest one-tap
-       completion, so the button is not offered for one — recording a
-       finished session while changing nothing would be a lie. */
     const action = completionAction(item.kind, item)
     if (action) dispatch(action)
     endSession(true)
@@ -101,14 +127,19 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
 
   const skip = () => {
     endSession(false, true)
-    setOpen(false)
+    close()
   }
 
   return (
-    <section className="card pad focus-mode" aria-label="Focus mode">
+    <section
+      role="dialog"
+      aria-modal={onClose ? 'true' : undefined}
+      aria-label="Focus mode"
+      className="card pad focus-mode"
+    >
       <div className="row-between">
         <span className="eyebrow">Focus mode</span>
-        <button className="btn ghost sm" onClick={() => setOpen(false)}>Exit</button>
+        <button className="btn ghost sm" onClick={close} aria-label="Exit focus">Exit</button>
       </div>
 
       {done ? (
@@ -120,7 +151,7 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
               ? `This session is saved with its real duration, so future estimates for similar work can be compared against it.`
               : 'Nothing was measured, so nothing was saved.'}
           </p>
-          <button className="btn primary" onClick={() => { setOpen(false); setDone(false) }}>Close</button>
+          <button className="btn primary" onClick={close}>Close</button>
         </>
       ) : (
         <>
@@ -135,8 +166,6 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
             </select>
           </div>
 
-          {/* §5 — the historical average is shown next to the estimate, never
-              substituted for it. */}
           {advice?.enough && (
             <div className="focus-advice" role="note">
               <p style={{ margin: 0 }}>
@@ -151,7 +180,6 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
                   Applied. Undo is in the toast if you changed your mind.
                 </p>
               )}
-              {/* Explained, not applied — a habit has no stored estimate. */}
               {!advice.applyable && <p className="tiny muted" style={{ margin: '6px 0 0' }}>{advice.blockedReason}</p>}
             </div>
           )}
@@ -168,7 +196,7 @@ export default function FocusMode({ state, dispatch, now = new Date(), openTick 
               ? <button className="btn primary" onClick={complete} disabled={!started}>Complete</button>
               : <span className="tiny muted" role="note">A project is finished by finishing its work — there is no one-tap complete.</span>}
             <button className="btn ghost" onClick={skip} disabled={!started}>Skip</button>
-            <Link className="btn ghost" to={hrefFor(item.kind, item)}>View</Link>
+            <Link className="btn ghost" to={hrefFor(item.kind, item)} onClick={close}>View</Link>
           </div>
 
           <details>

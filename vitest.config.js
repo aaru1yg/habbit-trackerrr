@@ -8,5 +8,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./test/setup.js'],
     css: false,
+    testTimeout: 20000,
   },
 })

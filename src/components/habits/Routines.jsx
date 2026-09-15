@@ -1,141 +1,196 @@
 /* ============================================================
-   ROUTINES — first-class habit stacks (Phase 5 §8-9).
+   ROUTINES — ordered sequences of habits (Step 4F).
+   The routine is the primary object; habits appear as numbered
+   steps connected by a vertical rail. Completion reads straight
+   from checkins (no second checklist engine). Ticking a step
+   dispatches the same TOGGLE_CHECKIN used everywhere else.
 
-   A routine references existing habits and reads completion
-   straight from the same check-ins (routineStats / TOGGLE_CHECKIN).
-   There is no second checklist engine: ticking a step here is the
-   same dispatch Today and the calendar use.
-
-   Extracted from the retired LibraryScreen so the Habits
-   workspace and Today can share one implementation.
+   Structure per routine:
+     HEAD (kind icon + name + kind/member subtitle + done/total)
+     → thin progress rail
+     → ordered <ol> of steps (numbered marker with connector,
+         habit name, metadata, action button)
+     → "Routine complete" strip when fully done
+     → footer (last-28-day rate + reorder + edit + archive/delete)
    ============================================================ */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../../store.jsx'
 import { useToast } from '../ui/Toaster.jsx'
 import Sheet from '../ui/Sheet.jsx'
-import { Meter } from '../work/WorkKit.jsx'
+import Button from '../primitives/Button.jsx'
+import IconButton from '../primitives/IconButton.jsx'
 import { activeHabits, routineStats, routineRate, isDone } from '../../lib/stats.js'
 import { ROUTINE_KINDS, categoryOf } from '../../lib/schedule.js'
-import { todayStr, subDaysStr } from '../../lib/dates.js'
+import { todayStr } from '../../lib/dates.js'
 import { interactionFeedback } from '../../lib/motion.js'
-import { IconCheck, IconX, IconPencil, IconTrash, IconChevronRight, IconStack } from '../../lib/icons.jsx'
+import { Link } from '../../lib/router.jsx'
+import {
+  IconCheck, IconX, IconPencil, IconTrash, IconStack, IconChevronRight,
+} from '../../lib/icons.jsx'
 
-const routineKindLabel = (routine) =>
-  (ROUTINE_KINDS.find((k) => k.id === routine?.kind) || ROUTINE_KINDS[4]).label
+const kindById = (id) => ROUTINE_KINDS.find((k) => k.id === id) || ROUTINE_KINDS[4]
+const kindLabel = (r) => kindById(r).label
 
-/* ------------------------------------------------------------
-   ROUTINE CARD — identity, progress, the grouped ○ rows, actions
-   ------------------------------------------------------------ */
-function RoutineCard({ routine, index = 0, count = 1, onEdit, onMove, date = todayStr() }) {
+/* ---------- Single routine block ---------- */
+function RoutineBlock({ routine, index, count, onEdit, onMove, date = todayStr() }) {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const stats = routineStats(state, routine, date)
   const inactive = routine.active === false
-  const members = (routine.habitIds || [])
-    .map((id) => (state.habits || []).find((h) => h.id === id))
-    .filter((h) => h && !h.archived)
-  const scheduledIds = new Set(stats.habits.map((h) => h.id))
-  const rate = routineRate(state, routine, subDaysStr(date, 27), date)
+  const members = useMemo(
+    () => (routine.habitIds || [])
+      .map((id) => (state.habits || []).find((h) => h.id === id))
+      .filter((h) => h && !h.archived),
+    [state, routine],
+  )
+  const scheduledIds = useMemo(() => new Set(stats.habits.map((h) => h.id)), [stats])
+  const rate = routineRate(state, routine, (() => { const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() - 27); return d.toISOString().slice(0, 10) })())
+  const complete = stats.total > 0 && stats.done === stats.total
+  const pct = stats.total ? Math.round((stats.done / stats.total) * 100) : 0
+
+  // Current step = first scheduled-incomplete, or null if complete/no schedule.
+  const currentId = useMemo(() => {
+    for (const id of routine.habitIds || []) {
+      const h = members.find((x) => x.id === id)
+      if (!h) continue
+      if (!scheduledIds.has(id)) continue
+      if (!isDone(state, h.id, date)) return id
+    }
+    return null
+  }, [state, routine, members, scheduledIds, date])
 
   const remove = () => {
     dispatch({ type: 'DELETE_ROUTINE', id: routine.id })
-    toast.show(`Deleted “${routine.name}”`, {
+    toast.show(`Deleted "${routine.name}"`, {
       duration: 6000,
       actionLabel: 'Undo',
       onAction: () => dispatch({ type: 'RESTORE_ROUTINE', routine }),
     })
   }
-
   const toggleActive = () => {
-    dispatch({ type: 'UPDATE_ROUTINE', id: routine.id, patch: { active: inactive } })
+    const nextActive = inactive // inactive → activate (true); active → archive (false)
+    dispatch({ type: 'UPDATE_ROUTINE', id: routine.id, patch: { active: nextActive } })
     toast.show(inactive ? `${routine.name} activated` : `${routine.name} archived`, {
       actionLabel: 'Undo',
-      onAction: () => dispatch({ type: 'UPDATE_ROUTINE', id: routine.id, patch: { active: !inactive } }),
+      onAction: () => dispatch({ type: 'UPDATE_ROUTINE', id: routine.id, patch: { active: !nextActive } }),
     })
   }
-
-  const toggleStep = (h, done) => {
+  const toggleStep = (h) => {
+    const done = isDone(state, h.id, date)
     interactionFeedback(done ? 'uncomplete' : 'complete', { habitId: h.id, routineId: routine.id })
     dispatch({ type: 'TOGGLE_CHECKIN', habitId: h.id, date })
   }
 
-  const complete = stats.total > 0 && stats.done === stats.total
-
   return (
     <article
-      className={`routine${inactive ? ' is-inactive' : ''}${complete ? ' is-complete' : ''}`}
+      className={`rt-block${inactive ? ' is-inactive' : ''}${complete ? ' is-complete' : ''}`}
       aria-label={`Routine ${routine.name}`}
       data-routine={routine.id}
     >
-      <header className="routine-top">
-        <span className="routine-mark" aria-hidden="true"><IconStack size={16} /></span>
-        <div className="routine-id">
-          <h3 className="routine-name">{routine.name}</h3>
-          <p className="routine-sub">
-            {routineKindLabel(routine) !== routine.name && <span>{routineKindLabel(routine)}</span>}
-            <span>{members.length} habit{members.length === 1 ? '' : 's'}</span>
+      <header className={`rt-head${complete ? ' is-complete' : ''}`}>
+        <span className="rt-mark" aria-hidden="true"><IconStack size={16} /></span>
+        <div className="rt-id">
+          <h3 className="rt-title">{routine.name}</h3>
+          <p className="rt-sub">
+            {kindLabel(routine) !== routine.name && <span>{kindLabel(routine)}</span>}
+            <span>{members.length} step{members.length === 1 ? '' : 's'}</span>
             {inactive && <span className="status-pill" data-tone="neutral">Archived</span>}
           </p>
         </div>
-        <div className="routine-score">
-          <strong className="tnum">{stats.pct == null ? '—' : `${stats.pct}%`}</strong>
-          <span className="tiny muted tnum">{stats.total ? `${stats.done}/${stats.total} today` : 'nothing today'}</span>
+        <div className="rt-state" aria-live="polite">
+          <span className="rt-state__num tnum">{stats.done}<sup>/{stats.total}</sup></span>
+          <span className="rt-state__label">{complete ? 'complete' : stats.total ? 'today' : 'rest day'}</span>
         </div>
       </header>
 
       {stats.total > 0 && (
-        <Meter pct={stats.pct ?? 0} tone={complete ? 'good' : undefined} thin label={`${routine.name} ${stats.pct ?? 0}% complete today`} />
+        <div className="rt-rail" aria-hidden="true">
+          <div className="rt-rail__fill" style={{ width: `${pct}%` }} />
+        </div>
       )}
 
       {members.length === 0 ? (
-        <p className="empty-note">This routine has no habits yet — edit it to add some.</p>
+        <div style={{ padding: 18 }}>
+          <p className="empty-note">This routine has no steps yet — edit it to add some.</p>
+        </div>
       ) : (
-        <ol className="routine-habits" aria-label={`${routine.name} habits`}>
-          {members.map((h) => {
+        <ol className="rt-steps" aria-label={`${routine.name} steps`}>
+          {members.map((h, i) => {
             const scheduled = scheduledIds.has(h.id)
             const done = scheduled && isDone(state, h.id, date)
+            const off = !scheduled
+            const isCurrent = currentId === h.id
             return (
-              <li key={h.id} className="routine-habit" data-done={done} data-off={!scheduled}>
-                <button
-                  type="button"
-                  className="routine-tick"
-                  aria-pressed={done}
-                  aria-label={scheduled ? `Mark ${h.name} ${done ? 'not done' : 'done'} in ${routine.name}` : `${h.name} is not scheduled today`}
-                  disabled={!scheduled || inactive}
-                  onClick={() => toggleStep(h, done)}
-                >
-                  <span className="routine-ring" aria-hidden="true">{done && <IconCheck size={12} />}</span>
-                  <span className="routine-habit-name">{h.name}</span>
-                  <span className="routine-habit-meta">{scheduled ? categoryOf(h.category).label : 'Not scheduled today'}</span>
-                </button>
+              <li
+                key={h.id}
+                className={`rt-step${done ? ' is-done' : ''}${off ? ' is-off' : ''}${isCurrent ? ' is-current' : ''}`}
+              >
+                <span className="rt-step__num" aria-hidden="true">
+                  <span className="rt-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="rt-ico"><IconCheck size={12} /></span>
+                </span>
+                <div className="rt-step__body">
+                  <span className="rt-step__name">
+                    <span className="rt-step__dot" style={{ background: `var(${categoryOf(h.category).cssVar})` }} aria-hidden="true" />
+                    <Link to={`habits/${h.id}`}>{h.name}</Link>
+                  </span>
+                  <p className="rt-step__meta">
+                    {done ? 'Complete'
+                      : isCurrent ? 'Next up'
+                      : off ? 'Not scheduled today'
+                      : scheduled ? 'Waiting' : ''}
+                  </p>
+                </div>
+                <span className="rt-step__action">
+                  <Button
+                    type="button"
+                    variant={done ? 'quiet' : (isCurrent ? 'secondary' : 'quiet')}
+                    size="sm"
+                    className={`rt-step__btn${done ? ' is-done' : ''}${isCurrent ? ' is-current' : ''}${off ? ' is-off' : ''}`}
+                    aria-pressed={done}
+                    aria-label={scheduled
+                      ? `Mark ${h.name} as ${done ? 'not complete' : 'complete'} in ${routine.name}`
+                      : `${h.name} is not scheduled today`}
+                    disabled={!scheduled || inactive}
+                    onClick={() => toggleStep(h)}
+                    icon={done ? <IconCheck size={12} aria-hidden="true" /> : null}
+                  >
+                    {done ? 'Done' : isCurrent ? 'Do it' : off ? '—' : 'Start'}
+                  </Button>
+                </span>
               </li>
             )
           })}
         </ol>
       )}
 
-      <footer className="routine-foot">
-        {rate && rate.days > 0 && (
-          <span className="tiny muted tnum">Fully done {rate.full} of the last {rate.days} day{rate.days === 1 ? '' : 's'}</span>
+      {complete && stats.total > 0 && (
+        <div className="rt-complete" role="status">All steps complete</div>
+      )}
+
+      <footer className="rt-foot">
+        <span className="rt-foot__meta">
+          {rate && rate.days > 0
+            ? `Fully done ${rate.full} of the last ${rate.days} day${rate.days === 1 ? '' : 's'}`
+            : members.length === 0 ? 'Add steps to begin.' : 'No history yet.'}
+        </span>
+        {onMove && count > 1 && !inactive && (
+          <span className="rt-move" role="group" aria-label={`Reorder ${routine.name}`}>
+            <IconButton size="sm" onClick={() => onMove(routine, -1)} disabled={index === 0} label={`Move ${routine.name} earlier`} icon={<span aria-hidden="true">↑</span>} />
+            <IconButton size="sm" onClick={() => onMove(routine, 1)} disabled={index === count - 1} label={`Move ${routine.name} later`} icon={<span aria-hidden="true">↓</span>} />
+          </span>
         )}
-        <span className="routine-spacer" />
-        {onMove && count > 1 && (
-          <>
-            <button type="button" className="btn ghost sm" onClick={() => onMove(routine, -1)} disabled={index === 0} aria-label={`Move ${routine.name} up`}>↑</button>
-            <button type="button" className="btn ghost sm" onClick={() => onMove(routine, 1)} disabled={index === count - 1} aria-label={`Move ${routine.name} down`}>↓</button>
-          </>
-        )}
-        <button type="button" className="btn ghost sm" onClick={() => onEdit(routine)} aria-label={`Edit routine ${routine.name}`}><IconPencil size={14} /> Edit</button>
-        <button type="button" className="btn ghost sm" onClick={toggleActive}>{inactive ? 'Activate' : 'Archive'}</button>
-        <button type="button" className="btn ghost sm danger-text" onClick={remove} aria-label={`Delete routine ${routine.name}`}><IconTrash size={14} /></button>
+        <Button variant="quiet" size="sm" onClick={() => onEdit(routine)} aria-label={`Edit routine ${routine.name}`} icon={<IconPencil size={13} aria-hidden="true" />}>
+          Edit
+        </Button>
+        <Button variant="quiet" size="sm" onClick={toggleActive}>{inactive ? 'Activate' : 'Archive'}</Button>
+        <Button variant="danger" size="sm" onClick={remove} aria-label={`Delete routine ${routine.name}`} icon={<IconTrash size={13} aria-hidden="true" />} />
       </footer>
     </article>
   )
 }
 
-/* ------------------------------------------------------------
-   ROUTINE FORM — name, type, members, order (existing reducer)
-   ------------------------------------------------------------ */
+/* ---------- Routine form (existing model preserved) ---------- */
 export function RoutineForm({ open, onClose, editing }) {
   const { state, dispatch } = useStore()
   const habits = activeHabits(state)
@@ -152,9 +207,7 @@ export function RoutineForm({ open, onClose, editing }) {
       setKind(editing.kind || 'custom')
       setPicked(editing.habitIds || [])
     } else {
-      setName('')
-      setKind('morning')
-      setPicked([])
+      setName(''); setKind('morning'); setPicked([])
     }
   }, [open, editing])
 
@@ -166,15 +219,12 @@ export function RoutineForm({ open, onClose, editing }) {
     else dispatch({ type: 'ADD_ROUTINE', routine: { name: trimmed, kind, habitIds: picked } })
     onClose()
   }
-
   const move = (id, dir) => {
     setPicked((list) => {
       const i = list.indexOf(id)
       const j = i + dir
       if (i < 0 || j < 0 || j >= list.length) return list
-      const next = [...list]
-      ;[next[i], next[j]] = [next[j], next[i]]
-      return next
+      const next = [...list];[next[i], next[j]] = [next[j], next[i]]; return next
     })
   }
 
@@ -186,21 +236,20 @@ export function RoutineForm({ open, onClose, editing }) {
       labelledBy="routine-form-title"
       footer={
         <>
-          <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={save} disabled={!name.trim() || !picked.length}>
+          <Button variant="quiet" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={save} disabled={!name.trim() || !picked.length}>
             {editing ? 'Save routine' : 'Create routine'}
-          </button>
+          </Button>
         </>
       }
     >
       <div className="stack" style={{ gap: 18 }}>
         <div>
-          <label className="field-label" htmlFor="routine-name">Routine name</label>
-          <input id="routine-name" className="field" autoFocus value={name} maxLength={60}
+          <label className="field-label" htmlFor="rt-name">Routine name</label>
+          <input id="rt-name" className="field" autoFocus value={name} maxLength={60}
             placeholder="e.g. Morning reset" onChange={(e) => setName(e.target.value)} />
           {error && <p style={{ color: 'var(--bad)', fontSize: 'var(--fs-sm)', marginTop: 6 }}>{error}</p>}
         </div>
-
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
           <legend className="field-label">Type</legend>
           <div className="filter-bar" role="group" aria-label="Routine type">
@@ -209,21 +258,21 @@ export function RoutineForm({ open, onClose, editing }) {
             ))}
           </div>
         </fieldset>
-
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-          <legend className="field-label">Habits in this routine</legend>
+          <legend className="field-label">Steps in this routine</legend>
           {habits.length === 0 ? (
             <p className="empty-note">Add habits first — then you can stack them.</p>
           ) : (
             <>
               <div className="wrap-gap">
                 {habits.map((h) => (
-                  <button key={h.id} type="button" className="btn sm" aria-pressed={picked.includes(h.id)}
-                    style={{ borderRadius: 999, borderColor: picked.includes(h.id) ? 'var(--accent-1)' : undefined, background: picked.includes(h.id) ? 'var(--accent-soft)' : undefined }}
-                    onClick={() => setPicked((p) => (p.includes(h.id) ? p.filter((x) => x !== h.id) : [...p, h.id]))}>
-                    {picked.includes(h.id) && <IconCheck size={13} />}
+                  <Button key={h.id} type="button" variant="secondary" size="sm" aria-pressed={picked.includes(h.id)}
+                    className="rt-form-pick"
+                    style={{ borderRadius: 99, borderColor: picked.includes(h.id) ? 'var(--accent)' : undefined, background: picked.includes(h.id) ? 'color-mix(in srgb,var(--accent) 10%,transparent)' : undefined }}
+                    onClick={() => setPicked((p) => (p.includes(h.id) ? p.filter((x) => x !== h.id) : [...p, h.id]))}
+                    icon={picked.includes(h.id) ? <IconCheck size={13} aria-hidden="true" /> : null}>
                     {h.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
               {picked.length > 0 && (
@@ -233,15 +282,12 @@ export function RoutineForm({ open, onClose, editing }) {
                     const h = habits.find((x) => x.id === id)
                     if (!h) return null
                     return (
-                      <div key={id} className="routine-order-row">
-                        <span className="tiny muted tnum" style={{ width: 18 }}>{i + 1}</span>
+                      <div key={id} className="rt-form-row">
+                        <span className="tiny muted tnum" style={{ width: 22 }}>{String(i + 1).padStart(2, '0')}</span>
                         <span style={{ flex: 1, minWidth: 0 }} className="ellipsis">{h.name}</span>
-                        <button className="btn ghost sm" aria-label={`Move ${h.name} earlier`} disabled={i === 0} onClick={() => move(id, -1)}>↑</button>
-                        <button className="btn ghost sm" aria-label={`Move ${h.name} later`} disabled={i === picked.length - 1} onClick={() => move(id, 1)}>↓</button>
-                        <button className="btn ghost icon" aria-label={`Remove ${h.name} from routine`}
-                          onClick={() => setPicked((p) => p.filter((x) => x !== id))}>
-                          <IconX size={14} />
-                        </button>
+                        <IconButton size="sm" label={`Move ${h.name} earlier`} disabled={i === 0} onClick={() => move(id, -1)} icon={<span aria-hidden="true">↑</span>} />
+                        <IconButton size="sm" label={`Move ${h.name} later`} disabled={i === picked.length - 1} onClick={() => move(id, 1)} icon={<span aria-hidden="true">↓</span>} />
+                        <IconButton size="sm" label={`Remove ${h.name} from routine`} onClick={() => setPicked((p) => p.filter((x) => x !== id))} icon={<IconX size={14} aria-hidden="true" />} />
                       </div>
                     )
                   })}
@@ -255,12 +301,13 @@ export function RoutineForm({ open, onClose, editing }) {
   )
 }
 
-/* ------------------------------------------------------------
-   ROUTINES VIEW — the Habits › Routines tab
-   ------------------------------------------------------------ */
+/* ---------- Routines view (Habits › Routines) ---------- */
 export default function RoutinesView({ onNew, onEdit }) {
   const { state, dispatch } = useStore()
-  const all = [...(state.routines || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  const all = useMemo(
+    () => [...(state.routines || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [state.routines],
+  )
   const live = all.filter((r) => r.active !== false)
   const archived = all.filter((r) => r.active === false)
   const habits = activeHabits(state)
@@ -276,33 +323,36 @@ export default function RoutinesView({ onNew, onEdit }) {
 
   if (all.length === 0) {
     return (
-      <section className="habits-empty card" aria-label="No routines">
-        <h2 className="empty-title">No routines yet</h2>
-        <p className="empty-sub">
+      <section className="rt-empty" aria-label="No routines">
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--surface-2)', display: 'grid', placeItems: 'center', color: 'var(--text-2)' }}>
+          <IconStack size={20} />
+        </div>
+        <strong>No routines yet</strong>
+        <p>
           {habits.length
-            ? 'Stack a few habits into a morning reset, a workout block or a wind-down. A routine shows total progress, not just individual ticks.'
+            ? 'Stack a few habits into a morning reset, workout block or wind-down. Steps stay in order and progress is shared with Today.'
             : 'Add a couple of habits first, then stack them into a routine.'}
         </p>
-        <div className="empty-actions">
-          <button type="button" className="btn primary" onClick={onNew} disabled={!habits.length}>Build a routine</button>
-        </div>
+        <Button type="button" variant="primary" onClick={onNew} disabled={!habits.length}>
+          Create routine
+        </Button>
       </section>
     )
   }
 
   return (
-    <div className="routine-list">
+    <div className="rt" id="routines-screen">
       {live.map((r, i) => (
-        <RoutineCard key={r.id} routine={r} index={i} count={live.length} onEdit={onEdit} onMove={move} />
+        <RoutineBlock key={r.id} routine={r} index={i} count={live.length} onEdit={onEdit} onMove={move} />
       ))}
       {archived.length > 0 && (
-        <details className="routine-archive">
+        <details className="rt-archive">
           <summary>
             <span>Archived routines ({archived.length})</span>
-            <IconChevronRight size={15} aria-hidden="true" />
+            <IconChevronRight size={14} aria-hidden="true" />
           </summary>
-          <div className="routine-list">
-            {archived.map((r) => <RoutineCard key={r.id} routine={r} onEdit={onEdit} />)}
+          <div style={{ display: 'grid', gap: 12, marginTop: 10 }}>
+            {archived.map((r) => <RoutineBlock key={r.id} routine={r} onEdit={onEdit} />)}
           </div>
         </details>
       )}

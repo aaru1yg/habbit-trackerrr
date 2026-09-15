@@ -4,9 +4,7 @@
   grid-column: 1 / -1;
   min-width: 0;
   border-color: color-mix(in srgb, var(--accent-1) 22%, var(--border));
-  background:
-    radial-gradient(75% 125% at 0% 0%, color-mix(in srgb, var(--accent-1) 10%, transparent), transparent 68%),
-    var(--surface);
+  background: var(--surface);
 }
 
 .work-capacity-visual.is-compact {

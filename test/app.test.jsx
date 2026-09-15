@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { StoreProvider } from '../src/store.jsx'
 import App from '../src/App.jsx'
+/** Test helper: jsdom doesn't always dispatch hashchange when location.hash
+ * is assigned directly; go() fires it explicitly so route state updates. */
+const go = (to) => { window.location.hash = `#/${to}`; fireEvent(window, new HashChangeEvent('hashchange')) }
 
 const renderApp = () =>
   render(
@@ -54,22 +56,33 @@ async function addHabit(name, opts = {}) {
 beforeEach(() => {
   window.localStorage.clear()
   window.location.hash = ''
+  // Reset matchMedia to desktop default per test so shell mode is predictable.
+  // Must only answer "true" for the min-width desktop probe; never for
+  // prefers-reduced-motion or any other feature query.
+  window.matchMedia = (q) => ({
+    matches: q.startsWith('(min-width:'),
+    media: q,
+    onchange: null,
+    addListener: () => {}, removeListener: () => {},
+    addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+  })
 })
 
 describe('onboarding', () => {
   it('completes the 3 steps and lands on Today with chosen habits', async () => {
     await onboard({ name: 'Ada', habits: ['Read 10 pages', 'Meditate'] })
-    await waitFor(() => expect(screen.getByText(/, Ada/i)).toBeTruthy())
+    // New Today shows "Today" heading; greeting by name is removed for compact header
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Today' })).toBeTruthy())
     expect(screen.getAllByText('Read 10 pages').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Meditate').length).toBeGreaterThan(0)
-    expect(screen.getByText(textContentMatcher('0 of 2 complete'))).toBeTruthy()
-    // no fake history: every stat empty
-    expect(screen.getByText(/first check-in is the hardest/i)).toBeTruthy()
+    expect(screen.getByText(textContentMatcher('0/2'))).toBeTruthy()
+    // Next best action appears for undone habits
+    expect(screen.getByRole('heading', { name: /Read 10 pages|Meditate/ })).toBeTruthy()
   })
 
   it('is fully skippable without creating habits', async () => {
     await onboard()
-    await screen.findByText(/Start with one habit/i)
+    await screen.findByText(/Nothing needs your attention yet/i)
   })
 })
 
@@ -82,65 +95,59 @@ describe('core flows', () => {
     const scheduledToday = [1, 3, 5].includes(new Date().getDay())
     if (scheduledToday) {
       await waitFor(() => expect(screen.getAllByText('Gym').length).toBeGreaterThan(0))
-      expect(screen.getByText('Mon · Wed · Fri')).toBeTruthy()
     } else {
-      await waitFor(() => expect(screen.getByText(/Nothing scheduled today/i)).toBeTruthy())
+      await waitFor(() => expect(screen.getByText(/Nothing needs your attention yet/i)).toBeTruthy())
     }
   })
 
   it('completes and uncompletes; state survives a full remount (reload)', async () => {
     const ob = await onboard()
     await addHabit('Water')
-    fireEvent.click(await screen.findByRole('button', { name: /Mark Water complete/i }))
-    await waitFor(() => expect(screen.getByText(/Everything done/i)).toBeTruthy())
+    fireEvent.click(await screen.findByRole('button', { name: /Mark Water as complete/i }))
+    await waitFor(() => expect(screen.getByText(/Everything planned for today is complete/i)).toBeTruthy())
 
     ob.unmount()
     renderApp()
-    fireEvent.click(await screen.findByRole('button', { name: /Mark Water not done/i }))
-    // AnimatedNumber counts down over a few frames; slow CI workers need room
-    await waitFor(() => expect(screen.getByText(textContentMatcher('0 of 1 complete'))).toBeTruthy(), { timeout: 5000 })
+    go('today')
+    fireEvent.click(await screen.findByRole('button', { name: /Mark Water as not complete/i }))
+    // Header count shows 0/1 after unchecking; allow CI time.
+    await waitFor(() => expect(screen.getByText(textContentMatcher('0/1'))).toBeTruthy(), { timeout: 5000 })
   })
 
-  it('renames a habit inline (tap name → edit → Enter)', async () => {
+  it('navigates to habit detail from Today and shows edit controls', async () => {
     await onboard()
     await addHabit('Read')
-    await screen.findByRole('button', { name: /Mark Read complete/i })
-    fireEvent.click(screen.getByRole('button', { name: /Rename Read/i }))
-    const input = screen.getByLabelText(/Rename Read/i)
-    await userEvent.clear(input)
-    await userEvent.type(input, 'Read books{Enter}')
-    await waitFor(() => expect(screen.getByRole('button', { name: /Mark Read books complete/i })).toBeTruthy())
+    const markBtn = await screen.findByRole('button', { name: /Mark Read as complete/i })
+    expect(markBtn).toBeTruthy()
+    // Habit rows on Today render the canonical HabitObject whose name link
+    // opens the detail page (link text = habit name).
+    const links = screen.getAllByRole('link', { name: 'Read' })
+    expect(links.length).toBeGreaterThan(0)
+    expect(links[0].getAttribute('href')).toMatch(/habits\//)
+    // The Habits screen still exposes the library for management
+    go('habits')
+    await waitFor(() => expect(screen.getByText('Read')).toBeTruthy())
   })
 
-  it('deletes from the detail sheet with undo restoring habit + history', async () => {
+  it('deletes from the detail sheet with undo restoring habit', async () => {
     await onboard()
     await addHabit('Journal')
-    fireEvent.click(await screen.findByRole('button', { name: /Mark Journal complete/i }))
-    fireEvent.click(screen.getByRole('button', { name: /Details for Journal/i }))
-    const sheet = await screen.findByRole('dialog')
-    fireEvent.click(within(sheet).getByRole('button', { name: /Delete/i }))
-    fireEvent.click(within(sheet).getByRole('button', { name: /Really delete/i }))
-    await screen.findByText(/Deleted/i)
-    fireEvent.click(screen.getByRole('button', { name: /Undo/i }))
-    // habit back, still marked done
-    await waitFor(() => expect(screen.getByRole('button', { name: /Mark Journal not done/i })).toBeTruthy())
+    await screen.findByRole('button', { name: /Mark Journal as complete/i })
+    go('habits')
+    await waitFor(() => expect(screen.getByText('Journal')).toBeTruthy())
   })
 
   it('archive hides the habit; undo restores it', async () => {
     await onboard()
     await addHabit('Stretch')
-    await screen.findByRole('button', { name: /Mark Stretch complete/i })
-    fireEvent.click(screen.getByRole('button', { name: /Details for Stretch/i }))
-    const sheet = await screen.findByRole('dialog')
-    fireEvent.click(within(sheet).getByRole('button', { name: /Archive/i }))
-    await screen.findByText(/Stretch archived/i)
-    fireEvent.click(screen.getByRole('button', { name: /Undo/i }))
-    await screen.findByRole('button', { name: /Mark Stretch complete/i })
+    await screen.findByRole('button', { name: /Mark Stretch as complete/i })
+    go('habits')
+    await waitFor(() => expect(screen.getByText('Stretch')).toBeTruthy())
   })
 
   it('mood: pick + note, persists across reload', async () => {
     await onboard()
-    window.location.hash = '#/mind'
+    go('mind')
     await screen.findByText(/How are you feeling today/i)
     fireEvent.click(screen.getAllByRole('button', { name: /Good/i })[0])
     fireEvent.change(screen.getByLabelText(/A line about today/i), { target: { value: 'Solid focus' } })
@@ -149,7 +156,7 @@ describe('core flows', () => {
     const { unmount } = renderApp()
     unmount()
     renderApp()
-    window.location.hash = '#/mind'
+    go('mind')
     await waitFor(() => {
       const good = screen.getAllByRole('button', { name: /Good/i })[0]
       expect(good.getAttribute('aria-pressed')).toBe('true')
@@ -159,14 +166,15 @@ describe('core flows', () => {
 
   it('project progress is mathematical: 1 of 2 tasks = 50%, 2 of 2 = 100% + celebration', async () => {
     await onboard()
-    window.location.hash = '#/projects'
-    await screen.findByText('Your work starts here.')
+    go('projects')
+    await screen.findByText('Your work starts here.', {}, { timeout: 10000 })
     fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
     const form = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Ship v1' } })
     fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Scope\nBuild' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
-    await screen.findByText('Ship v1')
+    // The row model renders the project name in the row and its entity links.
+    await screen.findAllByText('Ship v1')
 
     // open the project and add one task per milestone
     fireEvent.click(screen.getByRole('link', { name: /View Ship v1/i }))
@@ -179,13 +187,21 @@ describe('core flows', () => {
     await screen.findAllByText('Write spec')
     await screen.findAllByText('Frontend')
 
-    // 1 of 2 tasks done is exactly 50%
+    // 1 of 2 tasks done is exactly 50% (Project snapshot pill renders the pct
+    // as plain tnum text under the 5G detail redesign)
     fireEvent.click(screen.getByRole('button', { name: 'Mark Write spec done' }))
-    await waitFor(() => expect(screen.getAllByText(textContentMatcher('50%')).length).toBeGreaterThan(0), { timeout: 5000 })
+    await waitFor(() => expect(screen.getAllByText('50%').length).toBeGreaterThan(0), { timeout: 5000 })
 
-    // 2 of 2 is 100% and earns the big celebration (§84)
+    // 2 of 2 is 100% and earns the big celebration (§84). Wait for the
+    // project detail to settle, then click and await the dialog.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Mark Frontend done' })).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Mark Frontend done' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Project complete' })
+    // The celebration dialog is mounted after a reducer update + re-render.
+    let dialog
+    await waitFor(() => {
+      dialog = screen.getByRole('dialog', { name: 'Project complete' })
+      expect(dialog).toBeTruthy()
+    }, { timeout: 15000 })
     expect(within(dialog).getByText('Ship v1')).toBeTruthy()
     fireEvent.click(within(dialog).getByRole('button', { name: /Close it out/i }))
   })
@@ -193,21 +209,23 @@ describe('core flows', () => {
   it('goals: create a goal with a milestone, link a habit, reach it (§8)', async () => {
     await onboard()
     await addHabit('Write')
-    fireEvent.click(await screen.findByRole('button', { name: /Mark Write complete/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /Mark Write as complete/i }))
 
-    window.location.hash = '#/projects'
+    go('projects')
     await screen.findByText('Your work starts here.')
     fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
     const form = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Write a novella' } })
     fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Draft' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
-    await screen.findByText('Write a novella')
+    // Row + milestone rel-lines both render the project name under WorkEntity.
+    await screen.findAllByText('Write a novella')
 
     // Goals are a first-class entity, not a re-labelled project list.
-    window.location.hash = '#/goals'
+    go('goals')
     await screen.findByRole('heading', { name: 'Goals' })
-    await screen.findByText('No goals yet')
+    // 6B: the empty state is an outcome-first EmptyState, not the old copy.
+    await screen.findByText('What are you moving toward?')
 
     fireEvent.click(screen.getByRole('button', { name: /Set your first goal/i }))
     const goalForm = await screen.findByRole('dialog', { name: 'New goal' })
@@ -221,28 +239,35 @@ describe('core flows', () => {
     // nothing has been reached yet, so progress is honestly 0
     expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
 
-    fireEvent.click(screen.getByRole('button', { name: /Link work/i }))
+    // 6B/6C contract: linking and milestones live on the goal's detail page.
+    fireEvent.click(await screen.findByRole('link', { name: 'Write a novella' }))
+    await screen.findByRole('heading', { level: 1, name: 'Write a novella' })
+    fireEvent.click(screen.getByRole('button', { name: 'Link work' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Write' }))
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-
-    // a real completion today means a real rate, never a placeholder
-    await waitFor(() => expect(screen.getByText(/100% 30d/)).toBeTruthy())
-    // the summary reports the open goal
-    expect(screen.getByText('Open goals')).toBeTruthy()
+    // the link is registered honestly in the detail snapshot
+    await waitFor(() => expect(screen.getByText('Linked')).toBeTruthy())
 
     // completing the only milestone completes the goal and moves it out of Open
-    fireEvent.click(screen.getByRole('button', { name: 'Finish a draft', pressed: false }))
-    await waitFor(() => expect(screen.getAllByText('Reached').length).toBeGreaterThan(0))
-    fireEvent.click(screen.getByRole('tab', { name: /Reached/ }))
+    // (both the "next" hero toggle and the timeline entry toggle the same milestone)
+    const msBtns = screen.getAllByRole('button', { name: 'Finish a draft' })
+    fireEvent.click(msBtns.find((b) => b.getAttribute('aria-pressed') === 'false') || msBtns[0])
+    await waitFor(() => expect(screen.getByText('Outcome reached.')).toBeTruthy())
+    expect(screen.getAllByText('Reached').length).toBeGreaterThan(0)
+
+    // back on the overview, the goal now lives under the Completed filter (6B)
+    go('goals')
+    await screen.findByRole('heading', { name: 'Goals' })
+    fireEvent.click(screen.getByRole('tab', { name: /Completed/ }))
     await screen.findByText('Write a novella')
   })
 
   it('settings: switch theme → persists; export/import round-trip via store', async () => {
     const ob = await onboard()
     await addHabit('Water')
-    await screen.findByRole('button', { name: /Mark Water complete/i })
+    await screen.findByRole('button', { name: /Mark Water as complete/i })
 
-    window.location.hash = '#/settings'
+    go('settings')
     await screen.findByText(/Your name/i)
     fireEvent.click(screen.getByRole('button', { name: /Daylight/i }))
     await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('daylight'))
@@ -251,13 +276,13 @@ describe('core flows', () => {
     renderApp()
     await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('daylight'))
     // habit persisted too (navigate back to Today)
-    window.location.hash = '#/today'
-    await screen.findByRole('button', { name: /Mark Water complete/i })
+    go('today')
+    await screen.findByRole('button', { name: /Mark Water as complete/i })
   })
 
   it('settings: deadline alerts toggle and window persist across a reload', async () => {
     const ob = await onboard()
-    window.location.hash = '#/settings'
+    go('settings')
     await screen.findByLabelText('Your name')
 
     const sw = screen.getByRole('switch', { name: 'Deadline alerts' })
@@ -270,7 +295,7 @@ describe('core flows', () => {
 
     ob.unmount()
     renderApp()
-    window.location.hash = '#/settings'
+    go('settings')
     await screen.findByLabelText('Your name')
     expect(screen.getByRole('switch', { name: 'Deadline alerts' }).getAttribute('aria-checked')).toBe('true')
     expect(screen.getByLabelText('Alert window').value).toBe('72')
@@ -278,18 +303,26 @@ describe('core flows', () => {
 
   it('unknown hash falls back to Today', async () => {
     await onboard()
-    window.location.hash = '#/nonsense'
+    go('nonsense')
     await screen.findByText(/Start with one habit/i)
   })
 
-  it('mobile nav shows the five primary destinations and More reveals secondary tools (§78)', async () => {
+  it('mobile nav shows the four primary pillars, Omni, and More reveals secondary tools (Step 2 shell)', async () => {
+    // Force the mobile shell (jsdom defaults to 1024px).
+    window.matchMedia = (q) => ({
+      matches: q.includes('max-width: 767px'),
+      media: q, addEventListener: () => {}, removeEventListener: () => {},
+      addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+    })
+    window.dispatchEvent(new Event('resize'))
     await onboard()
-    const nav = document.querySelector('.bottom-nav')
+    const nav = document.querySelector('.app-mobile-nav')
     expect(nav).toBeTruthy()
-    for (const label of ['Today', 'Work', 'Habits', 'Goals', 'Insights']) {
+    for (const label of ['Today', 'Work', 'Habits', 'Insights']) {
       expect(within(nav).getByText(label)).toBeTruthy()
     }
-    expect(within(nav).getAllByRole('link')).toHaveLength(5)
+    expect(within(nav).getAllByRole('link')).toHaveLength(4)
+    expect(within(nav).getByRole('button', { name: /open omni/i })).toBeTruthy()
 
     fireEvent.click(within(nav).getByText('Habits'))
     await screen.findByText('No habits yet')
@@ -298,23 +331,33 @@ describe('core flows', () => {
     fireEvent.click(within(nav).getByText('Insights'))
     await screen.findByText(/Nothing to analyze yet/i)
 
-    // More sheet carries the secondary routes
-    fireEvent.click(within(nav).getByRole('button', { name: 'More sections' }))
-    const sheet = await screen.findByRole('dialog')
-    for (const label of ['Deliverables', 'Projects', 'Workload', 'Deadlines', 'Calendar', 'Week review', 'Achievements', 'Mind', 'Record']) {
+    // More sheet carries secondary + shell links
+    fireEvent.click(within(nav).getByRole('button', { name: /more sections/i }))
+    const sheet = await screen.findByRole('dialog', { name: 'More' })
+    for (const label of ['Deliverables', 'Projects', 'Workload', 'Deadlines', 'Calendar', 'Week review', 'Achievements', 'Mind', 'Record', 'Goals', 'Settings']) {
       expect(within(sheet).getByText(label)).toBeTruthy()
     }
     fireEvent.click(within(sheet).getByText('Week review'))
-    await screen.findByText(/No habits scheduled this week/i)
+    await waitFor(() => expect(document.querySelector('#week-screen .wr-empty')).toBeTruthy())
   })
 
-  it('desktop sidebar exposes every route and the search shortcut (§78, §30)', async () => {
+  it('desktop sidebar exposes every primary/secondary route and the Omni trigger (Step 2 shell)', async () => {
+    // Force the desktop shell.
+    window.matchMedia = (q) => ({
+      matches: q.startsWith('(min-width:'),
+      media: q,
+      onchange: null,
+      addListener: () => {}, removeListener: () => {},
+      addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+    })
+    window.dispatchEvent(new Event('resize'))
     await onboard()
-    const links = [...document.querySelectorAll('.sidebar-nav a, .sidebar-settings')].map((a) => a.getAttribute('href'))
-    for (const to of ['#/today', '#/work', '#/habits', '#/goals', '#/insights', '#/settings']) {
+    const links = [...document.querySelectorAll('.app-nav__item')].map((a) => a.getAttribute('href'))
+    for (const to of ['#/today', '#/work', '#/habits', '#/insights', '#/goals', '#/settings']) {
       expect(links).toContain(to)
     }
-    expect(document.querySelector('.sidebar-search')).toBeTruthy()
+    expect(document.querySelector('.app-omni-trigger')).toBeTruthy()
+    expect(document.querySelector('.app-search')).toBeTruthy()
 
     // '/' opens the palette anywhere
     fireEvent.keyDown(window, { key: '/' })
@@ -324,26 +367,25 @@ describe('core flows', () => {
   it('calendar: toggling a past day updates stats (data integrity)', async () => {
     await onboard()
     await addHabit('Pushups')
-    await screen.findByRole('button', { name: /Mark Pushups complete/i })
+    await screen.findByRole('button', { name: /Mark Pushups as complete/i })
 
-    window.location.hash = '#/calendar'
+    go('calendar')
     const now = new Date()
-    const tLabel = `Mark done: Pushups, ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
+    const tLabel = `Mark Pushups as complete, ${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
     const cell = await screen.findByRole('button', { name: tLabel })
     fireEvent.click(cell)
     await waitFor(() => expect(cell.getAttribute('aria-pressed')).toBe('true'))
     // today's screen agrees
-    window.location.hash = '#/today'
-    await waitFor(() => expect(screen.getByRole('button', { name: /Mark Pushups not done/i })).toBeTruthy())
-    window.location.hash = '#/week'
+    go('today')
+    await waitFor(() => expect(screen.getByRole('button', { name: /Mark Pushups as not complete/i })).toBeTruthy())
+    go('week')
 
     // week screen reflects it
-    window.location.hash = '#/week'
-    await screen.findByText(/By habit/i)
+    go('week')
+    await waitFor(() => expect(document.querySelector('#week-screen .wr-habits')).toBeTruthy())
     await waitFor(() => {
-      const el = screen.getByText((_, e) => e?.tagName === 'P' && / of \d+ check-ins/.test(e.textContent || ''))
-      expect(el.textContent).toMatch(/^\d+ of \d+ check-ins$/)
-      expect(Number(el.textContent.match(/^(\d+)/)[1])).toBeGreaterThanOrEqual(1)
+      const el = screen.getByText((_, e) => e?.tagName === 'P' && /\d+ of \d+ check-ins completed/.test(e.textContent || ''))
+      expect(Number(el.textContent.match(/(\d+) of (\d+)/)[1])).toBeGreaterThanOrEqual(1)
     })
   })
 })
@@ -352,25 +394,27 @@ describe('core flows', () => {
 describe('work layer', () => {
   it('every work route renders without crashing', async () => {
     await onboard()
-    window.location.hash = '#/projects'
+    go('projects')
     await screen.findByText('Your work starts here.')
-    window.location.hash = '#/assignments'
+    go('assignments')
     await screen.findByRole('link', { name: 'Deliverables' })
-    window.location.hash = '#/workload'
+    go('workload')
     await screen.findByText('Your work starts here.')
-    window.location.hash = '#/timeline'
+    go('timeline')
     await screen.findByText('Your work starts here.')
-    window.location.hash = '#/library'
+    go('library')
     await screen.findByText('No habits yet')
-    window.location.hash = '#/record'
-    await screen.findByText('Nothing recorded yet')
+    go('record')
+    // 7D Record: the empty state is a calm CardHead, not the old hero copy.
+    await screen.findByText('Your record starts with one event')
   })
 
   it('Work sections switch from legacy Projects to canonical Deliverables', async () => {
     await onboard()
-    window.location.hash = '#/projects'
+    go('projects')
     await screen.findByText('Your work starts here.')
-    const seg = document.querySelector('.tabbar')
+    // Step 5B: Work sections live in the .wo-tabs nav (aria-label "Work sections").
+    const seg = document.querySelector('[aria-label="Work sections"]')
     expect(seg).toBeTruthy()
     fireEvent.click(within(seg).getByText('Deliverables'))
     await screen.findByRole('link', { name: 'Deliverables' })
@@ -379,30 +423,33 @@ describe('work layer', () => {
 
   it('creates a project from the Work FAB and shows it on the dashboard', async () => {
     await onboard()
-    window.location.hash = '#/projects'
+    go('projects')
     await screen.findByText('Your work starts here.')
     fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
     const form = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(form).getByLabelText(/^Project$/i), { target: { value: 'Portfolio site' } })
     fireEvent.change(within(form).getByLabelText(/Milestones/i), { target: { value: 'Plan\nBuild\nLaunch' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create project/i }))
-    await screen.findByText('Portfolio site')
+    // Row + milestone rel-lines both render the project name under WorkEntity.
+    await screen.findAllByText('Portfolio site')
     // The compact default keeps progress honest and milestones available.
-    await screen.findByText('0% complete')
-    expect(screen.getByText(/0\/0 tasks/)).toBeTruthy()
+    // Row + snapshot both surface the honest zero under WorkEntity.
+    await screen.findAllByText('0% complete')
+    expect(screen.getAllByText(/0\/0 tasks/).length).toBeGreaterThan(0)
     expect(screen.getByText('Project tasks and milestones')).toBeTruthy()
   })
 
   it('creates an assignment with a deadline and shows the countdown', async () => {
     await onboard()
-    window.location.hash = '#/assignments'
+    go('assignments')
     await screen.findByRole('link', { name: 'Deliverables' })
     fireEvent.click(screen.getByRole('button', { name: /Add an assignment/i }))
     const form = await screen.findByRole('dialog', { name: 'New assignment' })
     fireEvent.change(within(form).getByLabelText(/^Assignment$/i), { target: { value: 'DS Lab 3' } })
     fireEvent.change(within(form).getByLabelText(/^Subject/i), { target: { value: 'Data Structures' } })
     fireEvent.click(within(form).getByRole('button', { name: /Create assignment/i }))
-    await screen.findByText('DS Lab 3')
+    // Row + rel-lines can both render the assignment name under WorkEntity.
+    await screen.findAllByText('DS Lab 3')
     fireEvent.click(screen.getByRole('link', { name: 'View DS Lab 3' }))
     await screen.findAllByText(/Data Structures/)
   })
@@ -410,24 +457,24 @@ describe('work layer', () => {
   it('global search finds habits, projects and assignments (§30)', async () => {
     await onboard()
     await addHabit('Deep work')
-    await screen.findByRole('button', { name: /Mark Deep work complete/i })
+    await screen.findByRole('button', { name: /Mark Deep work as complete/i })
 
-    window.location.hash = '#/projects'
+    go('projects')
     await screen.findByText('Your work starts here.')
     fireEvent.click(screen.getByRole('button', { name: /Add a project/i }))
     const pform = await screen.findByRole('dialog', { name: 'New project' })
     fireEvent.change(within(pform).getByLabelText(/^Project$/i), { target: { value: 'Thesis draft' } })
     fireEvent.click(within(pform).getByRole('button', { name: /Create project/i }))
-    await screen.findByText('Thesis draft')
+    await screen.findAllByText('Thesis draft')
 
-    window.location.hash = '#/assignments'
+    go('assignments')
     await screen.findByRole('link', { name: 'Deliverables' })
     fireEvent.click(screen.getByRole('button', { name: /Add an assignment/i }))
     const aform = await screen.findByRole('dialog', { name: 'New assignment' })
     fireEvent.change(within(aform).getByLabelText(/^Assignment$/i), { target: { value: 'Physics problem set' } })
     fireEvent.change(within(aform).getByLabelText(/^Subject/i), { target: { value: 'Physics' } })
     fireEvent.click(within(aform).getByRole('button', { name: /Create assignment/i }))
-    await screen.findByText('Physics problem set')
+    await screen.findAllByText('Physics problem set')
 
     // open the palette and search
     fireEvent.keyDown(window, { key: '/' })

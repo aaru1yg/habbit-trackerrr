@@ -1,0 +1,14 @@
+/* ============================================================
+   HABIT OS — DESIGN TOKENS ENTRY (NEW SYSTEM)
+   Layer order: primitives → theme palettes → semantic mappings.
+
+   The legacy token file (../tokens.css) is imported AFTER this in
+   src/index.css so that existing screens — which still reference
+   legacy names like --bg, --surface, --accent-1, --fs-hero, etc. —
+   continue to render unchanged while the new system is built.
+   New UI MUST use the semantic names defined here.
+   ============================================================ */
+@import './primitives.css';
+@import '../themes/midnight.css';
+@import '../themes/daylight.css';
+@import './semantic.css';

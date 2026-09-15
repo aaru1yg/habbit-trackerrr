@@ -496,7 +496,7 @@ export function smartInsights(state, limit = 6) {
     if (last.score <= 45) {
       out.push({
         id: 'least-consistent', tone: 'warn', title: 'Needs support',
-        text: `${last.habit.name} scores ${last.score}/100 for consistency. Pairing it with ${ranked[0].habit.name} may make it easier to keep.`,
+        text: `${last.habit.name} scores ${last.score}/100 for consistency over the last 90 days.`,
         metric: `${last.score}`,
       })
     }

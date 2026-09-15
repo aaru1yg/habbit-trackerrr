@@ -41,7 +41,19 @@ export function Link({ to, children, className, onClick, ...rest }) {
       className={className}
       onClick={(e) => {
         onClick?.(e)
-        window.scrollTo({ top: 0 })
+        if (e.defaultPrevented) return
+        // jsdom and some environments don't fire hashchange for synthetic
+        // clicks on <a href="#/...">. Drive navigation through our API so
+        // tests and non-browser environments don't have to manually dispatch.
+        if (
+          !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey
+          && e.button === 0
+        ) {
+          e.preventDefault()
+          navigate(to)
+        } else {
+          window.scrollTo({ top: 0 })
+        }
       }}
       {...rest}
     >
@@ -54,7 +66,7 @@ export function Link({ to, children, className, onClick, ...rest }) {
 export const canonicalParent = (route) => {
   if (['projects', 'assignments', 'workload', 'timeline', 'work'].includes(route)) return 'work'
   if (['library', 'calendar', 'week', 'habits'].includes(route)) return 'habits'
-  if (['mind', 'record', 'achievements', 'insights'].includes(route)) return 'insights'
+  if (['mind', 'record', 'achievements', 'insights', 'analytics-lab'].includes(route)) return 'insights'
   return route
 }
 

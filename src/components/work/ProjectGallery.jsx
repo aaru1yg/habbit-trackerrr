@@ -58,7 +58,7 @@ export function ProjectGalleryCard({ row, now, index = 0 }) {
   return (
     <DepthCard
       as="li"
-      className="project-card gal-item"
+      className="gal-item"
       depth={(index % 4) + 1}
       max={5}
       aria-label={`Project ${project.name}`}

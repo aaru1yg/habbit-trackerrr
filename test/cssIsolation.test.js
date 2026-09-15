@@ -85,21 +85,23 @@ describe('stylesheet isolation', () => {
     expect(adaptive).toMatch(/\.lab-tl\{/)
   })
 
-  it('the Habits routines list uses its own step classes, not the Work timeline ones', () => {
+  it('the Habits routines list uses its own rt-* step classes, not the Work timeline .routine-step ones', () => {
     /* work.css is loaded globally and styles .routine-step as a timeline
-       node: a `::before` dot painted 25px to the LEFT of the row. Phase 5's
-       Routines subview reused the name for its habit rows, so every row grew
-       a stray dot outside the card (seen in real Chromium at 430×932). The
-       habit rows are .routine-habit now; the two names must stay apart. */
+       node (::before dot painted 25px LEFT of the row). Routines subview
+       must NOT reuse that class or any other "routine-" root that Work
+       already owns; Step 4G-2C renamed everything to the rt-* namespace
+       (.rt-step, .rt-step__num, .rt-steps, etc.). */
     const routines = readFileSync(join(process.cwd(), 'src', 'components', 'habits', 'Routines.jsx'), 'utf8')
-    const habits = strip(readFileSync(join(DIR, 'habits.css'), 'utf8'))
+    const rtCss = strip(readFileSync(join(DIR, 'habit-routines.css'), 'utf8'))
     const work = strip(readFileSync(join(DIR, 'work.css'), 'utf8'))
+    // Routines component must not use Work's .routine-step class.
     expect(routines).not.toMatch(/className="routine-steps?(-[\w-]+)?"/)
-    expect(routines).toMatch(/className="routine-habit"/)
-    expect(habits).not.toMatch(/\.routine-step\b/)
-    for (const cls of classesIn(habits)) {
-      if (!cls.startsWith('routine')) continue
-      expect(work, `.${cls} is styled by both habits.css and work.css`).not.toMatch(new RegExp(`\\.${cls}(?![\\w-])`))
-    }
+    // Routines should be using the Step 4G-2C rt-* namespace.
+    expect(routines).toMatch(/className="rt-steps"/)
+    expect(routines).toMatch(/className="rt-step/)
+    // The routines stylesheet owns rt-step; work.css must not style .rt-step.
+    expect(rtCss).toMatch(/\.rt-step\b/)
+    expect(work).not.toMatch(/\.rt-step(?![\w-])/)
+    expect(work).not.toMatch(/\.rt-steps(?![\w-])/)
   })
 })

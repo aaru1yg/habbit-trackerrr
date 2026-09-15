@@ -21,6 +21,7 @@ import {
 import { activeHabits, habitRate } from '../lib/stats.js'
 import { todayStr, subDaysStr } from '../lib/dates.js'
 import { IconProjects, IconPlus, IconSearch, IconX } from '../lib/icons.jsx'
+import '../components/work/WorkEntity.css'
 
 const SORTS = [
   { id: 'urgency', label: 'Urgency' },

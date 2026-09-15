@@ -20,8 +20,8 @@ export default function RoutineStrip({ date = todayStr(), limit = 3 }) {
   return (
     <div className="stack" style={{ gap: 10 }}>
       {routines.map(({ routine, stats }) => (
-        <div key={routine.id} className="routine-card">
-          <div className="routine-head" style={{ background: 'transparent', borderBottom: 'none', paddingBottom: 0 }}>
+        <div key={routine.id} className="rt-strip-card">
+          <div className="rt-strip-head" style={{ background: 'transparent', borderBottom: 'none', paddingBottom: 0 }}>
             <span style={{ color: 'var(--accent-2)', flex: 'none', display: 'grid', placeItems: 'center' }}>
               <IconStack size={17} />
             </span>

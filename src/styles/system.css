@@ -1,18 +1,6 @@
-/* ============================================================
-   HABIT OS — VISUAL SYSTEM
-   The product layer. Loaded after the primitives so it owns
-   the final look of every surface.
 
-   House rules
-   - Depth comes from borders + controlled shadows, never glow.
-   - Colour is earned: data, state and the one active element.
-   - Type does the talking — display sizes, tight tracking.
-   - Nothing here hardcodes a palette colour; tokens only.
-   ============================================================ */
 
-/* ------------------------------------------------------------
-   ATMOSPHERE — a quiet depth behind the content.
-   ------------------------------------------------------------ */
+
 .backdrop {
   background:
     radial-gradient(120% 80% at 82% -12%, color-mix(in srgb, var(--aurora-a) calc(var(--aurora-opacity) * 100%), transparent) 0%, transparent 58%),
@@ -60,9 +48,7 @@
   to { transform: translate3d(3vmax, -2vmax, 0) scale(1.1); }
 }
 
-/* ------------------------------------------------------------
-   TYPOGRAPHY
-   ------------------------------------------------------------ */
+
 .screen-title {
   font-family: var(--font-display);
   font-size: var(--fs-display);
@@ -103,7 +89,7 @@
   line-height: var(--lh-body);
 }
 
-/* ---- Editorial type utilities ---- */
+
 .overline {
   font-size: var(--fs-micro);
   font-weight: var(--fw-bold);
@@ -115,7 +101,7 @@
 .dim { color: var(--text-3); }
 .micro { font-size: var(--fs-micro); }
 
-/* A big, confident number for hero metrics & analytics. */
+
 .display-num {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
@@ -126,7 +112,7 @@
   line-height: 1;
 }
 
-/* Tabular figures everywhere a digit matters. */
+
 .tnum,
 .stat-cell .v,
 .work-fact-value,
@@ -140,9 +126,7 @@
   font-feature-settings: 'tnum' 1, 'ss01' 1;
 }
 
-/* ------------------------------------------------------------
-   SURFACES
-   ------------------------------------------------------------ */
+
 .card,
 .work-card,
 .routine-card,
@@ -169,8 +153,7 @@
   box-shadow: var(--e-card-hover), var(--e-hairline);
 }
 
-/* A card that is deliberately flat — used for the quiet rows and inline
-   metrics that should read as part of the page, not as a separate box. */
+
 .card.flat,
 .flat {
   background: var(--surface-inset);
@@ -189,7 +172,7 @@
   background: var(--surface-inset);
 }
 
-/* Card header: title left, action right, hairline rule beneath. */
+
 .card-head {
   position: relative;
   display: flex;
@@ -210,9 +193,7 @@
   background: var(--border);
 }
 
-/* ------------------------------------------------------------
-   BUTTONS
-   ------------------------------------------------------------ */
+
 .btn {
   min-width: var(--touch);
   min-height: var(--touch);
@@ -235,7 +216,6 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .btn:hover {
@@ -253,9 +233,7 @@
 }
 
 .btn.primary {
-  /* Solid colour beneath the gradient so the contrast audit (and any
-     tool that reads backgroundColor rather than the gradient image) can
-     still resolve the true foreground/background ratio. */
+
   background-color: var(--accent-1);
   background-image:
     linear-gradient(135deg, color-mix(in srgb, var(--accent-1) 92%, #fff) 0%, var(--accent-1) 46%, color-mix(in srgb, var(--accent-2) 46%, var(--accent-1)) 100%);
@@ -285,7 +263,7 @@
   color: var(--text);
 }
 
-/* Icon-only buttons stay square so the hit area is never a thin strip. */
+
 .btn.icon,
 .btn.ghost.icon {
   width: var(--touch);
@@ -311,7 +289,7 @@
   transform: translateY(-1px);
 }
 
-/* Segment control */
+
 .seg {
   background: var(--surface-inset);
   border: var(--bd-1) solid var(--border);
@@ -339,9 +317,7 @@
   box-shadow: var(--e-1);
 }
 
-/* ------------------------------------------------------------
-   NAVIGATION
-   ------------------------------------------------------------ */
+
 .sidebar {
   background: color-mix(in srgb, var(--bg-deep) 72%, transparent);
   border-right: var(--bd-1) solid var(--border);
@@ -435,7 +411,7 @@
   font-weight: var(--fw-semibold);
 }
 
-/* A 3px accent rail on the active item — the one clear "you are here". */
+
 .sidebar-nav a[aria-current='page']::before,
 .sidebar-settings[aria-current='page']::before {
   content: '';
@@ -499,9 +475,7 @@
   color: var(--accent-1-lift);
 }
 
-/* ------------------------------------------------------------
-   TODAY — the command center
-   ------------------------------------------------------------ */
+
 .today-head .screen-title {
   font-size: var(--fs-hero);
   letter-spacing: -0.04em;
@@ -626,70 +600,8 @@
   content: none;
 }
 
-.today-section .habit-row {
-  position: relative;
-  overflow: hidden;
-  min-height: 68px;
-  background: var(--surface-inset);
-  border: var(--bd-1) solid var(--border);
-  border-radius: var(--r-md);
-  box-shadow: none;
-  transition: border-color var(--dur-2) var(--ease-out), background var(--dur-2) var(--ease-out);
-}
-
-.today-section .habit-row + .habit-row {
-  margin-top: 8px;
-}
-
-/* A single 3px rail carries the category — no glow, no gradient wash. */
-.today-section .habit-row::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 12px;
-  bottom: 12px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--habit-cat, var(--accent-1));
-  opacity: 0.85;
-}
-
-.today-section .habit-row[data-category='fitness'] { --habit-cat: var(--cat-fitness); }
-.today-section .habit-row[data-category='health'] { --habit-cat: var(--cat-health); }
-.today-section .habit-row[data-category='mind'] { --habit-cat: var(--cat-mind); }
-.today-section .habit-row[data-category='learning'] { --habit-cat: var(--cat-learning); }
-.today-section .habit-row[data-category='creative'] { --habit-cat: var(--cat-creative); }
-.today-section .habit-row[data-category='social'] { --habit-cat: var(--cat-social); }
-.today-section .habit-row[data-category='finance'] { --habit-cat: var(--cat-finance); }
-.today-section .habit-row[data-category='productivity'] { --habit-cat: var(--cat-productivity); }
-
-.today-section .habit-row:hover {
-  transform: none;
-  border-color: var(--border-2);
-}
-
-.today-section .habit-row.done {
-  background: var(--good-soft);
-  border-color: color-mix(in srgb, var(--good) 38%, var(--border));
-}
-
-.today-section .habit-row.done::after {
-  content: none;
-}
-
 .today-section .check-btn {
   border-radius: 50%;
-}
-
-.today-section .habit-row.done .check-btn {
-  background: var(--good);
-  border-color: transparent;
-  color: var(--bg-deep);
-}
-
-.today-section .habit-name {
-  font-weight: var(--fw-semibold);
-  letter-spacing: var(--tr-body);
 }
 
 .today-work {
@@ -759,9 +671,7 @@
   color: var(--bad);
 }
 
-/* ------------------------------------------------------------
-   INSIGHTS — an editorial grid, not a card stack
-   ------------------------------------------------------------ */
+
 .insights-layout {
   gap: var(--space-2);
 }
@@ -783,9 +693,7 @@
   box-shadow: var(--e-1);
 }
 
-/* The two-way view switch plus the separate Lab entry, side by side. The
-   switch keeps its own role="group" so its accessible name stays
-   "Insights view" and still describes exactly two choices. */
+
 .insights-view-row {
   display: flex;
   gap: 8px;
@@ -887,9 +795,8 @@
   min-width: 72px;
 }
 
-/* Performance rows */
-/* Narrow screens keep the name + bar and drop to two columns; the wider
-   four-column table only appears once it genuinely fits. */
+
+
 .insights-performance .perf-row {
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   border-bottom: var(--bd-1) solid var(--border);
@@ -955,9 +862,7 @@
   padding: var(--space-3) var(--space-2);
 }
 
-/* ------------------------------------------------------------
-   HEATMAP
-   ------------------------------------------------------------ */
+
 .hm-day,
 .hm-cell {
   border-radius: 5px;
@@ -1010,9 +915,7 @@
   color: var(--text-3);
 }
 
-/* ------------------------------------------------------------
-   CALENDAR
-   ------------------------------------------------------------ */
+
 .calendar-matrix-card {
   border-top: 3px solid var(--accent-2);
 }
@@ -1150,7 +1053,7 @@
   border: 2px solid var(--accent-2);
 }
 
-/* Year overview cells */
+
 .mini-month {
   display: flex;
   flex-direction: column;
@@ -1227,9 +1130,7 @@
   opacity: 0.65;
 }
 
-/* ------------------------------------------------------------
-   WORK — projects, assignments, workload
-   ------------------------------------------------------------ */
+
 .work-card {
   background: var(--surface);
   border: var(--bd-1) solid var(--border);
@@ -1513,9 +1414,7 @@
   gap: var(--space-15);
 }
 
-/* ------------------------------------------------------------
-   MOOD / LEVEL CONTROLS
-   ------------------------------------------------------------ */
+
 .mood-btn {
   min-width: var(--touch);
   min-height: var(--touch);
@@ -1566,9 +1465,7 @@
   background: var(--surface-inset);
 }
 
-/* ------------------------------------------------------------
-   ACHIEVEMENTS
-   ------------------------------------------------------------ */
+
 .badge {
   background: var(--surface-inset);
   border: var(--bd-1) solid var(--border);
@@ -1591,9 +1488,7 @@
   background: transparent;
 }
 
-/* ------------------------------------------------------------
-   SHEETS + FIELDS
-   ------------------------------------------------------------ */
+
 .sheet {
   background: var(--surface-solid);
   border: var(--bd-1) solid var(--border);
@@ -1625,16 +1520,14 @@
   background: var(--surface);
 }
 
-/* ------------------------------------------------------------
-   EMPTY STATES
-   ------------------------------------------------------------ */
+
 .empty {
   text-align: center;
   padding: var(--space-4) var(--space-3);
   position: relative;
 }
 
-/* A quiet radial glow behind the art so the image sits in the page, not on it. */
+
 .empty::before {
   content: '';
   position: absolute;
@@ -1684,9 +1577,7 @@
   margin-top: var(--space-2);
 }
 
-/* ------------------------------------------------------------
-   RESPONSIVE
-   ------------------------------------------------------------ */
+
 @media (max-width: 900px) {
   .insights-trend,
   .insights-compare,
@@ -1738,40 +1629,15 @@
   }
 }
 
-/* ------------------------------------------------------------
-   REDUCED MOTION — keep the state changes, drop the movement.
-   ------------------------------------------------------------ */
+
 @media (prefers-reduced-motion: reduce) {
-  .aurora-blob,
-  .backdrop::before,
-  .today-section .habit-row.done::after {
-    animation: none !important;
-  }
-  .card:hover,
-  .work-card:hover,
-  .today-section .habit-row:hover,
-  .hm-day:hover,
-  .hm-cell:hover,
-  .hmx-cell:hover,
-  .btn:active,
-  .btn.floating:hover {
-    transform: none;
-  }
-  .card,
-  .work-card,
-  .habit-row,
-  .btn {
-    transition-duration: 1ms;
-  }
+  .aurora-blob,.backdrop::before{animation:none!important}
+  .card:hover,.work-card:hover,.hm-day:hover,.hm-cell:hover,.hmx-cell:hover,.btn:active,.btn.floating:hover{transform:none}
+  .card,.work-card,.btn{transition-duration:1ms}
 }
 
-/* ------------------------------------------------------------
-   TOUCH TARGETS
-   Every control clears 44px, either by its own box or — where a
-   control must stay visually small (the switch) — by a transparent
-   hit area that expands the real tap region past its edges.
-   ------------------------------------------------------------ */
-/* Work detail controls must adapt to their card width, not the viewport. */
+
+
 .quick-pct {
   grid-template-columns: repeat(auto-fit, minmax(var(--touch), 1fr));
 }
@@ -1814,7 +1680,7 @@ a.chip, button.chip {
 }
 
 .switch::after {
-  /* 44px tap region around a 32px control */
+
   content: '';
   position: absolute;
   inset: -6px -6px;
@@ -1837,7 +1703,7 @@ a.chip, button.chip {
   background: var(--accent-ink);
 }
 
-/* Title links inside work cards and goal rows: full-height hit area. */
+
 .work-title,
 .goal-name,
 .tl-name {
@@ -1878,9 +1744,7 @@ button.lb-row:hover {
   font-weight: var(--fw-bold);
 }
 
-/* ------------------------------------------------------------
-   ACHIEVEMENTS
-   ------------------------------------------------------------ */
+
 .ach-hero-inner {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -1951,11 +1815,10 @@ button.lb-row:hover {
 
 .ach-filter {
   align-self: start;
-  /* five tier pills do not fit at 320px — scroll rather than overflow */
+
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
 }
 
 .ach-filter::-webkit-scrollbar {
@@ -2135,7 +1998,7 @@ button.lb-row:hover {
   color: var(--accent-1-lift);
 }
 
-/* Sidebar unlocked badge */
+
 .sidebar-count {
   margin-left: auto;
   min-width: 22px;
@@ -2169,9 +2032,7 @@ button.lb-row:hover {
   padding: 6px 12px 4px;
 }
 
-/* ------------------------------------------------------------
-   HABIT DETAIL
-   ------------------------------------------------------------ */
+
 .back-link {
   min-height: var(--touch);
   margin-bottom: 6px;
@@ -2369,9 +2230,7 @@ button.lb-row:hover {
   }
 }
 
-/* ------------------------------------------------------------
-   TODAY — priorities, goals, day timeline
-   ------------------------------------------------------------ */
+
 .priority-list {
   list-style: none;
   margin: 0;
@@ -2397,7 +2256,7 @@ button.lb-row:hover {
 .priority-row[data-tone='bad']:hover { border-left-color: var(--bad); }
 .priority-row[data-tone='warn']:hover { border-left-color: var(--warn); }
 
-/* the whole row is the target — one tap, no 20px text link */
+
 .priority-row-inner {
   display: flex;
   align-items: flex-start;
@@ -2475,7 +2334,7 @@ button.lb-row:hover {
   text-transform: uppercase;
 }
 
-/* Goals strip */
+
 .goal-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
@@ -2537,7 +2396,7 @@ button.lb-row:hover {
   font-variant-numeric: tabular-nums;
 }
 
-/* Day timeline */
+
 .timeline {
   list-style: none;
   margin: 0;
@@ -2559,7 +2418,7 @@ button.lb-row:hover {
 }
 
 .tl-row::before {
-  /* the connecting line */
+
   content: '';
   position: absolute;
   left: 75px;
@@ -2647,9 +2506,7 @@ button.lb-row:hover {
   }
 }
 
-/* ------------------------------------------------------------
-   GOALS
-   ------------------------------------------------------------ */
+
 .goal-list {
   display: flex;
   flex-direction: column;
@@ -2841,7 +2698,7 @@ button.lb-row:hover {
   border-top: var(--bd-1) solid var(--border);
 }
 
-/* Layer explainer */
+
 .layer-chain {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
@@ -2918,18 +2775,12 @@ button.lb-row:hover {
 .goal-chip[data-tone='warn'] { border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); }
 .goal-chip[data-tone='good'] { border-color: color-mix(in srgb, var(--good) 40%, var(--border)); }
 
-/* ------------------------------------------------------------
-   V3 · TODAY COMMAND CENTER — depth composition for the hero.
-   The V2 rules above still own layout; this block adds the
-   three-depth staging (energy field → core → words) and the
-   tactile stat tiles. Restraint first: one glow source, one
-   moving backdrop, everything else still.
-   ------------------------------------------------------------ */
+
 .today-hero-v3 {
   isolation: isolate;
 }
 
-/* far depth: WebGL field hugging the core, masked at the edges */
+
 .today-scene {
   position: absolute;
   inset: -95%;
@@ -2949,7 +2800,7 @@ button.lb-row:hover {
   z-index: 1;
 }
 
-/* mid depth: the core floats just above the field */
+
 .today-core {
   position: relative;
 }
@@ -2960,7 +2811,7 @@ button.lb-row:hover {
   inset: 2%;
 }
 
-/* near depth: stat tiles read as physical counters */
+
 .today-hero-v3 .today-stats {
   gap: var(--space-1);
   padding-top: 0;
@@ -2989,7 +2840,7 @@ button.lb-row:hover {
   font-variant-numeric: tabular-nums;
 }
 
-/* the hero's own light: a single accent wash behind the core */
+
 .today-hero-v3::after {
   content: '';
   position: absolute;
@@ -3010,42 +2861,7 @@ button.lb-row:hover {
   }
 }
 
-/* ------------------------------------------------------------
-   V3 · HABIT ROW completion language — the row itself answers.
-   ------------------------------------------------------------ */
-.today-section .habit-row {
-  transition:
-    background-color var(--dur-3) var(--ease-out),
-    box-shadow var(--dur-3) var(--ease-out),
-    transform var(--dur-3) var(--ease-out);
-}
-.habit-row .habit-streak {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--warn);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.habit-row.done {
-  background: linear-gradient(90deg, var(--accent-soft), transparent 62%);
-}
 
-/* completed habits recede so what remains is the focus (spec §4) */
-.today-section .habit-row.done {
-  opacity: 0.82;
-}
-.today-section .habit-row.done .habit-name {
-  color: var(--text-2);
-}
-.today-section .habit-row:not(.done) {
-  box-shadow: var(--e-hairline);
-}
-
-/* ------------------------------------------------------------
-   V3 · HERO SIDE RAIL — the honest 7-day shape of the data.
-   Fills the hero's wide-screen space with something true.
-   ------------------------------------------------------------ */
 .today-week {
   display: none;
 }
@@ -3105,9 +2921,7 @@ button.lb-row:hover {
   opacity: 1;
 }
 
-/* ------------------------------------------------------------
-   V3 · GOAL DETAIL — the goal as a living object
-   ------------------------------------------------------------ */
+
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -3207,7 +3021,7 @@ button.lb-row:hover {
   color: var(--text-3);
 }
 
-/* milestone timeline */
+
 .ms-timeline {
   list-style: none;
   margin: 4px 0 0;
@@ -3275,7 +3089,7 @@ button.lb-row:hover {
 .ms-node-tag[data-tone='good'] { color: var(--good); background: var(--good-soft); }
 .ms-node-tag[data-tone='warn'] { color: var(--warn); background: var(--warn-soft); }
 
-/* linked-work feed rows */
+
 .feed-row {
   display: flex;
   align-items: center;
@@ -3308,7 +3122,7 @@ button.lb-row:hover {
 .feed-name { flex: 1; min-width: 0; font-weight: var(--fw-semibold); }
 .feed-actions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 
-/* pace legend */
+
 .pace-legend {
   display: inline-flex;
   align-items: center;
@@ -3353,9 +3167,7 @@ button.lb-row:hover {
   .goal-hero-copy { width: 100%; }
 }
 
-/* ------------------------------------------------------------
-   V3 · PROJECT TIMELINE — the project moving through time
-   ------------------------------------------------------------ */
+
 .ptl { padding-top: 14px; }
 .ptl-track { position: relative; height: 34px; }
 .ptl-track::before {
@@ -3398,7 +3210,7 @@ button.lb-row:hover {
 .ptl-node {
   position: absolute;
   top: 50%;
-  width: 44px; height: 44px;   /* full tap target; the dot is the ::before */
+  width: 44px; height: 44px;
   margin: -22px 0 0 -22px;
   border-radius: 50%;
   background: transparent;
@@ -3456,9 +3268,7 @@ button.lb-row:hover {
   min-height: 1em;
 }
 
-/* ------------------------------------------------------------
-   V3 · DEADLINE PRESSURE — the draining window
-   ------------------------------------------------------------ */
+
 .pressure {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -3497,9 +3307,7 @@ button.lb-row:hover {
   color: var(--text-3);
 }
 
-/* ============================================================
-   INSIGHTS VIZ 2.0 — day clock, pulse ribbon, mood scatter
-   ============================================================ */
+
 .dayclock { display: grid; gap: 12px; }
 @media (min-width: 720px) {
   .dayclock { grid-template-columns: minmax(0, 260px) 1fr; align-items: center; }
@@ -3554,9 +3362,7 @@ button.lb-row:hover {
 .scatter-box svg { display: block; width: 100%; }
 .scatter-caption { margin: 0; }
 
-/* ============================================================
-   ACHIEVEMENTS 2.0 — the unlock moment
-   ============================================================ */
+
 .ach-medal { position: relative; display: inline-flex; flex: none; }
 .ach-medal-inner { display: inline-flex; border-radius: 12px; }
 .ach-card.is-fresh {
@@ -3570,9 +3376,7 @@ button.lb-row:hover {
   100% { transform: scale(1); }
 }
 
-/* ============================================================
-   CALENDAR + WORKLOAD 2.0 — density row & deadline lanes
-   ============================================================ */
+
 .cal-dens {
   position: relative; overflow: hidden;
   border-bottom: 1px solid var(--border);
@@ -3630,20 +3434,6 @@ button.lb-row:hover {
   pointer-events: none;
 }
 
-/* Week screen "By habit" rows are plain <button>s sized only by inline
-   padding + 22px dots, which land exactly on the 44px tap-target line. Pin a
-   guaranteed min-height (border-box, so it is the full touch box) so the
-   target never shrinks below 44px if the variable font hasn't finished
-   loading yet or under CPU contention. */
-.week-habit {
-  min-height: 44px;
-  min-width: 44px;
-}
-.week-habit:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
-
-/* ============================================================
-   ONBOARDING / EMPTY STATES 2.0 — art moments
-   ============================================================ */
 .ob-art {
   display: block;
   width: min(200px, 48vw);
@@ -3658,13 +3448,9 @@ button.lb-row:hover {
   width: 26px; height: 26px; border-radius: 8px; object-fit: cover; flex: none;
 }
 
-/* ============================================================
-   OVERNIGHT POLISH — refinements that lift the whole product
-   without changing any layout contract. Loaded last inside the
-   visual layer so it owns the final look of shared primitives.
-   ============================================================ */
 
-/* ---- Fields: read as elevated surfaces, focus as a clean ring ---- */
+
+
 .field-label {
   color: var(--text-2);
   letter-spacing: var(--tr-body);
@@ -3685,7 +3471,7 @@ button.lb-row:hover {
   color: var(--text-3);
 }
 
-/* ---- Chips: a touch more presence, clear semantic tints ---- */
+
 .chip {
   background: var(--surface-inset);
   border-color: var(--border);
@@ -3698,7 +3484,7 @@ button.lb-row:hover {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
 }
 
-/* ---- Segmented control: premium toggle ---- */
+
 .seg {
   background: var(--surface-inset);
   border-color: var(--border);
@@ -3716,12 +3502,12 @@ button.lb-row:hover {
   box-shadow: var(--e-1), var(--e-hairline);
 }
 
-/* ---- Toasts: sit above the chrome with a soft lift ---- */
+
 .toast {
   box-shadow: var(--e-2), var(--e-hairline);
 }
 
-/* ---- Offline pill: calm, not alarming ---- */
+
 .offline-pill {
   backdrop-filter: blur(14px);
   background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
@@ -3729,29 +3515,26 @@ button.lb-row:hover {
   box-shadow: var(--e-1);
 }
 
-/* ---- Screen entrance: a hair of reveal, never a slide ---- */
+
 .route-cam {
   will-change: transform, opacity;
 }
 
-/* ---- Links: tappable, never cramped ---- */
+
 a {
-  -webkit-tap-highlight-color: transparent;
 }
 
-/* ---- Scroll shave: crisper page feel ---- */
+
 html {
   scroll-behavior: smooth;
 }
 
-/* ---- Selection: a quiet accent, not a block ---- */
+
 ::selection {
   background: color-mix(in srgb, var(--accent-1) 30%, transparent);
 }
 
-/* ============================================================
-   SEARCH PALETTE — a focused command surface, not a list.
-   ============================================================ */
+
 .search-field {
   background: var(--surface-inset);
   transition: border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
@@ -3788,12 +3571,7 @@ html {
   color: var(--text);
 }
 
-/* ============================================================
-   TODAY — command-center rhythm. Keep the big cards (hero,
-   priorities, goals, habits, timeline) as the structure; make
-   the quiet support sections (insight, missed, review, backup)
-   read as editorial callouts, not more boxes.
-   ============================================================ */
+
 .today-insight,
 .today-missed {
   background: var(--surface-inset);

@@ -420,9 +420,12 @@ export function achievementSummary(state, opts = {}) {
     .filter((i) => i.earnedOn)
     .sort((a, b) => String(b.earnedOn).localeCompare(String(a.earnedOn)))
     .slice(0, 3)
+  // Sort by progress desc; secondary id sort for deterministic tie-break when
+  // several achievements share the same progress (so the "next up" pill in
+  // Insights and the card list on Achievements always match).
   const nextUp = items
     .filter((i) => !i.earned && i.progress > 0)
-    .sort((a, b) => b.progress - a.progress)
+    .sort((a, b) => (b.progress - a.progress) || String(a.id).localeCompare(String(b.id)))
     .slice(0, 3)
   return {
     items,

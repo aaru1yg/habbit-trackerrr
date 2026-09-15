@@ -8,6 +8,7 @@ import {
   activeHabits, topStreak, achievements,
   trendSeries, weekComparison, moodHabitLink, eligibleOn, isDone as isDoneCheck,
 } from '../lib/stats.js'
+import { achievementSummary } from '../lib/achievements.js'
 import {
   weekdayPerformance, weekdayVsWeekend, consistencyRanking,
   personalBests, smartInsights, timeOfDayPerformance,
@@ -205,6 +206,10 @@ export default function InsightsScreen() {
     [state],
   )
   const best = achievements(state)
+  // Achievements summary uses the same source AchievementsScreen uses so the
+  // "X/Y earned" count and next-up label never diverge from the actual
+  // Achievements pillar (FINAL 2E alignment).
+  const ach = useMemo(() => achievementSummary(state), [state])
   const top = topStreak(state)
   const cmp = useMemo(() => weekComparison(state), [state])
 
@@ -496,7 +501,7 @@ export default function InsightsScreen() {
                 <span className="ins-pillar-icon"><IconTrophy size={18} /></span>
                 <span style={{ minWidth: 0 }}>
                   <p className="ins-pillar-label">Achievements</p>
-                  <p className="ins-pillar-sub">{best.badges.filter((b) => b.earned).length}/{best.badges.length} earned · next: {best.next?.label || 'all earned'}</p>
+                  <p className="ins-pillar-sub">{ach.unlocked}/{ach.total} earned · next: {ach.nextUp?.[0]?.title || 'all earned'}</p>
                 </span>
               </Link>
               <button type="button" className="ins-pillar" data-cat="advanced" onClick={() => setView('lab')} style={{ appearance: 'none', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>

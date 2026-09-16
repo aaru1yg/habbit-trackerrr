@@ -7,7 +7,7 @@ html[data-theme='daylight'] {
   --color-surface:transparent; --color-surface-raised:#fff;
   --color-surface-inset:#f2f0eb; --color-surface-interactive:rgba(20,23,31,.05);
   --color-surface-selected:rgba(91,61,240,.09);
-  --color-text:#14171f; --color-text-2:#4a5160; --color-text-3:#6a7282;
+  --color-text:#14171f; --color-text-2:#4a5160; --color-text-3:#626a7a;
   --color-text-disabled:rgba(20,23,31,.35); --color-text-inverse:#fff;
   --color-border-subtle:rgba(20,23,31,.07); --color-border:rgba(20,23,31,.12);
   --color-border-strong:rgba(20,23,31,.2);

@@ -546,3 +546,25 @@
    stays inline; rec-body stacks onto its own line and wraps. */
 .rec-item .tl-meta { flex-wrap: wrap; align-items: flex-start; }
 .rec-item .rec-body { display: block; width: 100%; margin-top: 2px; overflow-wrap: anywhere; word-break: break-word; }
+
+/* --- 44px hit-area repairs (tap audit): range segs, card actions, mind
+   chips and footnote links keep their visuals; only the tappable box grows. --- */
+.ins-range button { min-height: 44px; }
+.ins-insight-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.mind-dim-chip { min-height: 44px; }
+.mind-insight-action,
+.mind-foot-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 13px 0;
+  margin: -13px 0;
+}
+.mood-btn { min-width: 44px; }
+.level-btn { min-width: 44px; }

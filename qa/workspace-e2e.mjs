@@ -67,7 +67,15 @@ try {
           brokenImages: [...document.images].filter(img => img.complete && img.naturalWidth === 0).map(img => img.src) }
       })
       check(`${prefix} ${name}: no horizontal overflow`, proof.scroll <= proof.client + 1, JSON.stringify(proof))
-      check(`${prefix} ${name}: no clipped dialog`, proof.dialogs.every(d => d.x >= -1 && d.y >= -1 && d.right <= proof.width + 1 && d.bottom <= proof.height + 1 && d.scroll <= d.client + 1), JSON.stringify(proof.dialogs))
+      // Only top-level modals must fit the viewport. PlanningPanel declares
+      // its own role=dialog and is embedded INSIDE the plan Sheet — the Sheet
+      // contract caps the panel to the viewport and scrolls .sheet-body, so
+      // nested panels may legitimately extend below the fold.
+      const topLevel = await page.evaluate(() =>
+        [...document.querySelectorAll('[role="dialog"]')]
+          .filter(d => !d.parentElement?.closest('[role="dialog"]'))
+          .map(d => ({ title: d.getAttribute('aria-labelledby'), x: d.getBoundingClientRect().x, y: d.getBoundingClientRect().y, right: d.getBoundingClientRect().right, bottom: d.getBoundingClientRect().bottom, scroll: d.scrollWidth, client: d.clientWidth })))
+      check(`${prefix} ${name}: no clipped dialog`, topLevel.every(d => d.x >= -1 && d.y >= -1 && d.right <= proof.width + 1 && d.bottom <= proof.height + 1 && d.scroll <= d.client + 1), JSON.stringify(topLevel))
       check(`${prefix} ${name}: images load`, proof.brokenImages.length === 0, proof.brokenImages.join(', '))
       if (viewport.isMobile) {
         const small = await page.evaluate(() => {
@@ -112,10 +120,11 @@ try {
       await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }])
       await seed()
       const summary = await page.$$eval('.workspace-summary a', els => els.map(el => el.textContent))
-      check(`${prefix}: At Risk / Due Soon / Active Work visible`, ['At risk', 'Due soon', 'Active work'].every(label => summary.some(t => t.includes(label))))
-      check(`${prefix}: canonical Work opens with Overview selected`, await page.$eval('.workspace-tabs a[aria-current="page"]', el => el.textContent === 'Overview'))
+      // Shell 2.0 pill copy: 'need attention' / 'due soon' / 'active work'.
+      check(`${prefix}: need-attention / due-soon / active-work pills visible`, ['need attention', 'due soon', 'active work'].every(label => summary.some(t => t.includes(label))))
+      check(`${prefix}: canonical Work opens with Overview selected`, await page.$eval('.wo-tabs a[aria-current="page"]', el => el.textContent === 'Overview'))
       check(`${prefix}: no default gallery`, !(await page.$('.gal-grid')))
-      const top = await page.$eval('.workspace-active', el => el.getBoundingClientRect().top)
+      const top = await page.$eval('.wo__active', el => el.getBoundingClientRect().top)
       check(`${prefix}: active work starts above fold`, top < viewport.height - 80, `top=${top}`)
       await layout('overview-normal')
     })
@@ -129,8 +138,8 @@ try {
       check(`${prefix}: reduced motion disables Work animation/transitions`, !animated.length, JSON.stringify(animated))
       await layout('overview-reduced')
       for (const view of ['deliverables', 'projects', 'workload', 'deadlines']) {
-        await click(`.workspace-tabs a[href="#/work?view=${view}"]`)
-        check(`${prefix}: ${view} switches and is selected`, await page.$eval(`.workspace-tabs a[href="#/work?view=${view}"]`, el => el.getAttribute('aria-current') === 'page'))
+        await click(`.wo-tabs a[href="#/work?view=${view}"]`)
+        check(`${prefix}: ${view} switches and is selected`, await page.$eval(`.wo-tabs a[href="#/work?view=${view}"]`, el => el.getAttribute('aria-current') === 'page'))
         await layout(view)
       }
     })
@@ -187,9 +196,14 @@ try {
     await scenario('workload-overload-plan-recover', async () => {
       await seed(workspaceFixture(), 'work?view=workload')
       check(`${prefix}: single overload explanation`, (await page.$$('.workspace-overload')).length === 1)
-      check(`${prefix}: seven capacity days`, (await page.$$('.workspace-days button')).length === 7)
-      await click('.workspace-days button:nth-child(2)')
-      check(`${prefix}: workload day selection works`, await page.$eval('.workspace-days button:nth-child(2)', el => el.getAttribute('aria-pressed') === 'true'))
+      // The interactive 7-day button grid was replaced (Shell 2.0) by the
+      // capacity-vs-committed chart + stat pills; days are no longer taps.
+      check(`${prefix}: capacity chart renders all 7 days`, await page.evaluate(() => {
+        const svg = document.querySelector('.dlv__pulse svg[role="img"]')
+        return !!svg && /Workload next 7 days\./.test(svg.getAttribute('aria-label') || '') &&
+          (svg.getAttribute('aria-label').match(/:/g) || []).length === 7
+      }))
+      check(`${prefix}: workload stat pills present`, (await page.$$('.dlv__pill')).length >= 4)
       await clickText('Plan', '.workspace-overload')
       await page.waitForSelector('[role="dialog"] .planning-panel')
       await layout('plan-dialog')
@@ -205,7 +219,7 @@ try {
       await seed()
       await click('.workspace-horizons a[href*="horizon=today"]')
       await page.waitForSelector('#deadlines-heading')
-      check(`${prefix}: Today horizon filters deadline groups`, await page.$$eval('.workspace-deadline-group h3', els => els.length === 1 && els[0].textContent === 'Today'))
+      check(`${prefix}: Today horizon filters deadline groups`, await page.$$eval('.dlv__section-head h3', els => els.length === 1 && els[0].textContent === 'Today'))
       await click('[aria-label="View Submit DSA report"]')
       await page.waitForSelector('#assignment-detail')
       check(`${prefix}: deadline opens original assignment link`, await page.evaluate(() => location.hash === '#/assignments/a1'))
@@ -222,7 +236,7 @@ try {
       await clickText('Active', '.workspace-filters')
       await page.type('.workspace-search input', 'DSA')
       check(`${prefix}: local work filter works`, await page.$$eval('.workspace-row-title', els => els.length === 1 && els[0].textContent === 'Submit DSA report'))
-      await page.focus('.workspace-tabs a[href="#/work?view=projects"]')
+      await page.focus('.wo-tabs a[href="#/work?view=projects"]')
       await page.keyboard.press('Enter')
       await page.waitForSelector('#projects-heading')
       check(`${prefix}: keyboard operates Work navigation`, true)
@@ -231,12 +245,12 @@ try {
       await seed()
       for (const [route, selectedView] of [['projects', 'projects'], ['assignments', 'deliverables'], ['workload', 'workload'], ['timeline', 'deadlines']]) {
         await goto(route)
-        check(`${prefix}: legacy ${route} selects ${selectedView}`, await page.$eval('.workspace-tabs a[aria-current="page"]', el => el.getAttribute('href')).then(href => href === `#/work?view=${selectedView}`))
+        check(`${prefix}: legacy ${route} selects ${selectedView}`, await page.$eval('.wo-tabs a[aria-current="page"]', el => el.getAttribute('href')).then(href => href === `#/work?view=${selectedView}`))
         await layout(`legacy-${route}`)
       }
       const empty = { ...workspaceFixture(), projects: [], assignments: [] }
       await seed(empty)
-      check(`${prefix}: empty state has guidance without analytics`, await page.$eval('#work-screen', el => el.textContent.includes('Your work starts here.') && !el.querySelector('.workspace-capacity')))
+      check(`${prefix}: empty state has guidance without analytics`, await page.$eval('#work-screen', el => el.textContent.includes('Your work starts here.') && !el.querySelector('.workspace-overload') && !el.querySelector('.dlv__pulse')))
       await layout('empty')
       await clickText('Create project', '#work-screen .head-actions')
       await layout('create-project-dialog')

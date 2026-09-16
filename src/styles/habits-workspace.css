@@ -26,7 +26,7 @@
   margin-bottom: 8px;
 }
 .habits-head .btn,
-.habits-head .p-btn { min-height: 40px; white-space: nowrap; flex: none; }
+.habits-head .p-btn { min-height: 44px; white-space: nowrap; flex: none; }
 .hw-summary {
   display: flex;
   align-items: baseline;
@@ -44,7 +44,7 @@
   color: var(--text);
   font-variant-numeric: var(--font-num);
 }
-.hw-summary__sep { color: var(--border-2); margin: 0 2px; }
+.hw-summary__sep { color: var(--text-2); margin: 0 2px; }
 .hw-summary__done { color: var(--good); }
 .hw-summary__remaining { color: var(--text-2); }
 .hw-summary__paused {
@@ -63,7 +63,7 @@
   border: none;
 }
 .habit-tabs a {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: 10px;
   display: inline-flex;
@@ -101,7 +101,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: color var(--dur-fast) ease, background var(--dur-fast) ease;
-  min-height: 32px;
+  min-height: 44px;
 }
 .hw-filter:hover { color: var(--text); background: color-mix(in oklab, var(--surface-2) 80%, transparent); }
 .hw-filter[aria-pressed='true'] {
@@ -215,7 +215,7 @@
   .habit-tabs::-webkit-scrollbar { display: none; }
   .habit-tabs a {
     flex: 0 0 auto;
-    min-height: 40px;
+    min-height: 44px;
     padding: 0 14px;
     font-size: var(--fs-sm);
   }
@@ -230,7 +230,7 @@
   .hw-controls::-webkit-scrollbar { display: none; }
   .hw-filter {
     flex: 0 0 auto;
-    min-height: 36px;
+    min-height: 44px;
     padding: 6px 12px;
   }
   .hlist .hlist-item .habit-obj { --ho-py: 14px 0; --ho-px: 0; }
@@ -238,3 +238,14 @@
 @media (prefers-reduced-motion: reduce) {
   .habit-tabs a, .hw-filter, .habits-screen :is(button,a) { transition: none !important; }
 }
+
+/* --- 44px hit-area repairs: routines step names and reorder buttons --- */
+.rt-step__name a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 14px 0;
+  margin: -14px 0;
+}
+.rt-move .p-btn--icon { min-width: 44px; }

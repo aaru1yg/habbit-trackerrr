@@ -217,7 +217,7 @@ details.goals-how .layer-chain { margin-top: var(--sp-2); }
 .dlv__back {
   display: inline-flex; align-items: center; gap: 4px;
   color: var(--text-3); text-decoration: none; font-weight: 600;
-  min-height: 32px;
+  min-height: 44px;
 }
 .dlv__back:hover { color: var(--text); }
 
@@ -348,3 +348,12 @@ details.goals-how .layer-chain { margin-top: var(--sp-2); }
   .goal-analytics__chart svg { height: 220px; }
   .goal-analytics__grid { grid-template-columns: 1fr 1fr; }
 } /* we now use .dlv__back */
+/* --- 44px hit-area repair: goal row title links --- */
+.goal-row__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 0;
+  margin: -10px 0;
+}

@@ -155,7 +155,7 @@
 }
 .hc-day__state[data-state="done"]        { color: var(--good); }
 .hc-day__state[data-state="missed"]      { color: var(--bad); }
-.hc-day__state[data-state="today"]       { color: var(--accent); }
+.hc-day__state[data-state="today"]       { color: var(--accent-1-lift, var(--accent)); }
 .hc-day__state[data-state="scheduled"]   { color: var(--text-3); }
 .hc-day__state[data-state="unscheduled"] { color: var(--text-3); }
 .hc-day__btn {
@@ -310,7 +310,7 @@
 }
 .hc-daynum:hover { background: var(--surface-2); color: var(--text); }
 .hc-daynum:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: -2px; position: relative; z-index: 4; }
-.hc-daynum.is-today { color: var(--accent); font-weight: 800; }
+.hc-daynum.is-today { color: var(--accent-1-lift, var(--accent)); font-weight: 800; }
 .hc-daynum.is-weekend { color: var(--text-3); }
 .hc-grid[data-mode="90d"] .hc-wkday,
 .hc-grid[data-mode="year"] .hc-wkday { font-size: 0; }
@@ -372,7 +372,7 @@
   background: color-mix(in srgb, var(--accent) 7%, var(--surface));
   box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent);
 }
-.hc-daynum.is-selected { color: var(--accent); }
+.hc-daynum.is-selected { color: var(--accent-1-lift, var(--accent)); }
 .hc-aggr.is-selected { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent); }
 
 /* today ring — subtle */
@@ -620,4 +620,40 @@
   .hc-cell,
   .hc-daynum,
   .hc-day__btn { transition: none; }
+}
+
+/* --- 44px hit-area repairs: agenda rows and month cells --- */
+.hc-day__name a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 14px 0;
+  margin: -14px 0;
+}
+.hc-day__btn { min-height: 44px; }
+.hc-daynum { min-width: 44px; min-height: 44px; }
+.hc-aggr { position: relative; min-width: 44px; }
+.hc-aggr::after { content: ''; position: absolute; inset: -19px 0; }
+
+/* --- 44px hit-area repairs: habit cells and name links in month/week grids
+   (the grid scrolls horizontally, so slightly wider cells stay usable). --- */
+.hc-cell { min-width: 44px; min-height: 44px; }
+.hc-name__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 14px 0;
+  margin: -14px 0;
+}
+
+/* Monthly rate rows: the habit name is the row's detail link. */
+.hc-rate__name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 15px 0;
+  margin: -15px 0;
 }

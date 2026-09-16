@@ -111,9 +111,10 @@
   --milestone-base:var(--accent-2); --milestone-soft:color-mix(in oklab,var(--accent-2) 14%, transparent);
   --milestone-muted:color-mix(in oklab,var(--accent-2) 48%, transparent); --milestone-strong:var(--accent-2); --milestone-contrast:#052026;
 
-  /* Controls: 44px default hit target; sm stays visually compact (32px) with
-     per-surface padding expanding the hit area to 44 where WCAG requires. */
-  --c-control-height:44px; --c-control-height-sm:32px;
+  /* Controls: 44px is the WCAG hit-target floor for EVERY interactive
+     control, including the visually compact sm variant (smaller type and
+     padding, same 44px box). */
+  --c-control-height:44px; --c-control-height-sm:44px;
   --c-control-radius:var(--radius-sm); --c-control-padding-x:var(--sp-4);
   --c-row-height:56px; --c-row-height-compact:44px; --c-row-radius:var(--radius-md);
 }

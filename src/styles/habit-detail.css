@@ -187,3 +187,8 @@
 @media (min-width: 900px) {
   .hd-hero { padding-bottom: var(--sp-5); }
 }
+
+/* --- 44px hit-area repairs: back control, range segs, Edit action --- */
+.hd-back { min-height: 44px; }
+.hd-range button { min-height: 44px; }
+.hd-manage .p-btn { min-width: 44px; }

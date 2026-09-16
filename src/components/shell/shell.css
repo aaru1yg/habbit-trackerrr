@@ -232,9 +232,10 @@ body.has-new-shell .offline-pill { display: none !important; }
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--layout-page-gutter);
-  background: color-mix(in oklab, var(--bg-base, var(--color-bg)) 80%, transparent);
-  backdrop-filter: saturate(1.2) blur(10px);
-  -webkit-backdrop-filter: saturate(1.2) blur(10px);
+  /* Opaque bar: translucent oklab/alpha fills composite unpredictably for
+     assistive measurement on light themes (and left the sticky header
+     see-through over content). Solid surface, same height and border. */
+  background: var(--color-bg-raise, var(--color-bg));
   border-bottom: var(--border-subtle);
 }
 .app-topbar__heading {
@@ -303,9 +304,9 @@ body.has-new-shell .offline-pill { display: none !important; }
   bottom: 0; left: 0; right: 0;
   z-index: var(--z-header);
   padding: 0 env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
-  background: color-mix(in oklab, var(--bg-base, var(--color-bg)) 88%, transparent);
-  backdrop-filter: saturate(1.2) blur(12px);
-  -webkit-backdrop-filter: saturate(1.2) blur(12px);
+  /* Opaque surface — matches the topbar; translucent fills measure
+     unpredictably for assistive contrast on light themes. */
+  background: var(--color-bg-raise, var(--color-bg));
   border-top: var(--border-subtle);
 }
 .app-mobile-nav__list {
@@ -456,3 +457,11 @@ body.has-new-shell .offline-pill { display: none !important; }
   width: 20px; height: 20px;
   color: var(--text-muted);
 }
+
+/* --- 44px hit-area repairs: brand mark and Omni/Search triggers expand via
+   a transparent ::after (no visual change; the ring stays on the control). --- */
+.app-brand { position: relative; }
+.app-brand::after { content: ''; position: absolute; inset: -8px; }
+.app-omni-trigger,
+.app-search { min-width: 44px; min-height: 44px; }
+.app-topbar__omni { min-height: 44px; }

@@ -123,3 +123,17 @@ a.wec-title,a .wec-title{color:inherit}
   .wec-head{flex-wrap:wrap}
   .wec-side{flex-basis:100%;justify-items:start;grid-auto-flow:column;justify-content:space-between;width:100%}
 }
+
+/* Row title + parent links are the row's detail targets — inline hit areas
+   padded to 44px tall without changing the visible row rhythm. */
+.workspace-row-title,
+.workspace-parent {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 12px 8px;
+  margin: -12px -8px;
+}

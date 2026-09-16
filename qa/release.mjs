@@ -79,12 +79,11 @@ async function verifyArtifact() {
 }
 
 const titles = {
-  // The Today title is a time-appropriate greeting; the app greets "Up late"
-  // between 00:00–04:59 (src/lib/dates.js). Accept either so the check is
-  // deterministic regardless of when the runner executes.
-  today: /(Good (morning|afternoon|evening)|Up late)/, calendar: /Calendar/, habits: /^Habits$/,
+  // Shell 2.0: every screen owns one h1 (Calendar's heading is the live
+  // month/range label `.hc-title`, so match the year instead).
+  today: /^Today$/, calendar: /Calendar|\d{4}/, habits: /^Habits$/,
   goals: /^Goals$/, work: /^Work$/, projects: /^Work$/, assignments: /^Work$/,
-  insights: /^Insights$/, workload: /^Work$/, achievements: /^Achievements$/, settings: /^Settings$/,
+  insights: /^Insights$/, workload: /^Work$/, achievements: /^Earned, not awarded$/, settings: /^Settings$/,
 }
 
 async function clickVisible(page, selector) {
@@ -116,7 +115,7 @@ async function clickVisible(page, selector) {
 
 async function ready(page, route) {
   await page.waitForFunction((route) => {
-    const h = document.querySelector('main .screen-title')
+    const h = document.querySelector('main h1') || document.querySelector('#calendar-screen .hc-title')
     return location.hash === `#/${route}` && h && h.textContent.trim() && !document.querySelector('.auth-loading') && !document.querySelector('main [role="status"][aria-label="Loading"]')
   }, { timeout: 20000 }, route)
   await sleep(650)
@@ -125,49 +124,51 @@ async function ready(page, route) {
 
 async function navigate(page, route, mobile) {
   const workViews = { projects: 'projects', assignments: 'deliverables', workload: 'workload' }
-  // Phase 1 IA: secondary screens live under their pillar as ?view= and are
-  // reached from the mobile More sheet or (desktop) from the pillar itself.
+  // Shell 2.0 IA: the mobile bar is .app-mobile-nav (More sheet is a dialog),
+  // the desktop rail is .app-sidebar, and Work sub-views live in .wo-tabs.
   const pillarViews = { calendar: ['habits', 'calendar', '.habit-tabs'], achievements: ['insights', 'achievements', null] }
   let target = route
   if (workViews[route]) {
-    await clickVisible(page, `${mobile ? '.bottom-nav' : '.sidebar'} a[href="#/work"]`)
+    await clickVisible(page, `${mobile ? '.app-mobile-nav' : '.app-sidebar'} a[href="#/work"]`)
     await ready(page, 'work')
     target = `work?view=${workViews[route]}`
-    await clickVisible(page, `.workspace-tabs a[href="#/${target}"]`)
+    await clickVisible(page, `.wo-tabs a[href="#/${target}"]`)
   } else if (pillarViews[route]) {
     const [pillar, view, tabs] = pillarViews[route]
     target = `${pillar}?view=${view}`
     if (mobile) {
-      await clickVisible(page, '.bottom-nav button[aria-label="More sections"]')
+      await clickVisible(page, '.app-mobile-nav button[aria-label="More sections and settings"]')
       await page.waitForSelector('[role="dialog"]', { visible: true })
       await sleep(400)
       await dialogFits(page, 'mobile More sheet')
       await clickVisible(page, `[role="dialog"] a[href="#/${target}"]`)
     } else {
-      await clickVisible(page, `.sidebar a[href="#/${pillar}"]`)
+      await clickVisible(page, `.app-sidebar a[href="#/${pillar}"]`)
       await ready(page, pillar)
       if (tabs) await clickVisible(page, `${tabs} a[href="#/${target}"]`)
       else await page.evaluate((t) => { location.hash = `#/${t}` }, target)
     }
   } else if (mobile) {
-    if (['today', 'work', 'habits', 'goals', 'insights'].includes(route)) {
-      await clickVisible(page, `.bottom-nav a[href="#/${route}"]`)
+    // Shell 2.0 mobile bar: Today / Work / Habits / Insights + More (goals and
+    // settings live in the More sheet).
+    if (['today', 'work', 'habits', 'insights'].includes(route)) {
+      await clickVisible(page, `.app-mobile-nav a[href="#/${route}"]`)
     } else {
-      await clickVisible(page, '.bottom-nav button[aria-label="More sections"]')
+      await clickVisible(page, '.app-mobile-nav button[aria-label="More sections and settings"]')
       await page.waitForSelector('[role="dialog"]', { visible: true })
       await sleep(400)
       await dialogFits(page, 'mobile More sheet')
       await clickVisible(page, `[role="dialog"] a[href="#/${route}"]`)
     }
   } else {
-    await clickVisible(page, `.sidebar a[href="#/${route}"]`)
+    await clickVisible(page, `.app-sidebar a[href="#/${route}"]`)
   }
   await ready(page, target)
   // Screens are lazy: the hash flips before React swaps the screen, so wait
   // for the *expected* title rather than sampling whatever is mounted after a
   // fixed pause (which lands on the Suspense fallback on a contended runner).
   const titled = await page.waitForFunction((src) => {
-    const h = document.querySelector('main .screen-title')
+    const h = document.querySelector('main h1') || document.querySelector('#calendar-screen .hc-title')
     return !!h && new RegExp(src).test(h.textContent)
   }, { timeout: 20000 }, titles[route].source).then(() => true).catch(() => false)
   check(`${mobile ? 'mobile' : 'desktop'} navigation → ${route}`, titled)
@@ -246,7 +247,20 @@ async function synced(page) {
 }
 
 async function addHabit(page, name, viewport) {
-  await clickVisible(page, viewport === 'mobile' ? '.fab-stack button[aria-label="Add a habit"]' : '.today-section .card-head button.btn')
+  if (viewport === 'mobile') {
+    // Mobile has no FAB: the Omni panel's 'Add habit' chip opens the form.
+    await clickVisible(page, '.app-mobile-nav [aria-label="Open Omni — search, create, commands"]')
+    await sleep(500)
+    const chip = await page.evaluate(() => {
+      const el = [...document.querySelectorAll('.cc-row')].find((c) => c.textContent.trim() === 'Add habit')
+      if (!el) return false
+      el.click()
+      return true
+    })
+    if (!chip) throw new Error('Omni Add habit chip not found')
+  } else {
+    await clickVisible(page, '.today-section__head .p-btn--sm')
+  }
   await page.waitForSelector('#habit-name', { visible: true })
   await sleep(400)
   await dialogFits(page, `${viewport} Add habit`)
@@ -277,7 +291,7 @@ async function addWork(page, route, viewport, _mobile) {
 }
 
 async function addGoal(page, viewport) {
-  await clickVisible(page, '#goals-screen .head-actions .btn.primary')
+  await clickVisible(page, '#goals-screen .wo__head-actions .btn.primary')
   await page.waitForSelector('#goal-title', { visible: true })
   await dialogFits(page, `${viewport} New goal`)
   const title = `QA V2 goal ${viewport} ${proof.buildId}`
@@ -308,13 +322,13 @@ async function screenSweep(page, viewport, mobile) {
     await layout(page, `${viewport} ${route} below fold`)
     await screenshot(page, `${viewport}-${route}-bottom`)
     if (route === 'today') {
-      check(`${viewport}: V2 Today command center is rendered`, await page.evaluate(() => Boolean(document.querySelector('.today-priorities') && document.querySelector('.today-timeline') && document.querySelector('.today-goals'))))
+      check(`${viewport}: Today command center is rendered`, await page.evaluate(() => Boolean(document.querySelector('.today-now') && document.querySelector('.today-section'))))
       await addHabit(page, `QA V2 ${viewport} ${proof.buildId}`, viewport)
     }
     if (route === 'habits') {
       await clickVisible(page, 'a[href="#/habits/h-run"]')
       await ready(page, 'habits/h-run')
-      check(`${viewport}: habit detail shows real history`, await page.evaluate(() => Boolean(document.querySelector('.heatmap') && document.querySelector('.habit-facts') && document.querySelector('.streak-list'))))
+      check(`${viewport}: habit detail shows real history`, await page.evaluate(() => Boolean(document.querySelector('.hd-heatmap') && /Current streak/.test(document.body.textContent) && /Best streak/.test(document.body.textContent))))
       await layout(page, `${viewport} habit detail`)
       await screenshot(page, `${viewport}-habit-detail`)
     }

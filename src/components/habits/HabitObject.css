@@ -14,7 +14,9 @@
 .habit-obj.is-done .habit-obj__ring-dot{opacity:0;transform:scale(0)}
 .habit-obj__body{min-width:0;display:flex;flex-direction:column;gap:3px}
 .habit-obj__name{font:var(--ho-name-fw) var(--ho-name-fs)/1.25 var(--font-family);letter-spacing:-.005em;color:var(--text-primary);margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.habit-obj__name-link{display:block;text-decoration:none;color:inherit;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Hit area: the name link is the row's detail target — pad to 44px tall
+   without changing the visible row (negative margin cancels the padding). */
+.habit-obj__name-link{display:block;text-decoration:none;color:inherit;min-width:0;min-height:44px;box-sizing:border-box;padding:11px 0;margin:-11px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .habit-obj__name-link:hover{color:var(--text-primary)}
 .habit-obj.is-done .habit-obj__name{color:var(--text-secondary)}
 .habit-obj__meta{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font:var(--weight-body) var(--ho-meta-fs)/1.3 var(--font-family);color:var(--text-muted);min-width:0}
@@ -24,7 +26,10 @@
 .habit-obj__complete:focus-visible,.habit-obj__more:focus-visible{outline:var(--focus-ring);outline-offset:2px}
 .habit-obj__schedule{white-space:nowrap}
 .habit-obj__reminder{white-space:nowrap}
-.habit-obj__streak{color:var(--cat-strong,var(--text-secondary));font-variant-numeric:var(--font-numeric-features)}
+/* Category 'strong' tints are tuned for light surfaces and fail AA on dark
+   themes — the neutral secondary text keeps the streak readable everywhere
+   (category identity stays on the ring and dot). */
+.habit-obj__streak{color:var(--text-secondary);font-variant-numeric:var(--font-numeric-features)}
 .habit-obj__streak[data-at-risk='true']{color:var(--color-warning)}
 .habit-obj__status{color:var(--text-muted);font-size:var(--font-caption)}
 .habit-obj__status[data-tone='warning']{color:var(--color-warning)}

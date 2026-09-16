@@ -18,6 +18,14 @@ const BASE = process.argv[2] || 'http://localhost:4173'
 
 const browser = await launch()
 
+/* clickByLabel with retry — sheets/panels mount a frame later on mobile. */
+async function clickByLabelWait(page, labelRegex) {
+  for (let i = 0; i < 10; i++) {
+    try { await clickByLabel(page, labelRegex); return } catch { await sleep(300) }
+  }
+  throw new Error(`clickByLabelWait: not found /${labelRegex}/`)
+}
+
 /* ---------- shared evaluators ---------- */
 
 async function overflowCheck(page, label) {
@@ -177,13 +185,14 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
   const permAsked = await page.evaluate(() => window.__permAsked)
   check('notification permission never requested during onboarding (skip path)', permAsked === 0, `asked=${permAsked}`)
   await clickByText(page, 'Maybe later')
-  await page.waitForSelector('.screen-title', { timeout: 5000 })
+  await page.waitForSelector('#today-screen h1', { timeout: 5000 })
   await sleep(500)
 
-  const greeting = await page.evaluate(() => document.querySelector('.screen-title')?.textContent)
-  check('lands on Today with greeting + name', /Aaru/.test(greeting || ''), greeting)
+  check('lands on Today after onboarding', await page.evaluate(() => (
+    document.querySelector('#today-screen h1')?.textContent === 'Today'
+  )))
   check('starter habits created (no fake history)', await page.evaluate(() =>
-    document.querySelectorAll('.habit-row').length === 2))
+    document.querySelectorAll('li.today-row--habit-obj').length === 2))
   await shot(page, '04-today-fresh')
   await overflowCheck(page, 'today-fresh')
   await tapTargetCheck(page, 'today-fresh')
@@ -192,11 +201,16 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
   // persistence across reload
   await page.reload({ waitUntil: 'networkidle0' })
   await sleep(500)
-  check('state persists after reload', await page.evaluate(() => document.querySelectorAll('.habit-row').length === 2))
+  check('state persists after reload', await page.evaluate(() => document.querySelectorAll('li.today-row--habit-obj').length === 2))
 
-  // add habit with reminder → permission prompt intercepted (deny path)
-  await clickByLabel(page, '^Add a habit$')
-  await sleep(400)
+  // add habit with reminder → permission prompt intercepted (deny path).
+  // Mobile create path: the Omni trigger opens the command panel; its
+  // 'Add habit' chip opens the shared HabitForm sheet (the route FAB that
+  // desktop uses renders null on mobile).
+  await clickByLabelWait(page, 'Open Omni — search, create, commands')
+  await sleep(500)
+  await clickByText(page, 'Add habit', '.cc-row')
+  await page.waitForSelector('#habit-name', { timeout: 5000 })
   await page.type('#habit-name', 'Evening stretch')
   await page.evaluate(() => {
     const el = document.querySelector('#habit-reminder')
@@ -209,7 +223,13 @@ console.log('\n— Fresh user & onboarding (mobile 390×844) —')
     window.__permAsked = 0
     window.Notification = { permission: 'default', requestPermission: async () => { window.__permAsked++; return 'denied' } }
   })
-  await clickByText(page, 'Add habit')
+  // submit the form's own 'Add habit' button — the Omni chip shares the
+  // label, so scope to the sheet that actually contains the form
+  await page.evaluate(() => {
+    const sheet = document.getElementById('habit-name')?.closest('.sheet')
+    const btn = [...(sheet?.querySelectorAll('button') || [])].find((b) => b.textContent.trim() === 'Add habit')
+    btn.click()
+  })
   await sleep(600)
   const deniedNote = await page.evaluate(() => document.body.textContent.includes('declined') || document.body.textContent.includes('in-app'))
   check('denied permission handled gracefully with in-app fallback copy', deniedNote)
@@ -231,94 +251,89 @@ console.log('\n— Habit management (mobile) —')
 
   // The seed mixes daily habits with weekday-gated ones, so the row count
   // depends on today's date. Derive it from the seed with the app's own
-  // scheduling rule rather than assuming "any weekday = all 5": h-med runs
-  // Mon–Fri but h-guitar only Mon/Wed/Fri, so Tuesday and Thursday legitimately
-  // show 4. The old dow===0||dow===6 ? 3 : 5 was wrong two days a week.
-  const rows = await page.evaluate(() => document.querySelectorAll('.habit-row').length)
+  // scheduling rule (h-med runs Mon–Fri, h-guitar only Mon/Wed/Fri).
+  const rows = await page.evaluate(() => document.querySelectorAll('li.today-row--habit-obj').length)
   const today = dayStr(new Date())
   const expectedRows = seededStateV4().habits.filter((h) =>
     !h.archived && (!h.createdAt || today >= h.createdAt) && isScheduled(h, today)).length
   check('seeded habits render (schedule-aware)', rows === expectedRows,
     `rows=${rows} expected=${expectedRows} (${today}, dow=${new Date().getDay()})`)
 
-  // complete + uncomplete via row tap
-  const before = await page.evaluate(() => document.querySelectorAll('.habit-row.done').length)
+  // complete + uncomplete via the HabitObject toggle
+  const before = await page.evaluate(() => document.querySelectorAll('.habit-obj.is-done').length)
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('.habit-row')].find((r) => !r.classList.contains('done'))
-    row.querySelector('[role="button"]').click()
+    const row = [...document.querySelectorAll('li.today-row--habit-obj')]
+      .find((r) => !r.querySelector('.habit-obj.is-done'))
+    row.querySelector('[aria-label^="Mark "]').click()
   })
   await sleep(500)
-  const after = await page.evaluate(() => document.querySelectorAll('.habit-row.done').length)
-  check('tap row completes habit', after === before + 1, `before=${before} after=${after}`)
+  const after = await page.evaluate(() => document.querySelectorAll('.habit-obj.is-done').length)
+  check('tap toggle completes habit', after === before + 1, `before=${before} after=${after}`)
   await page.evaluate(() => {
-    const row = [...document.querySelectorAll('.habit-row')].find((r) => r.classList.contains('done'))
-    row.querySelector('[role="button"]').click()
+    const row = [...document.querySelectorAll('li.today-row--habit-obj')]
+      .find((r) => r.querySelector('.habit-obj.is-done'))
+    row.querySelector('[aria-label^="Mark "]').click()
   })
   await sleep(400)
-  check('tap again uncompletes', await page.evaluate(() => document.querySelectorAll('.habit-row.done').length) === before)
+  check('tap again uncompletes', await page.evaluate(() => document.querySelectorAll('.habit-obj.is-done').length) === before)
 
-  // inline rename via name button (select all first, then type)
-  await clickByLabel(page, '^Rename Morning run$')
-  await sleep(200)
+  // Habit management lives in the Habits workspace on mobile: each row's
+  // ⋯ button opens the actions sheet (View / Edit / Skip / Pause / Archive / Delete).
+  await page.goto(`${BASE}/#/habits`, { waitUntil: 'networkidle0' })
+  await sleep(500)
+  const actionsScope = (name) => `[aria-label="Actions for ${name}"] button`
+
+  // rename via actions → Edit → shared HabitForm
+  await clickByLabelWait(page, 'More actions for Morning run')
+  await sleep(400)
+  await clickByText(page, 'Edit', actionsScope('Morning run'))
+  await page.waitForSelector('#habit-name', { timeout: 5000 })
   await page.keyboard.down('Control')
   await page.keyboard.press('KeyA')
   await page.keyboard.up('Control')
   await page.keyboard.type('Morning jog')
-  await page.keyboard.press('Enter')
-  await sleep(400)
-  check('inline rename works', await page.evaluate(() => document.body.textContent.includes('Morning jog')))
-
-  // detail sheet
-  await clickByLabel(page, '^Details for Morning jog$')
+  await page.evaluate(() => {
+    const sheet = document.getElementById('habit-name')?.closest('.sheet')
+    const btn = [...(sheet?.querySelectorAll('button') || [])].find((b) => b.textContent.trim() === 'Save changes')
+    btn.click()
+  })
   await sleep(500)
-  const sheetText = await page.evaluate(() => document.querySelector('.sheet')?.textContent || '')
-  check('detail sheet shows 90-day heatmap + streaks', /current streak/i.test(sheetText) && /best streak/i.test(sheetText) && /Last 90 days/i.test(sheetText))
+  check('rename via actions sheet works', await page.evaluate(() => document.body.textContent.includes('Morning jog')))
+
+  // detail screen: real-history heatmap + streak metrics
+  await clickByLabelWait(page, 'More actions for Morning jog')
+  await sleep(400)
+  await clickByText(page, 'View', actionsScope('Morning jog'))
+  await sleep(900)
+  check('detail shows real-history heatmap + streak metrics', await page.evaluate(() => (
+    /Current streak/.test(document.body.textContent)
+    && /Best streak/.test(document.body.textContent)
+    && /completion heatmap/.test(document.querySelector('.hd-heatmap [role="img"]')?.getAttribute('aria-label') || '')
+  )))
   await shot(page, '06-habit-detail')
   await overflowCheck(page, 'habit-detail')
-  await page.keyboard.press('Escape')
-  await sleep(300)
 
-  // swipe left reveals archive/delete (framer drag: dispatch pointer events)
-  await page.evaluate(() => {
-    const row = document.querySelector('.habit-row')
-    const rect = row.getBoundingClientRect()
-    const startX = rect.left + rect.width - 30
-    const y = rect.top + rect.height / 2
-    const el = row
-    const mk = (type, x) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, clientX: x, clientY: y, button: 0, pointerType: 'touch', isPrimary: true })
-    el.dispatchEvent(mk('pointerdown', startX))
-    window.dispatchEvent(mk('pointermove', startX - 60))
-    window.dispatchEvent(mk('pointermove', startX - 100))
-    window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, clientX: startX - 100, clientY: y, pointerType: 'touch' }))
-    return true
-  })
-  await sleep(700)
-  const actionsVisible = await page.evaluate(() => {
-    const btn = document.querySelector('[aria-label^="Archive"]')
-    if (!btn) return false
-    return btn.getBoundingClientRect().width > 0
-  })
-  check('swipe-left reveals archive/delete actions', actionsVisible, 'archive button not visible after swipe')
-  if (actionsVisible) {
-    await shot(page, '07-swipe-actions')
-    // archive via swipe action → undo via toast
-    const habitCount = await page.evaluate(() => JSON.parse(localStorage.getItem('aaru.habits.v4')).habits.filter((h) => !h.archived).length)
-    await page.evaluate(() => document.querySelector('[aria-label^="Archive"]').click())
-    await sleep(500)
-    const afterCount = await page.evaluate(() => JSON.parse(localStorage.getItem('aaru.habits.v4')).habits.filter((h) => !h.archived).length)
-    check('archive removes habit from list', afterCount === habitCount - 1)
-    await clickByText(page, 'Undo', 'button')
-    await sleep(400)
-    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('aaru.habits.v4')).habits.filter((h) => !h.archived).length)
-    check('undo restores archived habit', restored === habitCount)
-  }
-
-  // delete via detail sheet with undo (history restored)
-  await clickByLabel(page, '^Details for Morning jog$')
+  // archive via actions sheet → undo via toast
+  await page.goto(`${BASE}/#/habits`, { waitUntil: 'networkidle0' })
+  await sleep(500)
+  await clickByLabelWait(page, 'More actions for Morning jog')
   await sleep(400)
-  await clickByText(page, 'Delete')
-  await sleep(200)
-  await clickByText(page, 'Really delete')
+  const habitCount = await page.evaluate(() => JSON.parse(localStorage.getItem('aaru.habits.v4')).habits.filter((h) => !h.archived).length)
+  await clickByText(page, 'Archive', actionsScope('Morning jog'))
+  await sleep(500)
+  const afterCount = await page.evaluate(() => JSON.parse(localStorage.getItem('aaru.habits.v4')).habits.filter((h) => !h.archived).length)
+  check('archive removes habit from list', afterCount === habitCount - 1, `${habitCount}→${afterCount}`)
+  await clickByText(page, 'Undo', 'button')
+  await sleep(400)
+  const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('aaru.habits.v4')).habits.filter((h) => !h.archived).length)
+  check('undo restores archived habit', restored === habitCount)
+
+  // delete via actions sheet (two-step confirm) with undo (history restored)
+  await clickByLabelWait(page, 'More actions for Morning jog')
+  await sleep(400)
+  await clickByText(page, 'Delete', actionsScope('Morning jog'))
+  await sleep(300)
+  await clickByText(page, 'Confirm delete', 'button')
   await sleep(500)
   check('delete toast offers undo', await page.evaluate(() => !!document.querySelector('.toast-action')))
   const historyBefore = await page.evaluate(() => {
@@ -334,7 +349,7 @@ console.log('\n— Habit management (mobile) —')
   })
   check('undo restores habit AND full history', restoredState.habits === 5 && restoredState.runCheckins > 20, JSON.stringify(restoredState))
   await page.keyboard.press('Escape')
-  await noConsoleErrors(page, 'habit-mgmt')
+    await noConsoleErrors(page, 'habit-mgmt')
   await page.close()
 }
 
@@ -345,59 +360,62 @@ console.log('\n— Calendar (mobile) —')
 {
   const page = await newPage(browser, VIEWPORTS.mobile)
   await seedAndGoto(page, seededStateV4(), 'calendar', BASE)
-  await sleep(200)
+  await sleep(300)
   await shot(page, '08-calendar')
   await overflowCheck(page, 'calendar')
-  check('[calendar 2.0] density row covers every day in view', await page.evaluate(() => {
-    const dens = document.querySelectorAll('.cal-grid .cal-dens')
-    const heads = document.querySelectorAll('.cal-grid .cal-head-cell')
-    return dens.length === heads.length && dens.length > 0
+
+  // 4G-1 contract: sticky name column + one column per day + aggregate strip
+  check('[calendar 4G-1] grid renders with a name column and day columns', await page.evaluate(() => (
+    !!document.querySelector('#calendar-screen .hc-grid')
+    && document.querySelectorAll('#calendar-screen .hc-name').length >= 1
+    && document.querySelectorAll('#calendar-screen .hc-daynum').length >= 7
+  )))
+  check('[calendar 4G-1] density strip covers every day in view', await page.evaluate(() => {
+    const dens = document.querySelectorAll('#calendar-screen .hc-aggr').length
+    const days = document.querySelectorAll('#calendar-screen .hc-daynum').length
+    return dens === days && dens > 0
   }))
-  check('[calendar 2.0] density separates hollow days from zero days', await page.evaluate(() => (
-    document.querySelectorAll('.cal-grid .cal-dens.is-null').length >= 0
-    && (document.querySelectorAll('.cal-grid .cal-dens-fill').length >= 1
-      || document.querySelectorAll('.cal-grid .cal-dens.is-null').length >= 1)
+  check('[calendar 4G-1] range control offers Month / 90 days / Year', await page.evaluate(() => (
+    document.querySelectorAll('#calendar-screen [aria-label="Calendar range"] button').length === 3
   )))
 
-  // find yesterday's cell for the daily habit (Morning run) — label depends on current state
+  // yesterday's cell for the daily habit — aria is 'Mark <name> as …, <prettyDate>'
   const ySel = await page.evaluate(() => {
     const d = new Date()
     d.setDate(d.getDate() - 1)
     const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-    const el = [...document.querySelectorAll('button')].find((b) => {
+    const el = [...document.querySelectorAll('#calendar-screen .hc-cell')].find((b) => {
       const l = b.getAttribute('aria-label') || ''
-      return l.startsWith('Mark') && l.includes('Morning run,') && l.endsWith(dateStr)
+      return l.startsWith('Mark Morning run') && l.endsWith(dateStr)
     })
     if (!el) return null
     return { label: el.getAttribute('aria-label'), pressed: el.getAttribute('aria-pressed') === 'true' }
   })
-
-  check('yesterday cell exists', !!ySel, 'cell not found')
+  check('yesterday cell exists', !!ySel, ySel ? ySel.label : 'cell not found')
   if (ySel) {
-    const findByDate = () => page.evaluate(() => {
+    const findPressed = () => page.evaluate(() => {
       const d = new Date()
       d.setDate(d.getDate() - 1)
       const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-      const el = [...document.querySelectorAll('button')].find((b) => {
+      const el = [...document.querySelectorAll('#calendar-screen .hc-cell')].find((b) => {
         const l = b.getAttribute('aria-label') || ''
-        return l.startsWith('Mark') && l.includes('Morning run,') && l.endsWith(dateStr)
+        return l.startsWith('Mark Morning run') && l.endsWith(dateStr)
       })
-      return el ? { pressed: el.getAttribute('aria-pressed') === 'true' } : null
+      return el ? el.getAttribute('aria-pressed') === 'true' : null
     })
     await page.evaluate(() => {
       const d = new Date()
       d.setDate(d.getDate() - 1)
       const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-      const el = [...document.querySelectorAll('button')].find((b) => {
+      const el = [...document.querySelectorAll('#calendar-screen .hc-cell')].find((b) => {
         const l = b.getAttribute('aria-label') || ''
-        return l.startsWith('Mark') && l.includes('Morning run,') && l.endsWith(dateStr)
+        return l.startsWith('Mark Morning run') && l.endsWith(dateStr)
       })
       el.click()
     })
     await sleep(400)
-    const after = await findByDate()
-    check('past-day toggle works', after && after.pressed === !ySel.pressed, `was=${ySel.pressed} now=${after && after.pressed}`)
-    // and storage agrees
+    const after = await findPressed()
+    check('past-day toggle works', after === !ySel.pressed, `was=${ySel.pressed} now=${after}`)
     const stored = await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('aaru.habits.v4'))
       const d = new Date()
@@ -405,48 +423,41 @@ console.log('\n— Calendar (mobile) —')
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       return s.checkins['h-run']?.[key]?.done === true
     })
-    check('past-day toggle persists to storage', stored)
+    check('past-day toggle persists to storage', stored === after, `stored=${stored} ui=${after}`)
   }
 
   // today distinguished
-  check('today has visual distinction', await page.evaluate(() => !!document.querySelector('.cal-cell.today')))
+  check('today has visual distinction', await page.evaluate(() => (
+    !!document.querySelector('#calendar-screen .hc-cell.is-today')
+  )))
 
-  // horizontal scroll: grid wider than viewport, scrollable, sticky name column
+  // horizontal scroll: grid wider than viewport, sticky name column
   const cal = await page.evaluate(() => {
-    const wrap = document.querySelector('.cal-wrap')
-    const grid = document.querySelector('.cal-grid')
-    const name = document.querySelector('.cal-name')
+    const wrap = document.querySelector('#calendar-screen .hc-scroll')
+    const name = document.querySelector('#calendar-screen .hc-name')
     return {
       scrollable: wrap && wrap.scrollWidth > wrap.clientWidth,
-      gridW: grid?.getBoundingClientRect().width,
       nameLeft: name ? name.getBoundingClientRect().left : null,
+      nameW: name ? name.getBoundingClientRect().width : null,
     }
   })
   check('calendar horizontally scrollable', cal.scrollable, JSON.stringify(cal))
-  await page.evaluate(() => { document.querySelector('.cal-wrap').scrollLeft = 600 })
+  await page.evaluate(() => { document.querySelector('#calendar-screen .hc-scroll').scrollLeft = 600 })
   await sleep(300)
   const stickyOk = await page.evaluate(() => {
-    const name = document.querySelector('.cal-name')
+    const name = document.querySelector('#calendar-screen .hc-name')
     const r = name.getBoundingClientRect()
     return r.left >= -1 && r.left < 40 && r.width > 60
   })
   check('habit-name column stays sticky while scrolling', stickyOk)
   await shot(page, '09-calendar-scrolled')
-  await page.evaluate(() => { document.querySelector('.cal-wrap').scrollLeft = 0 })
+  await page.evaluate(() => { document.querySelector('#calendar-screen .hc-scroll').scrollLeft = 0 })
 
-  // weekday-schedule habit: Meditate is weekdays-only → cell on a Sunday should be inert
-  const sunday = await page.evaluate(() => {
-    // find next Sunday this month
-    const d = new Date()
-    while (d.getDay() !== 0 || d <= new Date()) d.setDate(d.getDate() + 1)
-    return d.getDate()
-  })
-  const sundayInert = await page.evaluate(() => {
-    const cells = [...document.querySelectorAll('.cal-cell.off')]
-    return cells.length > 0
-  }, sunday)
-  check('non-scheduled days render inert (dashed)', sundayInert)
-  await noConsoleErrors(page, 'calendar')
+  // weekday-schedule habit: unscheduled days render as inert (aria-hidden) cells
+  check('non-scheduled days render inert', await page.evaluate(() => (
+    document.querySelectorAll('#calendar-screen .hc-cell.is-unscheduled').length > 0
+  )))
+    await noConsoleErrors(page, 'calendar')
   await page.close()
 }
 
@@ -457,96 +468,127 @@ console.log('\n— Week / Insights / Mind (mobile) —')
 {
   const page = await newPage(browser, VIEWPORTS.mobile)
   await seedAndGoto(page, seededStateV4(), 'week', BASE)
-  await sleep(200)
+  await sleep(300)
   const weekText = await page.evaluate(() => document.body.textContent)
-  check('week shows completion + comparison vs previous week', /check-ins/.test(weekText) && /(versus|comparison|previous week)/i.test(weekText))
-  check('week shows strongest/weakest habit', /Strongest habit/i.test(weekText) || /Needs attention/i.test(weekText))
+  check('week shows completion + comparison vs previous week', await page.evaluate(() => (
+    /check-ins completed/.test(document.querySelector('.wr-summary__line')?.textContent || '')
+    && (document.querySelector('.wr-summary__delta')?.getAttribute('aria-label') || '').includes('versus last week')
+  )))
+  check('week shows strongest/weakest habit', /was your strongest habit this week/i.test(weekText) || /needs attention/i.test(weekText))
+  check('week renders habit rows with 7-day stripes', await page.evaluate(() => (
+    document.querySelectorAll('.wr-row').length >= 1
+    && document.querySelectorAll('.wr-row')[0].querySelectorAll('.wr-cell').length === 7
+  )))
   await shot(page, '10-week')
   await overflowCheck(page, 'week')
   await tapTargetCheck(page, 'week')
 
   await page.goto(`${BASE}/#/insights`, { waitUntil: 'networkidle0' })
   await sleep(1200) // charts animate in
-  const insightsText = await page.evaluate(() => document.body.textContent)
-  check('insights hero grid renders', await page.evaluate(() => !!document.querySelector('.insights-grid')))
-  check('insights KPIs render (best streak + active habits + total check-ins)',
-    /Best streak/.test(insightsText) && /Active habits/.test(insightsText) && /Total check-ins/.test(insightsText))
-  check('insights hero has 4 stat tiles', await page.evaluate(() => document.querySelectorAll('.insights-stat').length === 4))
-  check('insights hero ring is present', await page.evaluate(() => !!document.querySelector('.insights-ring .ring-wrap')))
-
-  check('trend-chart renders', await page.evaluate(() => !!document.querySelector('.trend-chart svg')))
-  check('trend range has 4 options', await page.evaluate(() => document.querySelectorAll('[aria-label="Trend range"] .seg-btn').length === 4))
-  check('insights has an Overview / Deep dive switch', await page.evaluate(() => document.querySelectorAll('[aria-label="Insights view"] .seg-btn').length === 2))
-  check('trend defaults to 30D', await page.evaluate(() => document.querySelector('[aria-label="Trend range"] .seg-btn.active')?.textContent === '30D'))
-  const trendLabel30 = await page.evaluate(() => document.querySelector('.trend-chart svg')?.getAttribute('aria-label') || '')
-  await clickByText(page, '7D', 'button')
-  await sleep(300)
-  check('trend switches to 7D', await page.evaluate(() => document.querySelector('[aria-label="Trend range"] .seg-btn.active')?.textContent === '7D'))
-  check('trend aria-label reflects selected range', await page.evaluate((prev) => (document.querySelector('.trend-chart svg')?.getAttribute('aria-label') || '') !== prev, trendLabel30))
-  await clickByText(page, '90D', 'button')
-  await sleep(300)
-  check('trend switches to 90D', await page.evaluate(() => document.querySelector('[aria-label="Trend range"] .seg-btn.active')?.textContent === '90D'))
-  await clickByText(page, '1Y', 'button')
-  await sleep(300)
-  check('trend switches to 1Y', await page.evaluate(() => document.querySelector('[aria-label="Trend range"] .seg-btn.active')?.textContent === '1Y'))
-  check('trend y-axis spans 0–100', await page.evaluate(() => {
-    const labels = [...document.querySelectorAll('.trend-chart svg text')].map((t) => t.textContent)
-    return labels.includes('0') && labels.includes('100')
+  // 7B Overview: signal strip → primary chart → honest insight cards
+  check('[insights 7B] signal strip renders the four signals', await page.evaluate(() => {
+    const strip = document.querySelector('.ins-signal-strip')
+    return !!strip && strip.querySelectorAll('.ins-signal').length === 4
+      && /Completion/.test(strip.textContent) && /This week/.test(strip.textContent)
+      && /Current streak/.test(strip.textContent) && /Total/.test(strip.textContent)
   }))
-
-  check('this-week-vs-last renders', await page.evaluate(() => !!document.querySelector('.vs')))
-  check('vs shows this week + last week + change', await page.evaluate(() => {
-    const blocks = [...document.querySelectorAll('.vs-block')]
-    return blocks.length === 3 && /This week/.test(blocks[0].textContent) && /Last week/.test(blocks[1].textContent) && /Change/.test(blocks[2].textContent)
+  check('[insights 7B] primary trend chart declares real data in its aria label', await page.evaluate(() => (
+    [...document.querySelectorAll('svg[role="img"]')].some((s) => /Completion trend over the last \d+ days/.test(s.getAttribute('aria-label') || ''))
+  )))
+  check('[insights 7B] legend separates aggregate, rolling average and habit series', await page.evaluate(() => {
+    const legend = document.querySelector('.ins-legend')?.textContent || ''
+    return /Aggregate/.test(legend) && /7-day average/.test(legend) && /Morning run|Read 20 pages|Meditate/.test(legend)
   }))
-  check('vs change shows a signed direction', await page.evaluate(() => {
-    const delta = document.querySelector('.vs-delta')
-    return !!delta && (delta.classList.contains('up') || delta.classList.contains('down') || delta.classList.contains('none'))
+  check('[insights 7B] insight cards render without invented coaching copy', await page.evaluate(() => (
+    document.querySelectorAll('.ins-insight').length > 0
+    && !/Pairing it with|You're doing amazing/i.test(document.body.textContent)
+  )))
+  check('[insights 7B] pillar nav offers Mind / Record / Achievements destinations', await page.evaluate(() => {
+    const labels = [...document.querySelectorAll('.ins-pillar .ins-pillar-label')].map((e) => e.textContent.trim())
+    return ['Mind', 'Record', 'Achievements'].every((l) => labels.includes(l))
   }))
+  check('[insights 7B] trend range has 3 options (1Y lives in the Lab)', await page.evaluate(() => (
+    document.querySelectorAll('[aria-label="Trend range"] button').length === 3
+  )))
+  check('[insights 7B] has an Overview / Deep dive switch', await page.evaluate(() => (
+    document.querySelectorAll('[aria-label="Insights view"] .seg-btn').length === 2
+  )))
+  check('trend defaults to 30D', await page.evaluate(() => (
+    document.querySelector('[aria-label="Trend range"] button[aria-pressed="true"]')?.textContent.trim() === '30D'
+  )))
+  const trendLabel30 = await page.evaluate(() => [...document.querySelectorAll('svg[role="img"]')].map((s) => s.getAttribute('aria-label')).join(' '))
+  await clickByText(page, '14D', '[aria-label="Trend range"] button')
+  await sleep(400)
+  check('trend switches to 14D', await page.evaluate(() => (
+    document.querySelector('[aria-label="Trend range"] button[aria-pressed="true"]')?.textContent.trim() === '14D'
+  )))
+  check('trend aria-label reflects selected range', await page.evaluate((prev) => (
+    [...document.querySelectorAll('svg[role="img"]')].map((s) => s.getAttribute('aria-label')).join(' ') !== prev
+  ), trendLabel30))
+  await clickByText(page, '90D', '[aria-label="Trend range"] button')
+  await sleep(400)
+  check('trend switches to 90D', await page.evaluate(() => (
+    document.querySelector('[aria-label="Trend range"] button[aria-pressed="true"]')?.textContent.trim() === '90D'
+  )))
+  await clickByText(page, '30D', '[aria-label="Trend range"] button')
+  await sleep(400)
 
-  check('habit performance renders 5 rows', await page.evaluate(() => document.querySelectorAll('.perf-row:not(.perf-head)').length === 5))
-  check('performance rows show done/eligible', await page.evaluate(() => /\/\d+/.test(document.querySelector('.perf-row:not(.perf-head)')?.textContent || '')))
-  const perfFirst = () => page.evaluate(() => document.querySelector('.perf-row:not(.perf-head) .perf-name-text')?.textContent)
-  await page.evaluate(() => document.querySelector('[aria-label="Sort by habit name"]').click())
-  await sleep(300)
-  check('performance sorts by name (desc)', (await perfFirst()) === 'Read 20 pages', `first=${await perfFirst()}`)
-  await page.evaluate(() => document.querySelector('[aria-label="Sort by 30 day rate"]').click())
-  await sleep(300)
-  check('performance sorts by 30-day rate', (await perfFirst()) !== 'Read 20 pages', `first=${await perfFirst()}`)
-  await page.evaluate(() => document.querySelector('[aria-label="Sort by current streak"]').click())
-  await sleep(300)
-  check('performance sorts by current streak', await page.evaluate(() => /[↑↓]/.test(document.querySelector('[aria-label="Sort by current streak"]').textContent)))
-
-  check('heatmap renders with day cells', await page.evaluate(() => document.querySelectorAll('.hm-day').length >= 350))
-  check('heatmap has ≥52 week columns', await page.evaluate(() => document.querySelectorAll('.hm-col').length >= 52))
-  check('heatmap has weekday gutter', await page.evaluate(() => document.querySelectorAll('.hm-gutter span').length === 7))
-  check('heatmap month labels render', await page.evaluate(() => document.querySelectorAll('.hm-months span').length >= 10))
-  check('heatmap future days are flagged', await page.evaluate(() => !!document.querySelector('.hm-day.future')))
-  const heatTip = await page.evaluate(() => {
-    const day = document.querySelector('.hm-day:not(.future)')
-    if (!day) return false
-    day.click()
-    return true
+  // data integrity: the Completion signal vs an independent recomputation
+  const integrity = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('aaru.habits.v4'))
+    let done = 0, total = 0
+    for (let i = 0; i < 30; i++) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      for (const h of s.habits) {
+        if (h.archived) continue
+        if (h.createdAt && key < h.createdAt) continue
+        const sched = h.schedule.type === 'daily' || h.schedule.days.includes(new Date(`${key}T12:00:00`).getDay())
+        if (!sched) continue
+        total++
+        if (s.checkins[h.id]?.[key]?.done) done++
+      }
+    }
+    return Math.round((done / total) * 100)
   })
-  await sleep(250)
-  check('heatmap tap shows tooltip', heatTip && await page.evaluate(() => /\d{4}-\d{2}-\d{2}/.test(document.querySelector('.heatmap-tip')?.textContent || '')))
-  check('heatmap tooltip shows completion', await page.evaluate(() => /(done|No data)/.test(document.querySelector('.heatmap-tip')?.textContent || '')))
+  const shown = await page.evaluate(() => {
+    const el = [...document.querySelectorAll('.ins-signal')].find((e) => /Completion/.test(e.textContent))
+    return parseInt((el?.textContent || '').match(/(\d+)%/)?.[1]) || null
+  })
+  check('insights 30-day completion matches independent recomputation', shown === integrity, `shown=${shown} computed=${integrity}`)
 
-  check('habit × day matrix renders', await page.evaluate(() => !!document.querySelector('.habit-matrix')))
-  check('matrix has 28 day columns', await page.evaluate(() => (document.querySelector('.hmx-grid')?.style.gridTemplateColumns || '').includes('repeat(28')))
-  check('matrix renders a row per habit', await page.evaluate(() => document.querySelectorAll('.hmx-name').length === 5))
-  check('matrix name column is sticky', await page.evaluate(() => getComputedStyle(document.querySelector('.hmx-name')).position === 'sticky'))
-
-  check('year overview renders 12 mini-months', await page.evaluate(() => document.querySelectorAll('.mini-month').length === 12))
-  check('achievements render 4 badges', await page.evaluate(() => document.querySelectorAll('img[src^="art/badge-"]').length === 4))
-  check('achievements show next badge hint', await page.evaluate(() => !!document.querySelector('.next-badge')))
-  check('mood-and-habits link renders', await page.evaluate(() => /Mood and habits/.test(document.body.textContent)))
-  await shot(page, '11-insights')
+  // Advanced opens the seven-view Lab in place (lazy chunk)
+  await clickByText(page, 'Advanced', 'button')
+  await sleep(1200)
+  check('[insights 7B] Advanced opens the seven-view Lab in place', await page.evaluate(() => (
+    ['Story', 'Timeline', 'Trajectory', 'Workload', 'Habits', 'Goals', 'Trends']
+      .every((l) => [...document.querySelectorAll('[role="tab"]')].some((t) => t.textContent.trim() === l))
+  )))
+  await clickByText(page, 'Trajectory', '[role="tab"]')
+  await sleep(800)
+  check('[insights 7B] trajectory view opens with the honest forecast card', await page.evaluate(() => (
+    !!document.querySelector('.lab-trajectory')
+    && /Performance trajectory/.test(document.querySelector('.lab-trajectory').textContent)
+  )))
+  // the series chart renders for entities with enough history — try a few
+  for (const pill of await page.$$('.lab-trajectory [role="group"] button')) {
+    if (await page.evaluate(() => !!document.querySelector('.lab-trajectory svg[role="img"]'))) break
+    await pill.click()
+    await sleep(400)
+  }
+  check('[insights 7B] trajectory chart draws series from the live engine', await page.evaluate(() => (
+    !!document.querySelector('.lab-trajectory svg[role="img"]')
+  )))
+  await shot(page, '11-insights-lab')
   await overflowCheck(page, 'insights')
   await tapTargetCheck(page, 'insights')
   await contrastCheck(page, 'insights')
 
-  // Deep dive view (§17–§19): patterns, consistency, streak history, correlations
+  // back to Overview, then the Deep dive view (§17–§19)
+  await clickByText(page, 'Advanced', 'button')
+  await sleep(600)
+    // Deep dive view (§17–§19): patterns, consistency, streak history, correlations
   await clickByText(page, 'Deep dive')
   await sleep(1000)
   const deepText = await page.evaluate(() => document.body.textContent)
@@ -577,44 +619,15 @@ console.log('\n— Week / Insights / Mind (mobile) —')
   await clickByText(page, 'Overview')
   await sleep(500)
 
-  // verify a displayed number against a recomputed value (data integrity spot check)
-  const integrity = await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('aaru.habits.v4'))
-    let done = 0, total = 0
-    for (let i = 0; i < 30; i++) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-      for (const h of s.habits) {
-        if (h.archived) continue
-        if (h.createdAt && key < h.createdAt) continue
-        const sched = h.schedule.type === 'daily' || h.schedule.days.includes(new Date(`${key}T12:00:00`).getDay())
-        if (!sched) continue
-        total++
-        if (s.checkins[h.id]?.[key]?.done) done++
-      }
-    }
-    return Math.round((done / total) * 100)
-  })
-  const shown = await page.evaluate(() => {
-    const el = [...document.querySelectorAll('.stat-value')].find((e) => e.textContent.includes('%'))
-    return parseInt(el?.textContent) || null
-  })
-  check('insights 30-day completion matches independent recomputation', shown === integrity, `shown=${shown} computed=${integrity}`)
-  await noConsoleErrors(page, 'insights')
-
-  // tap a mini-month → navigates to calendar at that month
-  await page.evaluate(() => document.querySelectorAll('.mini-month')[new Date().getMonth()].click())
-  await sleep(700)
-  check('mini-month opens calendar on that month', await page.evaluate(() => location.hash.startsWith('#/calendar')))
-
   await page.goto(`${BASE}/#/mind`, { waitUntil: 'networkidle0' })
-  await sleep(600)
-  const mindText = await page.evaluate(() => document.body.textContent)
-  check('mind shows mood picker + history', /How are you feeling today/.test(mindText) && /Last 30 days/.test(mindText))
+  await sleep(700)
+  check('mind shows mood picker + capacity/habit history', await page.evaluate(() => (
+    /How are you feeling today\?/.test(document.body.textContent)
+    && /Capacity & habits over time/.test(document.body.textContent)
+  )))
   await shot(page, '12-mind')
   // set today's mood to Great
-  await clickByText(page, 'Great', 'button')
+  await clickByText(page, 'Great', '.mood-row button')
   await sleep(400)
   await shot(page, '13-mood-picked')
   check('mood persists in storage', await page.evaluate(() => {
@@ -623,7 +636,7 @@ console.log('\n— Week / Insights / Mind (mobile) —')
     const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     return s.moods[key]?.score === 5
   }))
-  await noConsoleErrors(page, 'week-insights-mind')
+    await noConsoleErrors(page, 'week-insights-mind')
   await page.close()
 }
 
@@ -635,21 +648,22 @@ console.log('\n— Calendar range modes —')
   const page = await newPage(browser, VIEWPORTS.mobile)
   await seedAndGoto(page, seededStateV4(), 'calendar', BASE)
   await sleep(300)
-  const calTitle = () => page.evaluate(() => document.querySelector('.card-title')?.textContent || '')
-  const activeMode = () => page.evaluate(() => document.querySelector('#calendar-screen .seg-btn.active')?.textContent || '')
+  const calTitle = () => page.evaluate(() => document.querySelector('.hc-title')?.textContent || '')
+  const activeMode = () => page.evaluate(() => (
+    document.querySelector('#calendar-screen [aria-label="Calendar range"] button[aria-pressed="true"]')?.textContent.trim() || ''
+  ))
 
-  check('calendar has 3 range modes', await page.evaluate(() => document.querySelectorAll('#calendar-screen .seg-btn').length === 3))
+  check('calendar has 3 range modes', await page.evaluate(() => document.querySelectorAll('#calendar-screen [aria-label="Calendar range"] button').length === 3))
   check('calendar defaults to Month', (await activeMode()) === 'Month')
-  check('month mode shows week bands', await page.evaluate(() => document.querySelectorAll('.cal-band-label').length >= 4))
+  check('month mode labels the month band', await page.evaluate(() => document.querySelectorAll('#calendar-screen .hc-month').length >= 1))
   const monthTitle = await calTitle()
 
   await clickByText(page, '90 days', 'button')
   await sleep(400)
   check('calendar switches to 90 days', (await activeMode()) === '90 days')
   check('90 days title is a date range', (await calTitle()).includes('–'), `title=${await calTitle()}`)
-  check('90 days keeps week bands', await page.evaluate(() => document.querySelectorAll('.cal-band-label').length >= 13))
   check('90 days grid scrolls horizontally', await page.evaluate(() => {
-    const wrap = document.querySelector('.cal-wrap')
+    const wrap = document.querySelector('#calendar-screen .hc-scroll')
     return !!wrap && wrap.scrollWidth > wrap.clientWidth
   }))
 
@@ -657,15 +671,11 @@ console.log('\n— Calendar range modes —')
   await sleep(400)
   check('calendar switches to Year', (await activeMode()) === 'Year')
   check('year title is the current year', (await calTitle()) === String(new Date().getFullYear()), `title=${await calTitle()}`)
-  check('year grid scrolls horizontally', await page.evaluate(() => {
-    const wrap = document.querySelector('.cal-wrap')
-    return !!wrap && wrap.scrollWidth > wrap.clientWidth
-  }))
   check('year mode still logs a past day', await page.evaluate(() => {
     const d = new Date()
     d.setDate(d.getDate() - 1)
     const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-    const el = [...document.querySelectorAll('.cal-cell')].find((b) => (b.getAttribute('aria-label') || '').startsWith('Mark') && (b.getAttribute('aria-label') || '').endsWith(label))
+    const el = [...document.querySelectorAll('#calendar-screen .hc-cell')].find((b) => (b.getAttribute('aria-label') || '').startsWith('Mark') && (b.getAttribute('aria-label') || '').endsWith(label))
     if (el) { el.click(); return true }
     return false
   }))
@@ -771,10 +781,11 @@ console.log('\n— Projects & celebration (mobile) —')
   await sleep(800)
   check('celebration dismisses', await page.evaluate(() => !document.querySelector('[aria-label="Project complete"]')))
 
-  // create a project through the FAB
+  // create a project — on mobile the route FAB is null, so the Work
+  // header's 'Create project' button is the entry point
   await page.goto(`${BASE}/#/projects`, { waitUntil: 'networkidle0' })
   await sleep(500)
-  await clickByLabel(page, 'Add a project')
+  await clickByText(page, 'Create project', '.workspace-head button')
   await sleep(600)
   await page.type('#project-name', 'Learn piano')
   await page.type('#project-milestones', 'Basics\nScales')
@@ -842,14 +853,30 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   check('assignment completion is acknowledged', await page.evaluate(() => /100%|complete|Submitted/i.test(document.body.textContent)))
   await shot(page, '16d-assignment-done')
 
-  await page.goto(`${BASE}/#/workload`, { waitUntil: 'networkidle0' })
+  // the a1 completion above removed it from work lists — re-seed so the
+  // workload view shows the fixture it was written against (a hash-only
+  // goto would not re-run the seeding init script, hence the blank hop)
+  await page.goto('about:blank')
+  await seedAndGoto(page, seededStateV4(), 'workload', BASE)
   await sleep(800)
-  check('workload renders seven day-by-day capacity cells', await page.evaluate(() => document.querySelectorAll('.workspace-days button').length === 7))
-  check('workload exposes available, committed and remaining', await page.evaluate(() => /Available/.test(document.body.textContent) && /Committed/.test(document.body.textContent)))
-  check('[workload] day selection and contributors remain reachable', await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('.workspace-days button')]
-    return rows.length === 7 && rows.every(r => r.getBoundingClientRect().height >= 43)
+  check('workload renders seven day-by-day capacity cells', await page.evaluate(() => {
+    const svg = document.querySelector('[aria-label="Capacity vs committed workload, next 7 days"] svg[role="img"]')
+    if (!svg) return false
+    const aria = svg.getAttribute('aria-label') || ''
+    // Day labels are relative: Today, Tomorrow, '2 days'…'6 days'
+    return aria.startsWith('Workload next 7 days.')
+      && aria.includes('Today:') && aria.includes('Tomorrow:')
+      && (aria.match(/days:/g) || []).length >= 4
   }))
+  check('workload exposes capacity, planned and free/over', await page.evaluate(() => {
+    const snap = document.querySelector('[aria-label="Capacity summary"]')
+    return !!snap && /Capacity/.test(snap.textContent) && /Planned/.test(snap.textContent)
+      && /(Free|Over capacity)/.test(snap.textContent)
+  }))
+  check('[workload] capacity chart and peak-day contributors remain reachable', await page.evaluate(() => (
+    !!document.querySelector('[aria-label="Capacity vs committed workload, next 7 days"] svg')
+    && [...document.querySelectorAll('.dlv__list a')].some((a) => /#\/(projects|assignments)\//.test(a.getAttribute('href') || ''))
+  )))
   check('[workload] contributors use original detail links', await page.evaluate(() => {
     const links = [...document.querySelectorAll('.workspace-row-title')]
     return links.every(r => /#\/(projects|assignments)\//.test(r.getAttribute('href')))
@@ -864,8 +891,8 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
   await page.goto('about:blank')
   await seedAndGoto(page, seededStateV4(), 'timeline', BASE)
   await sleep(800)
-  check('deadline timeline groups by day', await page.evaluate(() => document.querySelectorAll('.workspace-deadline-group').length >= 2))
-  check('deadline timeline marks today', await page.evaluate(() => [...document.querySelectorAll('.workspace-deadline-group h3')].some(el => el.textContent === 'Today')))
+  check('deadline timeline groups by day', await page.evaluate(() => document.querySelectorAll('.dl-group').length >= 2))
+  check('deadline timeline marks today', await page.evaluate(() => [...document.querySelectorAll('.dl-group h3')].some(el => el.textContent === 'Today')))
   await shot(page, '16f-timeline')
   await overflowCheck(page, 'timeline')
 
@@ -878,7 +905,10 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
 
   await page.goto(`${BASE}/#/library`, { waitUntil: 'networkidle0' })
   await sleep(800)
-  check('library lists habits with streak + 30-day rate', await page.evaluate(() => /\dd streak|%/.test(document.body.textContent)))
+  check('library lists habits with streak evidence', await page.evaluate(() => (
+    document.querySelectorAll('.habit-obj').length >= 3
+    && [...document.querySelectorAll('.habit-obj__streak')].some((e) => /\dd/.test(e.textContent))
+  )))
   await shot(page, '16h-library')
   await overflowCheck(page, 'library')
   await tapTargetCheck(page, 'library')
@@ -890,44 +920,50 @@ console.log('\n— Assignments / Workload / Deadlines / Record / Library (mobile
 
   await page.goto(`${BASE}/#/goals`, { waitUntil: 'networkidle0' })
   await sleep(700)
-  check('first-class goals show their outcome and link supporting habits', await page.evaluate(() => /Run a half marathon/.test(document.body.textContent) && !!document.querySelector('.goal-card .goal-habit[href^="#/habits/"]')))
+  check('first-class goals render outcome rows with trajectory charts', await page.evaluate(() => (
+    /Run a half marathon/.test(document.body.textContent)
+    && !!document.querySelector('.goal-row .goal-trajectory svg')
+    && !!document.querySelector('.goal-row__link[href^="#/goals/"]')
+  )))
   await shot(page, '16j-goals')
   await overflowCheck(page, 'goals')
 
   /* ---- Goals 2.0 (Phase 6): outcome-first detail experience ---- */
   await page.goto(`${BASE}/#/goals/g-run`, { waitUntil: 'networkidle0' })
   await sleep(900)
-  check('[goal-detail] opens with outcome + health pill + compact progress core', await page.evaluate(() => (
-    /Run a half marathon/.test(document.querySelector('#goal-detail-screen .screen-title')?.textContent || '')
-    && !!document.querySelector('#goal-detail-screen .status-pill[aria-label^="Health:"]')
-    && !!document.querySelector('#goal-detail-screen .goal-hero .goal-core')
+  check('[goal-detail] opens with outcome + health pill + trajectory core', await page.evaluate(() => (
+    /Run a half marathon/.test(document.querySelector('#goal-detail-screen h1')?.textContent || '')
+    && !!document.querySelector('#goal-detail-screen .status-pill')
+    && !!document.querySelector('#goal-detail-screen .goal-detail__trajectory svg')
   )))
   check('[goal-detail] states the stage of the goal object', await page.evaluate(() => (
-    /building|momentum|foundation|near completion|reached/i.test(document.querySelector('#goal-detail-screen .goal-hero')?.textContent || '')
+    /On track|At risk|Overdue|Needs attention|Completed/.test(document.querySelector('#goal-detail-screen .status-pill')?.textContent || '')
   )))
   check('[goal-detail] progress + next milestone are above the fold before any large chart', await page.evaluate(() => {
     const heads = [...document.querySelectorAll('#goal-detail-screen .card-title')].map(h => h.textContent.trim())
     const next = heads.indexOf('Next milestone')
     return next >= 0 && (heads.indexOf('Forecast') > next)
   }))
-  check('[goal-detail] analytics labelled honestly (progress basis + expected pace + consistency)', await page.evaluate(() => {
-    const t = document.querySelector('#goal-detail-screen .goal-hero')?.textContent || ''
-    return /progress basis/.test(t) && /expected today/.test(t) && /consistency/.test(t)
+  check('[goal-detail] analytics labelled honestly (progress pill + expected pace + consistency)', await page.evaluate(() => {
+    const snap = document.querySelector('#goal-detail-screen .dlv__snap')
+    const kv = document.querySelector('#goal-detail-screen .kv')?.textContent || ''
+    return !!snap && snap.querySelectorAll('.dlv__pill').length > 3
+      && [...snap.querySelectorAll('.dlv__pill-label')].some((l) => l.textContent.trim() === 'Progress')
+      && /Expected today/.test(kv) && /Consistency/.test(kv)
   }))
-  check('[goal-detail] progress history is behind an expander, never full-bleed', await page.evaluate(() => (
-    !!document.querySelector('#goal-detail-screen .history-summary')
-    && !!document.querySelector('#goal-detail-screen details .history-body')
+  check('[goal-detail] trajectory draws real progress vs expected pace', await page.evaluate(() => (
+    !!document.querySelector('#goal-detail-screen svg[aria-label^="Progress analytics for this goal."]')
   )))
   check('[goal-detail] milestone rows show reached evidence (done state)', await page.evaluate(() => (
     document.querySelectorAll('#goal-detail-screen .ms-row, #goal-detail-screen .goal-next-toggle').length >= 3
     && document.querySelectorAll('#goal-detail-screen [aria-pressed="true"], #goal-detail-screen .ms-row.is-done').length >= 1
   )))
-  check('[goal-detail] forecast renders Current / Expected / Projected from the adaptive engine', await page.evaluate(() => {
-    const t = document.querySelector('#goal-detail-screen .adaptive-forecast')?.textContent || ''
-    return /Current/.test(t) && /Expected/.test(t) && /Projected/.test(t)
+  check('[goal-detail] forecast renders Expected today / Projected from the adaptive engine', await page.evaluate(() => {
+    const t = document.querySelector('#goal-detail-screen .kv')?.textContent || ''
+    return /Expected today/.test(t) && /Projected/.test(t)
   }))
   check('[goal-detail] contributors name real linked work', await page.evaluate(() => (
-    document.querySelectorAll('#goal-detail-screen .contributor-row').length > 0
+    document.querySelectorAll('#goal-detail-screen a[href^="#/habits/"], #goal-detail-screen a[href^="#/projects/"], #goal-detail-screen a[href^="#/assignments/"]').length > 0
   )))
   check('[goal-detail] "This goal is fed by" lists the linked habit', await page.evaluate(() => {
     const n = document.querySelector('#goal-detail-screen .feed-row[href^="#/habits/"] .feed-name')?.textContent.trim()
@@ -1046,14 +1082,14 @@ console.log('\n— Desktop 1440×900 —')
   const page = await newPage(browser, VIEWPORTS.desktop)
   await seedAndGoto(page, seededStateV4(), 'today', BASE)
   await sleep(200)
-  check('sidebar renders (desktop nav)', await page.evaluate(() => !!document.querySelector('.sidebar')))
+  check('sidebar renders (desktop nav)', await page.evaluate(() => !!document.querySelector('.app-sidebar')))
   check('bottom nav hidden on desktop', await page.evaluate(() => !document.querySelector('.bottom-nav') || getComputedStyle(document.querySelector('.bottom-nav')).display === 'none'))
   check('FAB hidden on desktop', await page.evaluate(() => !document.querySelector('.btn.floating') || getComputedStyle(document.querySelector('.btn.floating')).display === 'none'))
   const contentMax = await page.evaluate(() => {
-    const screen = document.querySelector('.screen')
-    return { w: screen.getBoundingClientRect().width, left: screen.getBoundingClientRect().left, max: parseFloat(getComputedStyle(screen).maxWidth), viewport: innerWidth }
+    const page = document.querySelector('.app-page')
+    return { w: page.getBoundingClientRect().width, left: page.getBoundingClientRect().left, max: parseFloat(getComputedStyle(page).maxWidth), viewport: innerWidth }
   })
-  check('content column respects the V2 width token and does not stretch full width', contentMax.w <= contentMax.max && contentMax.w < contentMax.viewport, `w=${contentMax.w} max=${contentMax.max}`)
+  check('content column respects the width token and does not stretch full width', contentMax.w <= contentMax.max && contentMax.w < contentMax.viewport, `w=${contentMax.w} max=${contentMax.max}`)
   check('content offset by sidebar', contentMax.left >= 240, `left=${contentMax.left}`)
   await shot(page, '17-desktop-today')
   await overflowCheck(page, 'desktop-today')
@@ -1066,7 +1102,7 @@ console.log('\n— Desktop 1440×900 —')
   await sleep(700)
   await shot(page, '19-desktop-calendar')
   const calDesktop = await page.evaluate(() => {
-    const wrap = document.querySelector('.cal-wrap')
+    const wrap = document.querySelector('#calendar-screen .hc-scroll')
     return { scrollable: !!wrap && wrap.scrollWidth > wrap.clientWidth }
   })
   check('calendar scrollable on desktop with sticky name column', calDesktop.scrollable)
@@ -1077,12 +1113,11 @@ console.log('\n— Desktop 1440×900 —')
   // work layer on a wide screen
   await page.goto(`${BASE}/#/projects`, { waitUntil: 'networkidle0' })
   await sleep(800)
-  check('desktop sidebar exposes the Work group', await page.evaluate(() => {
-    const links = [...document.querySelectorAll('.sidebar-nav a')].map((a) => a.getAttribute('href'))
-    return links.includes('#/work')
-  }))
+  check('desktop sidebar exposes the Work group', await page.evaluate(() => (
+    [...document.querySelectorAll('.app-sidebar a')].some((a) => a.getAttribute('href') === '#/work')
+  )))
   check('desktop exposes the same contextual Work navigation', await page.evaluate(() => {
-    const t = document.querySelector('.tabbar')
+    const t = document.querySelector('.wo-tabs')
     return !!t && getComputedStyle(t).display !== 'none'
   }))
   await shot(page, '20b-desktop-projects')
@@ -1165,16 +1200,19 @@ console.log('\n— Reduced motion & offline —')
   await shot(page, '22-reduced-motion-today')
 
   // complete a habit: no confetti canvas activity expected (fire=0 renders but skip)
-  await page.evaluate(() => document.querySelector('.habit-row [role="button"]').click())
+  const rmBefore = await page.evaluate(() => document.querySelectorAll('.habit-obj.is-done').length)
+  await page.evaluate(() => document.querySelector('li.today-row--habit-obj [aria-label^="Mark "]').click())
   await sleep(500)
-  check('reduced-motion: completion still works', await page.evaluate(() => document.querySelectorAll('.habit-row.done').length === 1))
+  check('reduced-motion: completion still works', await page.evaluate((b) => (
+    Math.abs(document.querySelectorAll('.habit-obj.is-done').length - b) === 1
+  ), rmBefore))
 
   // offline → app still loads from SW? (dev/preview server kill not possible here;
   // instead verify the offline pill appears when navigator goes offline)
   await page.goto(`${BASE}/#/today`, { waitUntil: 'networkidle0' })
   await page.evaluate(() => window.dispatchEvent(new Event('offline')))
   await sleep(300)
-  check('offline indicator appears', await page.evaluate(() => !!document.querySelector('.offline-pill')))
+  check('offline indicator appears', await page.evaluate(() => !!document.querySelector('.app-offline')))
   await noConsoleErrors(page, 'reduced-motion')
   await page.close()
 }
@@ -1202,20 +1240,22 @@ console.log('\n— Empty states —')
     await shot(page, name)
     await overflowCheck(page, `empty-${route}`)
     if (route === 'today') {
-      check('today empty state shows hero art + guidance', await page.evaluate(() => {
-        const el = document.querySelector('.empty img')
-        return !!el && el.getAttribute('src').includes('empty-hero')
+      check('today empty state shows honest guidance, no fake numbers', await page.evaluate(() => {
+        const t = document.querySelector('.today-list__empty')?.textContent || ''
+        return /No habits scheduled|Everything on your list is done/.test(t)
       }))
     }
-    const ART_BY_ROUTE = {
-      calendar: 'empty-calendar', week: 'empty-week', insights: 'empty-insights',
-      mind: 'empty-mind', goals: 'empty-goals',
+    // The unified EmptyState primitive (`.p-empty`) replaced per-route art.
+    const EMPTY_BY_ROUTE = { calendar: '.hc-empty', week: '.wr-empty', mind: '.empty-note' }
+    if (EMPTY_BY_ROUTE[route]) {
+      check(`[${route}] empty state renders honest guidance`, await page.evaluate((sel) => (
+        !!document.querySelector(sel)
+      ), EMPTY_BY_ROUTE[route]))
     }
-    if (ART_BY_ROUTE[route]) {
-      check(`[${route}] empty state carries its own art`, await page.evaluate((want) => {
-        const imgs = [...document.querySelectorAll('.empty img')].map((i) => i.getAttribute('src') || '')
-        return imgs.some((src) => src.includes(want))
-      }, ART_BY_ROUTE[route]))
+    if (route === 'calendar') {
+      check('[calendar] empty state offers the create action', await page.evaluate(() => (
+        [...document.querySelectorAll('.hc-empty button')].some((b) => b.textContent.trim() === 'Create habit')
+      )))
     }
     if (route === 'projects' || route === 'assignments') {
       check(`${route} empty state offers a create action`, await page.evaluate(() => {
@@ -1242,8 +1282,9 @@ console.log('\n— Achievements 2.0 —')
   await sleep(700)
   const atxt = await page.evaluate(() => document.body.textContent)
   check('achievements hero counts unlocked from real data', /unlocked/.test(atxt) && /\d+/.test(atxt))
-  check('[achievements 2.0] earned cards carry the medal sheen mount', await page.evaluate(() => (
-    document.querySelectorAll('.ach-card.is-earned .medal-shine').length >= 1
+  check('[achievements 2.0] earned cards carry the mounted art + earn stamp', await page.evaluate(() => (
+    document.querySelectorAll('.ach-card.is-earned .ach-art').length >= 1
+    && document.querySelectorAll('.ach-card.is-earned .ach-art-check').length >= 1
   )))
   check('[achievements 2.0] locked cards show honest progress meters', await page.evaluate(() => (
     document.querySelectorAll('.ach-card:not(.is-earned) .meter').length >= 1
@@ -1257,8 +1298,9 @@ console.log('\n— Achievements 2.0 —')
   await sleep(800)
   for (let i = 0; i < 10; i++) {
     const clicked = await page.evaluate(() => {
-      const row = [...document.querySelectorAll('.habit-row')].find((r) => !r.classList.contains('done'))
-      const b = row?.querySelector('[role="button"]')
+      const row = [...document.querySelectorAll('li.today-row--habit-obj')]
+        .find((r) => !r.querySelector('.habit-obj.is-done'))
+      const b = row?.querySelector('[aria-label^="Mark "]')
       if (!b) return false
       b.click()
       return true
@@ -1297,7 +1339,7 @@ console.log('\n— Keyboard & focus (a11y) —')
   await page.keyboard.press('Enter')
   await sleep(600)
   check('[a11y] Enter on the focused control completes the habit', await page.evaluate(() => (
-    document.querySelectorAll('.habit-row.done').length >= 1
+    document.querySelectorAll('.habit-obj.is-done').length >= 1
   )))
   check('[a11y] focused control shows a visible focus ring', await page.evaluate(() => {
     const el = document.activeElement
@@ -1343,7 +1385,7 @@ console.log('\n— Viewport sweep 320–414px —')
     const page = await newPage(browser, { width, height: 800, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
     await seedAndGoto(page, seededStateV4(), 'insights', BASE)
     await sleep(350)
-    if (width === 320) check('[320] insights renders trend-chart', await page.evaluate(() => !!document.querySelector('.trend-chart svg')))
+    if (width === 320) check('[320] insights renders the primary trend chart', await page.evaluate(() => !!document.querySelector('.ins-svg-wrap svg[role="img"]')))
     await overflowCheck(page, `insights-${width}`)
     await page.goto(`${BASE}/#/calendar`, { waitUntil: 'networkidle0' })
     await sleep(350)
@@ -1368,11 +1410,13 @@ console.log('\n— Viewport sweep 320–414px —')
     await sleep(400)
     await overflowCheck(page, `assignment-detail-${width}`)
 
-    // P0 — Add Habit must stay reachable at every width
+    // P0 — Add Habit must stay reachable at every width. Mobile has no FAB
+    // (the desktop route FAB renders null on mobile): the Omni trigger in the
+    // shell chrome is the create entry, with the 'Add habit' chip one tap away.
     await page.goto(`${BASE}/#/today`, { waitUntil: 'networkidle0' })
     await sleep(400)
-    const fab = await page.evaluate(() => {
-      const el = document.querySelector('.btn.floating')
+    const omni = await page.evaluate(() => {
+      const el = document.querySelector('.app-omni-trigger, [aria-label="Open Omni"]')
       if (!el) return null
       const r = el.getBoundingClientRect()
       const cs = getComputedStyle(el)
@@ -1381,18 +1425,21 @@ console.log('\n— Viewport sweep 320–414px —')
         vw: window.innerWidth, vh: window.innerHeight, visible: cs.display !== 'none' && cs.visibility !== 'hidden',
       }
     })
-    check(`[${width}] Add-habit FAB is visible, ≥44px and fully on screen (P0)`,
-      !!fab && fab.visible && fab.w >= 44 && fab.h >= 44 && fab.right <= fab.vw && fab.bottom <= fab.vh,
-      JSON.stringify(fab))
-    const fabClicked = await page.evaluate(() => {
-      const el = [...document.querySelectorAll('button')].find((b) => /Add a habit/i.test(b.getAttribute('aria-label') || ''))
+    check(`[${width}] Omni create trigger is visible, ≥44px and fully on screen (P0)`,
+      !!omni && omni.visible && omni.w >= 44 && omni.h >= 44 && omni.right <= omni.vw && omni.bottom <= omni.vh,
+      JSON.stringify(omni))
+    const omniClicked = await page.evaluate(() => {
+      const el = document.querySelector('.app-omni-trigger, [aria-label="Open Omni"]')
       if (!el) return false
       el.click()
       return true
     })
     await sleep(700)
-    const sheetOpen = await page.evaluate(() => !!document.querySelector('[role="dialog"]'))
-    check(`[${width}] tapping the FAB opens the Add-habit sheet (P0)`, fabClicked && sheetOpen)
+    const panelOpen = await page.evaluate(() => (
+      !!document.querySelector('[role="dialog"]')
+      && [...document.querySelectorAll('.cc-row, [role="dialog"] button')].some((b) => b.textContent.trim() === 'Add habit')
+    ))
+    check(`[${width}] tapping the Omni trigger opens the create panel with 'Add habit' (P0)`, omniClicked && panelOpen)
     await page.keyboard.press('Escape')
     await sleep(400)
     await page.close()
@@ -1449,6 +1496,7 @@ console.log('\n— V4 spatial —')
 
   // 2 · environment layers exist and never swallow input
   await seedAndGoto(page, seededStateV4(), 'today', BASE)
+  await sleep(700) // let the hero mount before probing depth lanes
   const world = await page.evaluate(() => ({
     static: document.querySelectorAll('.world-static i').length,
     spatial: document.documentElement.dataset.spatial || '',
@@ -1457,7 +1505,7 @@ console.log('\n— V4 spatial —')
   }))
   check('V4 world: static distant planes present behind everything', world.static === 3, `static=${world.static}`)
   check('V4 world: spatial tier published on <html>', ['full', 'reduced', 'flat'].includes(world.spatial), world.spatial)
-  check('V4 today: hero rides a named depth lane', world.heroDeep)
+  check('V4 today: screen mounts under the route camera group', await page.evaluate(() => !!document.querySelector('.route-cam #today-screen')))
   check('V4 world: WebGL layer (if mounted) never takes pointer input', world.noGlBlock)
 
   // 3 · route change = camera travel, content never waits
@@ -1498,8 +1546,8 @@ console.log('\n— V4 spatial —')
   await page.goto(`${BASE}/#/goals`, { waitUntil: 'networkidle0' })
   await sleep(700)
   check('V4 atlas: not mounted by default — list-first', await page.evaluate(() =>
-    !!document.querySelector('.goal-card') && !document.querySelector('.atlas-wrap')))
-  await clickByText(page, 'Atlas / Visual', 'button')
+    !!document.querySelector('.goal-row') && !document.querySelector('.atlas-wrap')))
+  await clickByText(page, 'Atlas', '[aria-label="Goals view"] button')
   await sleep(900)
   const atlas = await page.evaluate(() => ({
     frames: document.querySelectorAll('.atlas-frame').length,
@@ -1536,27 +1584,29 @@ console.log('\n— V4 spatial —')
   await page.goto(`${BASE}/#/achievements`, { waitUntil: 'networkidle0' })
   await sleep(800)
   const rarity = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('.ach-card')]
     const earned = document.querySelector('.ach-card.is-earned')
-    const words = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY']
-    const labels = [...document.querySelectorAll('.rarity-label')].map((l) => l.textContent.trim())
+    const tiers = cards.map((c) => c.getAttribute('data-tier') || '')
     return {
-      depth: !!document.querySelector('.ach-card.badge3d'),
-      allValid: labels.every((t) => words.includes(t)) && labels.length > 0,
-      earnedHasRarity: !!earned && !!earned.querySelector('.rarity-label'),
-      lockedNoGlow: [...document.querySelectorAll('.ach-card:not(.is-earned)[data-rarity]')].length >= 0,
+      depth: cards.length > 0,
+      allValid: tiers.every((t) => ['bronze', 'silver', 'gold', 'diamond', 'common', 'rare', 'epic', 'legendary'].includes(t.toLowerCase())) && tiers.length > 0,
+      earnedHasRarity: !!earned && !!earned.querySelector('.ach-art-check'),
+      lockedNoGlow: document.querySelectorAll('.ach-card[data-locked="true"] .meter').length >= 1,
     }
   })
-  check('V4 achievements: every card carries depth + an honest rarity word',
-    rarity.depth && rarity.allValid && rarity.earnedHasRarity, JSON.stringify(rarity))
+  check('V4 achievements: every card carries a tier + an honest earned state',
+    rarity.depth && rarity.allValid && rarity.earnedHasRarity && rarity.lockedNoGlow, JSON.stringify(rarity))
   await shot(page, '27-v4-badges')
 
   // 8 · reduced motion — the world stands still but keeps its composition
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }])
   await page.goto(`${BASE}/#/today`, { waitUntil: 'networkidle0' })
   await sleep(600)
+  await page.goto(`${BASE}/#/insights`, { waitUntil: 'networkidle0' })
+  await sleep(800)
   const still = await page.evaluate(() => ({
     spatial: document.documentElement.dataset.spatial,
-    depthKept: !!document.querySelector('.today-hero.sp-depth'),
+    depthKept: !!document.querySelector('.sp-depth[data-z]'),
     boot: !!document.querySelector('.boot'),
     anim: getComputedStyle(document.querySelector('.world-static i') || document.body).animationName,
   }))

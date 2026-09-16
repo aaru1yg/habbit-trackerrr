@@ -175,7 +175,7 @@ html[data-theme='midnight'] {
   /* a lighter tint of accent-1 for accent-coloured TEXT on dark surfaces —
      accent-1 itself only reaches 3.3:1 against --surface. */
   --accent-1-lift: #b3a0ff;
-  --accent-ink: #ffffff;
+  --accent-ink:#000000;
   --focus: #a99bff;
 
   --good: #34d399;
@@ -252,7 +252,7 @@ html[data-theme='aurora'] {
   --accent-2: #6ee7b7;
   --accent-soft: rgba(20, 184, 166, 0.16);
   --accent-1-lift: #5eead4;
-  --accent-ink: #05201d;
+  --accent-ink:#000000;
   --focus: #7ee7d4;
 
   --good: #4ade80;
@@ -326,7 +326,7 @@ html[data-theme='ember'] {
   --accent-2: #fb7185;
   --accent-soft: rgba(245, 158, 11, 0.16);
   --accent-1-lift: #fcd34d;
-  --accent-ink: #24160a;
+  --accent-ink:#000000;
   --focus: #fcd3a0;
 
   --good: #86efac;
@@ -400,7 +400,7 @@ html[data-theme='verdant'] {
   --accent-2: #5eead4;
   --accent-soft: rgba(16, 185, 129, 0.16);
   --accent-1-lift: #6ee7b7;
-  --accent-ink: #04231a;
+  --accent-ink:#000000;
   --focus: #7fe7c4;
 
   --good: #4ade80;

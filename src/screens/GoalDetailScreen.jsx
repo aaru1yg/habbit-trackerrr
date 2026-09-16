@@ -340,7 +340,7 @@ export default function GoalDetailScreen({ id }) {
 
             <SectionCard className="pad">
               <CardHead title="What feeds this goal">
-                <button type="button" className="btn ghost sm" onClick={() => setLinkOpen((v) => !v)} aria-expanded={linkOpen} style={{ padding: '2px 8px', minHeight: 28 }}>
+                <button type="button" className="btn ghost sm" onClick={() => setLinkOpen((v) => !v)} aria-expanded={linkOpen}>
                   <IconLink size={13} /> {linkOpen ? 'Done' : 'Link'}
                 </button>
               </CardHead>

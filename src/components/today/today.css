@@ -249,42 +249,55 @@
   width: 28px;
   height: 28px;
 }
+/* The lead mark is a real toggle, so the button is a 44px hit target; the
+   visible 18px/8px dot is painted by ::before so rows stay compact. */
 .today-row__lead-mark {
-  width: 18px;
-  height: 18px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
-  border: 1.5px solid color-mix(in oklab, var(--text-muted) 45%, transparent);
+  border: 0;
   background: transparent;
+  position: relative;
   display: grid;
   place-items: center;
   padding: 0;
   margin: 0;
   color: transparent;
-  transition: background var(--motion-fast) var(--ease-standard),
-              border-color var(--motion-fast) var(--ease-standard),
-              color var(--motion-fast) var(--ease-standard),
+  transition: color var(--motion-fast) var(--ease-standard),
               transform 120ms var(--ease-standard);
 }
+.today-row__lead-mark::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid color-mix(in oklab, var(--text-muted) 45%, transparent);
+  background: transparent;
+  transition: background var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard);
+}
+.today-row__lead-mark > svg { position: relative; z-index: 1; }
 .today-row__lead-mark.is-interactive { cursor: pointer; }
-.today-row__lead-mark.is-interactive:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--text-on-accent); }
+.today-row__lead-mark.is-interactive:hover::before { border-color: var(--accent); background: var(--accent-soft); }
+.today-row__lead-mark.is-interactive:hover { color: var(--text-on-accent); }
 .today-row__lead-mark.is-interactive:active { transform: scale(0.88); }
-.today-row__lead-mark.is-done {
+.today-row__lead-mark.is-done { color: #0b0f1a; }
+.today-row__lead-mark.is-done::before {
   background: var(--color-success);
   border-color: var(--color-success);
-  color: #0b0f1a;
 }
-.today-row__lead-mark.is-done:hover { background: var(--color-success); border-color: var(--color-success); }
+.today-row__lead-mark.is-done:hover::before { background: var(--color-success); border-color: var(--color-success); }
 .today-row__lead-mark:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-.today-row__lead-mark:not(.is-interactive) {
+.today-row__lead-mark:not(.is-interactive)::before {
   width: 8px;
   height: 8px;
   border: 0;
   background: color-mix(in oklab, var(--text-muted) 40%, transparent);
-  border-radius: var(--radius-full);
 }
-.today-row__lead-mark.is-done { width: 18px; height: 18px; background: var(--color-success); }
-.today-row--danger .today-row__lead-mark.is-interactive:not(.is-done) { border-color: var(--color-danger); }
-.today-row--danger .today-row__lead-mark.is-interactive:not(.is-done):hover { background: var(--color-danger-soft); border-color: var(--color-danger); color: var(--color-danger); }
+.today-row--danger .today-row__lead-mark.is-interactive:not(.is-done)::before { border-color: var(--color-danger); }
+.today-row--danger .today-row__lead-mark.is-interactive:not(.is-done):hover::before { background: var(--color-danger-soft); border-color: var(--color-danger); }
+.today-row--danger .today-row__lead-mark.is-interactive:not(.is-done):hover { color: var(--color-danger); }
 .today-row__body {
   min-width: 0;
   display: grid;
@@ -599,3 +612,9 @@
 .today-hobj .habit-obj__complete{--btn-h:44px;--btn-px:10px;min-width:0}
 .today-hobj .habit-obj__more{display:none}
 .today-hobj .habit-obj__complete-label{display:none}
+
+/* --- 44px hit-area repairs: row go-links expand invisibly; tool dock
+   buttons keep their 30px visual but accept 44px touches. --- */
+.today-row__go { position: relative; }
+.today-row__go::after { content: ''; position: absolute; inset: -8px; }
+.today-tools .p-btn { min-height: 44px; }

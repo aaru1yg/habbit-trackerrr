@@ -179,10 +179,12 @@ describe('§22.2 Loaded day — hierarchy', () => {
     expect(hobj.querySelector('button[aria-label*="Mark"][aria-label*="as complete"]')).toBeTruthy()
     // Legacy today-row__ring markup is gone
     expect(document.querySelector('.today-row__ring')).toBeNull()
-    // NOW signature ring remains larger
+    // NOW ring stays a compact inline instrument (visual-reset composition:
+    // the ring must not behave like a decorative centerpiece), but remains
+    // larger than the 28px habit rows' inline ring.
     const nowRing = document.querySelector('.now-ring')
     const nowSize = nowRing ? getComputedStyle(nowRing).getPropertyValue('--now-ring-size').trim() : null
-    expect(['72px','84px','']).toContain(nowSize || '')
+    expect(['44px', '40px']).toContain(nowSize || '')
   })
 
   it('Context is a compact ≤3-signal strip that sits BELOW Today\'s work; no card wall', async () => {

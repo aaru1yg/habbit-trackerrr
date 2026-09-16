@@ -215,7 +215,7 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
         {stats.total > 0 && (
           <div className="today__header-meta" aria-label="Today's progress">
             <span className="today__header-count">
-              {stats.done}/{stats.total}
+              {stats.done} of {stats.total} completed
             </span>
             <span className="today-progress__bar"><Progress value={stats.pct || 0} /></span>
           </div>

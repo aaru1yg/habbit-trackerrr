@@ -84,7 +84,7 @@ export default function NextAction({
               pct={100}
               complete
               tone="success"
-              size={84}
+              size={44}
               stroke={4}
               label={`${stats.done}/${stats.total} complete today`}
             />
@@ -173,7 +173,7 @@ export default function NextAction({
             pct={progress}
             tone={tone}
             color={entityColor}
-            size={84}
+            size={44}
             stroke={4}
             label={ringAriaLabel}
           />

@@ -75,7 +75,7 @@ describe('onboarding', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Today' })).toBeTruthy())
     expect(screen.getAllByText('Read 10 pages').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Meditate').length).toBeGreaterThan(0)
-    expect(screen.getByText(textContentMatcher('0/2'))).toBeTruthy()
+    expect(screen.getByText(textContentMatcher('0 of 2 completed'))).toBeTruthy()
     // Next best action appears for undone habits
     expect(screen.getByRole('heading', { name: /Read 10 pages|Meditate/ })).toBeTruthy()
   })
@@ -111,7 +111,7 @@ describe('core flows', () => {
     go('today')
     fireEvent.click(await screen.findByRole('button', { name: /Mark Water as not complete/i }))
     // Header count shows 0/1 after unchecking; allow CI time.
-    await waitFor(() => expect(screen.getByText(textContentMatcher('0/1'))).toBeTruthy(), { timeout: 5000 })
+    await waitFor(() => expect(screen.getByText(textContentMatcher('0 of 1 completed'))).toBeTruthy(), { timeout: 5000 })
   })
 
   it('navigates to habit detail from Today and shows edit controls', async () => {

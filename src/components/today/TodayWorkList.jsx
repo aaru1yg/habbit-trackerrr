@@ -92,8 +92,12 @@ function WorkRow({ row, today, state, onToggleHabit, dispatch }) {
 
   // Work item signals
   const signals = []
-  if (deadline) signals.push({ icon: <IconCalendar size={12} />, text: dueLabel(deadline), tone: risk.tone })
-  if (risk.kind === 'overdue' && signals.length < 2) {
+  let dueLabelText = null
+  if (deadline) {
+    dueLabelText = dueLabel(deadline)
+    signals.push({ icon: <IconCalendar size={12} />, text: dueLabelText, tone: risk.tone })
+  }
+  if (risk.kind === 'overdue' && dueLabelText !== 'Overdue' && signals.length < 2) {
     signals.push({ icon: <IconAlert size={12} />, text: 'Overdue', tone: 'danger' })
   } else if (estimateMin != null && estimateMin > 0 && signals.length < 2) {
     // estimateMin reserved for habits; skip here unless genuinely useful

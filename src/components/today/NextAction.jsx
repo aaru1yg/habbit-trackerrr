@@ -151,13 +151,15 @@ export default function NextAction({
   if (estimatedMin != null && estimatedMin > 0) {
     metaFacts.push({ icon: <IconClock size={14} />, text: `~${Math.round(estimatedMin)} min` })
   }
+  let dueLabelText = null
   if (deadline) {
-    metaFacts.push({ icon: <IconCalendar size={14} />, text: dueLabel(deadline) })
+    dueLabelText = dueLabel(deadline)
+    metaFacts.push({ icon: <IconCalendar size={14} />, text: dueLabelText })
   }
   if (progress != null && progress > 0 && progress < 100) {
     metaFacts.push({ icon: <IconHourglass size={14} />, text: `${progress}% done` })
   }
-  if (urgency === 'OVERDUE') {
+  if (urgency === 'OVERDUE' && dueLabelText !== 'Overdue') {
     metaFacts.push({ icon: <IconAlert size={14} />, text: 'Overdue', danger: true })
   }
 
@@ -227,7 +229,7 @@ export default function NextAction({
           </Button>
         )}
         <Button variant="secondary" as={Link} to={href}>
-          View <IconArrowUpRight size={14} />
+          View details <IconArrowUpRight size={14} />
         </Button>
       </div>
     </section>

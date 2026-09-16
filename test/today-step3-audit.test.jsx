@@ -98,7 +98,7 @@ describe('§22.1 Empty day', () => {
 })
 
 describe('§22.2 Loaded day — hierarchy', () => {
-  it('eye lands on NOW first, then today\'s work, then context, then tools; rules separate sections; NOW is flat with accent hairline (not a card)', async () => {
+  it('reference composition: header, compact NOW, work list, daily progress, then supporting rail; NOW is flat with accent hairline (not a card)', async () => {
     await mount(seedLoaded())
     // Wait until the Today's work heading is rendered (section settled).
     const workHeading = await screen.findByRole('heading', { name: /Today's work/i })
@@ -108,14 +108,23 @@ describe('§22.2 Loaded day — hierarchy', () => {
     const posH = html.indexOf('today__header')
     const posNow = html.indexOf('today-now')
     const posWork = html.indexOf("Today's work")
-    const posCtx = html.indexOf('today-signals')
-    const posTools = html.indexOf('today-tools')
+    const posProgress = html.indexOf('tdy-progress')
+    const posRail = html.indexOf('tdy-rail')
+    // Reference order: header → Next up (NOW) → Today's work → rail
+    // (rail carries Daily progress + supporting cards)
     expect(posH).toBeLessThan(posNow)
     expect(posNow).toBeLessThan(posWork)
-    expect(posWork).toBeLessThan(posCtx)
-    expect(posCtx).toBeLessThan(posTools)
-    // Two editorial hr rules (header/NOW and NOW/work)
-    expect(root.querySelectorAll('.today-rule').length).toBeGreaterThanOrEqual(2)
+    expect(posWork).toBeLessThan(posRail)
+    expect(posRail).toBeLessThan(posProgress)
+    // Signals moved into the rail (reference "Insights for today")
+    const rail = root.querySelector('.tdy-rail')
+    expect(rail.querySelector('.today-signals')).toBeTruthy()
+    // Rail answers tracking questions: glance, quick actions, streaks
+    expect(rail.querySelector('.tdy-glance')).toBeTruthy()
+    expect(rail.querySelector('.tdy-quick')).toBeTruthy()
+    expect(rail.querySelector('.tdy-streaks')).toBeTruthy()
+    // Filter chips live in the work section (reference)
+    expect(root.querySelector('.today-section .tdy-chiprow')).toBeTruthy()
     // NOW is quiet (outer container flat, no card wall); the inner __surface
     // adds ONE subtle inset layer + accent hairline (no glass/glow/gradient).
     const now = root.querySelector('.today-now')
@@ -232,13 +241,13 @@ describe('§22.2 Loaded day — hierarchy', () => {
     }
   })
 
-  it('Tools row is quiet: Plan + Focus at minimum', async () => {
+  it('Quick actions are quiet rows: Focus mode + Plan my day at minimum', async () => {
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
-    expect(tools).toBeTruthy()
-    expect(within(tools).getByText('Plan')).toBeTruthy()
-    expect(within(tools).getByText('Focus')).toBeTruthy()
-    // Tools should not render a permanently-open PlanningPanel/FocusMode as giant UI
+    const quick = document.querySelector('.tdy-quick')
+    expect(quick).toBeTruthy()
+    expect(within(quick).getByText('Start focus')).toBeTruthy()
+    expect(within(quick).getByText('Plan my day')).toBeTruthy()
+    // Quick actions should not render a permanently-open PlanningPanel/FocusMode as giant UI
     expect(document.querySelector('.planning-panel--open')).toBeNull()
   })
 

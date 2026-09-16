@@ -18,7 +18,7 @@ import { preferencesOf } from '../lib/personalization.js'
 import { assignmentProgress, projectProgress } from '../lib/work.js'
 import { Link } from '../lib/router.jsx'
 import {
-  IconPlus, IconTarget, IconClock, IconCalendar, IconMind, IconChevronRight,
+  IconPlus, IconTarget, IconClock, IconCalendar, IconMind, IconChevronRight, IconFlame,
 } from '../lib/icons.jsx'
 
 export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, onSearch: _onSearch }) {
@@ -257,9 +257,11 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
         )}
       </header>
 
-      {/* Reference layout: main column (next up, work, daily progress) and a
-          supporting rail (glance, quick actions, streaks, signals). */}
-      <div className="tdy-layout">
+      {/* Reference layout (designer sheet): row 1 = Next up + Today at a
+          glance; row 2 = Today's work + quick actions/art; lower band =
+          Daily progress + Current streaks + Today's insights; full-width
+          quote bar closes the page. */}
+      <div className="tdy-body">
       {/* 2. NEXT UP — compact priority card (kept .today-now contract). */}
       <NextAction
         mode={nowMode}
@@ -272,6 +274,17 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
         onFocus={openFocus}
         onStart={openPlan}
       />
+
+      {/* 2b. TODAY AT A GLANCE — four compact stats (reference top-right). */}
+      <section className="tdy-card tdy-glance" aria-labelledby="tdy-glance-heading">
+        <h2 id="tdy-glance-heading" className="tdy-card__title">Today at a glance</h2>
+        <ul className="tdy-glance__list">
+          <li><span className="tdy-glance__ico" data-tone="total" aria-hidden="true"><IconTarget size={14} /></span><span className="tdy-glance__num">{workItems.length}</span><span className="tdy-glance__label">Total</span></li>
+          <li><span className="tdy-glance__ico" data-tone="done" aria-hidden="true">✓</span><span className="tdy-glance__num">{completedCount}</span><span className="tdy-glance__label">Completed</span></li>
+          <li><span className="tdy-glance__ico" data-tone="overdue" aria-hidden="true">!</span><span className="tdy-glance__num">{overdueCount}</span><span className="tdy-glance__label">Overdue</span></li>
+          <li><span className="tdy-glance__ico" data-tone="remaining" aria-hidden="true">◦</span><span className="tdy-glance__num">{Math.max(0, workItems.length - completedCount)}</span><span className="tdy-glance__label">Remaining</span></li>
+        </ul>
+      </section>
 
       {/* 3. TODAY'S WORK — the primary surface, with kind filter chips. */}
       <section className="today-section" aria-labelledby="todays-work-heading" data-filter={listFilter}>
@@ -310,18 +323,8 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
         </p>
       )}
 
-      {/* 5. RAIL — supporting information: glance, quick actions, streaks,
-         signals, art, quote. Every card answers a tracking question. */}
-      <aside className="tdy-rail" aria-label="Today's supporting information">
-        <section className="tdy-card tdy-glance" aria-labelledby="tdy-glance-heading">
-          <h2 id="tdy-glance-heading" className="tdy-card__title">Today at a glance</h2>
-          <ul className="tdy-glance__list">
-            <li><span className="tdy-glance__ico" data-tone="total" aria-hidden="true"><IconTarget size={14} /></span><span className="tdy-glance__num">{workItems.length}</span><span className="tdy-glance__label">Total</span></li>
-            <li><span className="tdy-glance__ico" data-tone="done" aria-hidden="true">✓</span><span className="tdy-glance__num">{completedCount}</span><span className="tdy-glance__label">Completed</span></li>
-            <li><span className="tdy-glance__ico" data-tone="overdue" aria-hidden="true">!</span><span className="tdy-glance__num">{overdueCount}</span><span className="tdy-glance__label">Overdue</span></li>
-            <li><span className="tdy-glance__ico" data-tone="remaining" aria-hidden="true">◦</span><span className="tdy-glance__num">{Math.max(0, workItems.length - completedCount)}</span><span className="tdy-glance__label">Remaining</span></li>
-          </ul>
-        </section>
+      {/* 4. SIDE — quick actions + art (reference right column). */}
+      <div className="tdy-side">
 
         <section className="tdy-card tdy-quick" aria-labelledby="tdy-quick-heading">
           <h2 id="tdy-quick-heading" className="tdy-card__title">Quick actions</h2>
@@ -351,22 +354,42 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
           </nav>
         </section>
 
+
+        <div className="tdy-art" aria-hidden="true">
+          <img src="art/scene-hero.webp" alt="" loading="lazy" />
+          <p>Small steps every day lead to big changes.</p>
+        </div>
+
+      </div>
+
+      {/* 5. LOWER BAND — daily progress, current streaks, today's insights. */}
+      <div className="tdy-lower">
       {/* 4. DAILY PROGRESS — week strip answers "how consistent am I?". */}
       <section className="tdy-card tdy-progress" aria-labelledby="tdy-progress-heading">
         <div className="tdy-progress__head">
-          <h2 id="tdy-progress-heading" className="tdy-card__title">Daily progress</h2>
-          {stats.total > 0 && <span className="tdy-progress__meta">{stats.done} of {stats.total}</span>}
+          <div>
+            <h2 id="tdy-progress-heading" className="tdy-card__title">Daily progress</h2>
+            <p className="tdy-progress__sub">{stats.total ? 'Your consistency this week.' : 'Nothing scheduled for today yet.'}</p>
+          </div>
+          {stats.total > 0 && <span className="tdy-progress__pct">{stats.pct || 0}%</span>}
         </div>
-        <p className="tdy-progress__sub">
-          {stats.total
-            ? (stats.pct ? `You're ${stats.pct}% done. Keep going!` : 'Start your first item to get the day moving.')
-            : 'Nothing scheduled for today yet.'}
-        </p>
         {stats.total > 0 && <span className="today-progress__bar tdy-bar tdy-bar--lg"><Progress value={stats.pct || 0} /></span>}
         <div className="tdy-week" role="list" aria-label="This week's completion">
           {weekStrip.map((d, i) => (
             <div key={d.date} role="listitem" className={`tdy-day${d.date === today ? ' is-today' : ''}${d.date > today ? ' is-future' : ''}${d.total ? '' : ' is-off'}`}>
-              <span className="tdy-day__dot" data-state={d.date > today ? 'future' : d.total ? (d.done >= d.total ? 'done' : 'partial') : 'off'} aria-hidden="true" />
+              <span className="tdy-day__mark" aria-hidden="true">
+                <svg className="tdy-day__ring" viewBox="0 0 24 24" data-state={d.date > today ? 'future' : d.total ? (d.done >= d.total ? 'done' : 'partial') : 'off'} focusable="false">
+                  <circle className="tdy-day__ring-track" cx="12" cy="12" r="10" fill="none" strokeWidth="3.5" />
+                  {d.date <= today && d.total > 0 && (
+                    <circle
+                      className="tdy-day__ring-arc"
+                      cx="12" cy="12" r="10" fill="none" strokeWidth="3.5" strokeLinecap="round"
+                      strokeDasharray={`${Math.max(2, Math.round((100 * d.done / d.total) * 0.6283))} 62.83`}
+                      transform="rotate(-90 12 12)"
+                    />
+                  )}
+                </svg>
+              </span>
               <span className="tdy-day__label">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}</span>
               <span className="tdy-day__num">{d.date > today ? '' : d.total ? `${d.done}/${d.total}` : '–'}</span>
             </div>
@@ -388,7 +411,7 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
                   <Link to={`habits/${h.id}`} className="tdy-streaks__row">
                     <span className="tdy-streaks__dot" style={{ background: `var(${h.category ? `--cat-${h.category}` : '--accent'})` }} aria-hidden="true" />
                     <span className="tdy-streaks__name">{h.name}</span>
-                    <span className="tdy-streaks__days">{days} days</span>
+                    <span className="tdy-streaks__days"><IconFlame size={12} aria-hidden="true" /> {days} days</span>
                   </Link>
                 </li>
               ))}
@@ -396,24 +419,19 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
           )}
         </section>
 
-        <TodaySignals
-          stats={stats}
-          workload={adaptive.workload}
-          attentionCount={deadlineNear}
-          attentionLead={attentionLead}
-          sectionTone={signalsTone}
-        />
+      <TodaySignals
+        stats={stats}
+        workload={adaptive.workload}
+        attentionCount={deadlineNear}
+        attentionLead={attentionLead}
+        sectionTone={signalsTone}
+      />
+      </div>
 
-        <div className="tdy-art" aria-hidden="true">
-          <img src="art/scene-hero.webp" alt="" loading="lazy" />
-          <p>Small steps every day lead to big changes.</p>
-        </div>
-
-        <p className="tdy-quote" role="note">
-          <span className="tdy-quote__main">"Progress, not perfection."</span>
-          <span className="tdy-quote__sub">A better you, one day at a time.</span>
-        </p>
-      </aside>
+      <p className="tdy-quotebar" role="note">
+        <span className="tdy-quotebar__main">"Progress, not perfection."</span>
+        <span className="tdy-quotebar__sub">You've got this! <span className="tdy-quotebar__heart" aria-hidden="true">♥</span></span>
+      </p>
       </div>
 
       {/* Panels mount on first open and unmount on dismiss so the closed

@@ -206,7 +206,6 @@ export default function NextAction({
             )}
           </div>
         </div>
-      </div>
 
       <div className="today-now__actions">
         {canComplete ? (
@@ -232,6 +231,8 @@ export default function NextAction({
           View details <IconArrowUpRight size={14} />
         </Button>
       </div>
+      </div>
+
     </section>
   )
 }

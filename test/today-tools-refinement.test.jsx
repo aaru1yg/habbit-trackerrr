@@ -56,7 +56,7 @@ beforeEach(() => { cleanup(); localStorage.clear(); sessionStorage.clear(); wind
 describe('Today Tools dock (Refinement #4)', () => {
   it('is a <section> with a real <h2 id=…> Tools heading and labelled <nav>', async () => {
     await mount(seedLoaded())
-    const section = document.querySelector('.today-tools')
+    const section = document.querySelector('.tdy-quick')
     expect(section).toBeTruthy()
     expect(section.tagName).toBe('SECTION')
     const labelledBy = section.getAttribute('aria-labelledby')
@@ -64,7 +64,7 @@ describe('Today Tools dock (Refinement #4)', () => {
     const heading = section.querySelector('#' + labelledBy)
     expect(heading).toBeTruthy()
     expect(heading.tagName).toMatch(/^H2$/i)
-    expect(heading.textContent).toBe('Tools')
+    expect(heading.textContent).toBe('Quick actions') /* renamed by the reference composition (6e24f97) */
     const nav = section.querySelector('nav')
     expect(nav).toBeTruthy()
     expect(nav.getAttribute('aria-label')).toBeTruthy()
@@ -72,7 +72,7 @@ describe('Today Tools dock (Refinement #4)', () => {
 
   it('renders Focus / Plan / Calendar — each with accessible name + visible text', async () => {
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
+    const tools = document.querySelector('.tdy-quick')
     expect(within(tools).getByRole('button', { name: /focus/i })).toBeTruthy()
     expect(within(tools).getByRole('button', { name: /plan/i })).toBeTruthy()
     const cal = within(tools).getByRole('link', { name: /calendar/i })
@@ -81,23 +81,24 @@ describe('Today Tools dock (Refinement #4)', () => {
     expect(cal.getAttribute('href') || '').toContain('view=calendar')
   })
 
-  it('Focus is the only primary CTA; Plan & Calendar are quiet (not primary)', async () => {
+  it('Quick actions rows share one uniform row composition; Focus is present', async () => {
+    /* The reference composition replaced the old primary/quiet button dock
+       with uniform tdy-quick rows; hierarchy now lives in row order. */
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
-    const primary = tools.querySelectorAll('.p-btn--primary')
-    expect(primary.length).toBe(1)
-    expect(primary[0].textContent).toMatch(/Focus/i)
-    const quiet = tools.querySelectorAll('.p-btn--quiet')
-    expect(quiet.length).toBeGreaterThanOrEqual(2)
+    const tools = document.querySelector('.tdy-quick')
+    const rows = tools.querySelectorAll('.tdy-quick__row')
+    expect(rows.length).toBeGreaterThanOrEqual(3)
+    expect(within(tools).getByRole('button', { name: /focus/i }).className).toMatch(/tdy-quick__row/)
+    expect(within(tools).getByRole('button', { name: /plan/i }).className).toMatch(/tdy-quick__row/)
   })
 
   it('Recovery appears when recoveryPlan has suggestions (i.e. work to recover); is quiet & opens Plan, not a separate recovery panel', async () => {
     // Loaded day has overdue/risky items → recoveryPlan returns keep[] → Recovery shows
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
+    const tools = document.querySelector('.tdy-quick')
     const rec = within(tools).getByRole('button', { name: /recovery/i })
     expect(rec).toBeTruthy()
-    expect(rec.className).toMatch(/quiet/)
+    expect(rec.className).toMatch(/tdy-quick__row/) /* uniform row, not a separate primary/quiet pair */
     expect(rec.className).not.toMatch(/primary/)
     // No separate recovery panel in DOM (old recovery-panel inline card is gone;
     // Recovery now opens Plan just like Plan button, per existing behavior)
@@ -111,14 +112,14 @@ describe('Today Tools dock (Refinement #4)', () => {
     empty.habits = []
     empty.checkins = {}
     await mount(empty)
-    const tools = document.querySelector('.today-tools')
+    const tools = document.querySelector('.tdy-quick')
     expect(within(tools).queryByRole('button', { name: /recovery/i })).toBeNull()
   })
 
   it('no duplicate tools (each label appears exactly once)', async () => {
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
-    const btns = tools.querySelectorAll('.today-tool')
+    const tools = document.querySelector('.tdy-quick')
+    const btns = tools.querySelectorAll('.tdy-quick__row')
     const labels = Array.from(btns).map(b => b.textContent.trim().toLowerCase())
     expect(new Set(labels).size).toBe(labels.length)
     // Focus + Recovery + Plan + Calendar = 4 in a loaded-day state
@@ -128,7 +129,7 @@ describe('Today Tools dock (Refinement #4)', () => {
 
   it('Focus button is focusable and keyboard-activatable (real <button>)', async () => {
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
+    const tools = document.querySelector('.tdy-quick')
     const focusBtn = within(tools).getByRole('button', { name: /focus/i })
     focusBtn.focus()
     expect(document.activeElement).toBe(focusBtn)
@@ -142,8 +143,8 @@ describe('Today Tools dock (Refinement #4)', () => {
 
   it('each tool has an icon (svg) AND visible label text — no icon-only buttons', async () => {
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
-    for (const b of tools.querySelectorAll('.today-tool')) {
+    const tools = document.querySelector('.tdy-quick')
+    for (const b of tools.querySelectorAll('.tdy-quick__row')) {
       expect(b.querySelector('svg')).toBeTruthy()
       expect(b.textContent.trim().length).toBeGreaterThan(2)
     }
@@ -151,7 +152,7 @@ describe('Today Tools dock (Refinement #4)', () => {
 
   it('FocusMode / PlanningPanel are NOT permanently rendered inside Tools when idle', async () => {
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
+    const tools = document.querySelector('.tdy-quick')
     expect(tools.querySelector('.focus-mode, .focus-mode--open')).toBeNull()
     expect(tools.querySelector('.planning-panel--open')).toBeNull()
   })

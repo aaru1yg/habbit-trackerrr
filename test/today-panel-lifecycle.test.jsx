@@ -46,7 +46,7 @@ async function mount() {
   return utils
 }
 
-function tools() { return document.querySelector('.today-tools') }
+function tools() { return document.querySelector('.tdy-quick') } /* Quick actions card — the shipped Tools successor (6e24f97 reference composition) */
 function planningPanel() { return document.querySelector('.planning-panel') }
 function focusPanel() { return document.querySelector('.focus-mode') }
 function focusGhost() { return document.querySelector('.focus-launch') }
@@ -179,7 +179,7 @@ describe('§R5.3 No duplicates / no stale controls', () => {
     expect(focusPanel()).toBeNull()
     expect(focusGhost()).toBeNull()
     // The Tools dock still shows its 3-4 tools (Focus/Plan/Calendar + Recovery if present)
-    const dockButtons = tools().querySelectorAll('.today-tool')
+    const dockButtons = tools().querySelectorAll('.tdy-quick__row')
     expect(dockButtons.length).toBeGreaterThanOrEqual(3)
     expect(dockButtons.length).toBeLessThanOrEqual(4)
   })

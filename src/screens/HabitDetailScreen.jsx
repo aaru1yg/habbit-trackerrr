@@ -21,7 +21,7 @@ import { useHabitActions } from '../components/habits/HabitActions.jsx'
 import '../styles/habit-detail.css'
 import Burst from '../components/motion/Burst.jsx'
 import { habitDetail, consistencyLabel } from '../lib/analytics.js'
-import { heatmapSeries } from '../lib/stats.js'
+import { heatmapSeries, checkinOf, eligibleOn, isDone } from '../lib/stats.js'
 import { habitPatterns } from '../lib/habitPatterns.js'
 import { patternCards, NOT_ENOUGH } from '../components/habits/habitPatternsView.js'
 import { Heatmap } from '../components/charts/chartKit.jsx'
@@ -31,7 +31,7 @@ import IconButton from '../components/primitives/IconButton.jsx'
 import { Status } from '../components/primitives/index.js'
 import { describeHabit } from '../components/habits/habitRowModel.js'
 import { categoryOf, scheduleLabel, WEEKDAY_NAMES } from '../lib/schedule.js'
-import { prettyDate, todayStr, shortDate } from '../lib/dates.js'
+import { prettyDate, todayStr, shortDate, subDaysStr } from '../lib/dates.js'
 import { Link, navigate } from '../lib/router.jsx'
 import {
   IconChevronLeft, IconFlame, IconClock, IconCalendar, IconLayers,
@@ -52,6 +52,7 @@ export default function HabitDetailScreen({ id }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [burst, setBurst] = useState(0)
   const today = todayStr()
+  const now = useMemo(() => new Date(), [])
 
   const habit = useMemo(() => (state.habits || []).find((h) => h.id === id) || null, [state.habits, id])
   const detail = useMemo(() => habitDetail(state, habit, days), [state, habit, days])
@@ -62,6 +63,52 @@ export default function HabitDetailScreen({ id }) {
   )
   const patterns = useMemo(() => (habit ? habitPatterns(state, habit) : null), [state, habit])
   const cards = useMemo(() => patternCards(patterns, habit?.name), [patterns, habit])
+
+  // Reference metric strip — all real: total completed check-ins, cadence,
+  // and the habit's own target time when it has one.
+  const totalDone = useMemo(() => (
+    habit ? Object.values(state.checkins?.[habit.id] || {}).filter((c) => c?.done === true).length : 0
+  ), [state, habit])
+
+  // This month: done vs eligible days so far (real engines, no projections).
+  const monthInfo = useMemo(() => {
+    if (!habit) return null
+    const d = now
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    let done = 0, eligible = 0
+    for (let i = 1; i <= 31; i++) {
+      const date = `${ym}-${String(i).padStart(2, '0')}`
+      if (date > today) break
+      if (!eligibleOn(habit, date)) continue
+      eligible++
+      if (isDone(state, habit.id, date)) done++
+    }
+    return { done, eligible, pct: eligible ? Math.round((100 * done) / eligible) : null }
+  }, [state, habit, today, now])
+
+  // Recent activity: the last eligible days, honestly labelled.
+  const recent = useMemo(() => {
+    if (!habit) return []
+    const rows = []
+    for (let i = 0; i < 21 && rows.length < 4; i++) {
+      const date = subDaysStr(today, i)
+      if (!eligibleOn(habit, date)) continue
+      const entry = checkinOf(state, habit.id, date)
+      const done = entry?.done === true
+      let at = null
+      if (done && entry.at) {
+        if (typeof entry.at === 'string' && entry.at.includes('T')) {
+          at = new Date(entry.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        } else if (/^\d{2}:\d{2}/.test(String(entry.at))) {
+          at = formatReminder(String(entry.at).slice(0, 5))
+        }
+      }
+      rows.push({ date, done, at })
+    }
+    return rows
+  }, [state, habit, today])
+
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   if (!habit) {
     return (
@@ -123,15 +170,18 @@ export default function HabitDetailScreen({ id }) {
           <IconChevronLeft size={14} /> Habits
         </button>
         <div className="hd-hero__identity">
-          <span className={`hd-identity__ring${done ? ' is-done' : ''}${paused ? ' is-paused' : ''}${archived ? ' is-archived' : ''}`}>
-            <svg width={isize} height={isize} viewBox={`0 0 ${isize} ${isize}`} focusable="false" aria-hidden="true">
-              <circle className="hd-identity__ring-track" cx={isize/2} cy={isize/2} r={ir} />
-              <circle className="hd-identity__ring-fill" cx={isize/2} cy={isize/2} r={ir}
-                strokeDasharray={icirc} strokeDashoffset={idash}
-                transform={`rotate(-90 ${isize/2} ${isize/2})`} />
-            </svg>
-            <span className="hd-identity__ring-dot" />
-            <span className="hd-identity__ring-mark"><IconCheck size={16} aria-hidden="true" /></span>
+          <span className="hd-idtile" style={{ '--cat-color': `var(${cat.cssVar})` }} aria-hidden="true">
+            <span className="hd-idtile__initial">{(habit.name || '?').slice(0, 1).toUpperCase()}</span>
+            <span className={`hd-identity__ring${done ? ' is-done' : ''}${paused ? ' is-paused' : ''}${archived ? ' is-archived' : ''}`}>
+              <svg width={isize} height={isize} viewBox={`0 0 ${isize} ${isize}`} focusable="false" aria-hidden="true">
+                <circle className="hd-identity__ring-track" cx={isize/2} cy={isize/2} r={ir} />
+                <circle className="hd-identity__ring-fill" cx={isize/2} cy={isize/2} r={ir}
+                  strokeDasharray={icirc} strokeDashoffset={idash}
+                  transform={`rotate(-90 ${isize/2} ${isize/2})`} />
+              </svg>
+              <span className="hd-identity__ring-dot" />
+              <span className="hd-identity__ring-mark"><IconCheck size={16} aria-hidden="true" /></span>
+            </span>
           </span>
           <div className="hd-hero__text" style={{ minWidth: 0 }}>
             <div className="hd-hero__eyebrow">
@@ -149,6 +199,9 @@ export default function HabitDetailScreen({ id }) {
               <span>{scheduleLabel(habit)}</span>
               {habit.reminder && (<><span aria-hidden="true"> · </span><span>{formatReminder(habit.reminder)}</span></>)}
             </p>
+            {typeof habit.notes === 'string' && habit.notes.trim() && (
+              <p className="hd-hero__line">{habit.notes.trim()}</p>
+            )}
           </div>
           <div className="head-actions">
             <IconButton label={`Edit ${habit.name}`} onClick={() => habitUI.openEdit(habit)} icon={<IconPencil size={16} />} />
@@ -185,7 +238,36 @@ export default function HabitDetailScreen({ id }) {
           </span>
         </div>
       </header>
-      {miss && !archived && !paused && scheduledToday && !done && (
+
+      {/* Reference metric strip — streak / total / cadence / target (all real). */}
+      <div className="hd-metrics" role="list" aria-label="Key numbers">
+        <div className="hd-metric" role="listitem">
+          <span className="hd-metric__label"><IconFlame size={12} aria-hidden="true" /> Day streak</span>
+          <span className="hd-metric__value">{currentStreak}</span>
+        </div>
+        <div className="hd-metric" role="listitem">
+          <span className="hd-metric__label"><IconCheck size={12} aria-hidden="true" /> Total completed</span>
+          <span className="hd-metric__value">{totalDone}</span>
+        </div>
+        <div className="hd-metric" role="listitem">
+          <span className="hd-metric__label"><IconCalendar size={12} aria-hidden="true" /> Frequency</span>
+          <span className="hd-metric__value hd-metric__value--text">{scheduleLabel(habit)}</span>
+        </div>
+        <div className="hd-metric" role="listitem">
+          <span className="hd-metric__label"><IconClock size={12} aria-hidden="true" /> Target time</span>
+          <span className="hd-metric__value hd-metric__value--text">{habit.estimateMin ? `${habit.estimateMin} min` : '—'}</span>
+        </div>
+      </div>
+
+      {/* Reference segmented navigation — anchors over the real sections. */}
+      <nav className="hd-anchornav" aria-label="Detail sections">
+        <button type="button" onClick={() => scrollTo('habit-detail-screen')}>Overview</button>
+        <button type="button" onClick={() => scrollTo('hd-sec-performance')}>Calendar</button>
+        <button type="button" onClick={() => scrollTo('hd-sec-history')}>History</button>
+        <button type="button" onClick={() => scrollTo('hd-sec-manage')}>Manage</button>
+      </nav>
+
+      {miss && !archived && !paused && scheduledToday && !done &&(
         <div className="hd-missed">
           <span>Missed {miss.label}.</span>
           <Button variant="quiet" size="sm" onClick={() => actions.log(habit, miss.date)} aria-label={`Log ${habit.name} for ${miss.label}`}>
@@ -203,7 +285,7 @@ export default function HabitDetailScreen({ id }) {
       )}
 
       {/* 4. PERFORMANCE EVIDENCE */}
-      <section className="hd-section" aria-labelledby="hd-evidence-title">
+      <section className="hd-section" id="hd-sec-performance" aria-labelledby="hd-evidence-title">
         <div className="hd-section__head">
           <h2 className="hd-section__title" id="hd-evidence-title">Performance</h2>
           <div className="hd-range" role="group" aria-label="Date range">
@@ -241,10 +323,48 @@ export default function HabitDetailScreen({ id }) {
           </div>
         )}
 
-        <div className="hd-heatmap">
-          <Heatmap weeks={heat} ariaLabel={`${habit.name} completion heatmap`} />
+        <div className="hd-evidence-grid">
+          <div className="hd-heatmap">
+            <Heatmap weeks={heat} ariaLabel={`${habit.name} completion heatmap`} />
+          </div>
+          {monthInfo && monthInfo.pct != null && (
+            <div className="hd-month" aria-label={`This month: ${monthInfo.pct}% (${monthInfo.done} of ${monthInfo.eligible} days)`}>
+              <h3 className="hd-month__title">This month</h3>
+              <span className="hd-month__ring" aria-hidden="true">
+                <svg viewBox="0 0 44 44" focusable="false">
+                  <circle className="hd-month__track" cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" />
+                  <circle
+                    className="hd-month__arc"
+                    cx="22" cy="22" r="18" fill="none" strokeWidth="4.5" strokeLinecap="round"
+                    strokeDasharray={`${Math.round((monthInfo.pct / 100) * 113.1)} 113.1`}
+                    transform="rotate(-90 22 22)"
+                  />
+                </svg>
+                <span className="hd-month__pct">{monthInfo.pct}%</span>
+              </span>
+              <span className="hd-month__meta tnum">{monthInfo.done} of {monthInfo.eligible} days</span>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* 6b. RECENT ACTIVITY — the last eligible days, real states. */}
+      {recent.length > 0 && (
+        <section className="hd-section" aria-labelledby="hd-activity-title">
+          <div className="hd-section__head">
+            <h2 className="hd-section__title" id="hd-activity-title">Recent activity</h2>
+          </div>
+          <ul className="hd-activity" role="list">
+            {recent.map((r) => (
+              <li key={r.date} className="hd-activity__row" data-done={r.done ? 'true' : 'false'}>
+                <span className="hd-activity__mark" aria-hidden="true">{r.done ? '✓' : '×'}</span>
+                <span className="hd-activity__label">{r.done ? 'Completed' : 'Missed'}</span>
+                <span className="hd-activity__when tnum">{prettyDate(r.date)}{r.at ? ` · ${r.at}` : ''}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* 6. PATTERNS */}
       <section className="hd-section" aria-labelledby="hd-patterns-title">
@@ -297,7 +417,7 @@ export default function HabitDetailScreen({ id }) {
       </section>
 
       {/* 7. HISTORY */}
-      <section className="hd-section" aria-labelledby="hd-history-title">
+      <section className="hd-section" id="hd-sec-history" aria-labelledby="hd-history-title">
         <div className="hd-section__head">
           <h2 className="hd-section__title" id="hd-history-title">History</h2>
           {best > 0 && <span className="hd-section__meta"><IconFlame size={12} /> best {best}</span>}
@@ -388,31 +508,46 @@ export default function HabitDetailScreen({ id }) {
       </section>
 
       {/* 10. MANAGEMENT */}
-      <section className="hd-section" aria-labelledby="hd-manage-title">
+      <section className="hd-section" id="hd-sec-manage" aria-labelledby="hd-manage-title">
         <div className="hd-section__head">
           <h2 className="hd-section__title" id="hd-manage-title">Manage</h2>
         </div>
         <div className="hd-manage">
-          <Button variant="secondary" size="sm" onClick={() => habitUI.openEdit(habit)}><IconPencil size={14} /> Edit</Button>
+          <div className="hd-setrow">
+            <span className="hd-setrow__ico" aria-hidden="true"><IconPencil size={15} /></span>
+            <span className="hd-setrow__body"><span className="hd-setrow__label">Edit habit</span><span className="hd-setrow__sub">Name, schedule, reminder</span></span>
+            <Button variant="secondary" size="sm" onClick={() => habitUI.openEdit(habit)}>Edit</Button>
+          </div>
           {!archived && (
-            <Button variant="quiet" size="sm" onClick={() => actions.togglePause(habit)}>{paused ? 'Resume' : 'Pause'}</Button>
+            <div className="hd-setrow">
+              <span className="hd-setrow__ico" aria-hidden="true"><IconClock size={15} /></span>
+              <span className="hd-setrow__body"><span className="hd-setrow__label">{paused ? 'Resume habit' : 'Pause habit'}</span><span className="hd-setrow__sub">{paused ? 'Back on Today from now on' : 'Temporarily pause'}</span></span>
+              <Button variant="quiet" size="sm" onClick={() => actions.togglePause(habit)}>{paused ? 'Resume' : 'Pause'}</Button>
+            </div>
           )}
-          <Button variant="quiet" size="sm" onClick={() => habitUI.archive(habit)}>
-            <IconArchive size={14} /> {archived ? 'Restore' : 'Archive'}
-          </Button>
-          <span className="hd-manage__spacer" />
-          {confirmDelete ? (
-            <>
-              <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(false)}>Keep</Button>
-              <Button variant="danger" size="sm" onClick={() => { setConfirmDelete(false); habitUI.remove(habit); navigate('habits') }}>
-                <IconTrash size={14} /> Delete for good
-              </Button>
-            </>
-          ) : (
-            <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(true)} aria-describedby="hd-delete-note">
-              <IconTrash size={14} /> Delete
+          <div className="hd-setrow">
+            <span className="hd-setrow__ico" aria-hidden="true"><IconArchive size={15} /></span>
+            <span className="hd-setrow__body"><span className="hd-setrow__label">{archived ? 'Restore habit' : 'Archive habit'}</span><span className="hd-setrow__sub">Hide from active list</span></span>
+            <Button variant="quiet" size="sm" onClick={() => habitUI.archive(habit)}>
+              {archived ? 'Restore' : 'Archive'}
             </Button>
-          )}
+          </div>
+          <div className="hd-setrow hd-setrow--danger">
+            <span className="hd-setrow__ico" aria-hidden="true"><IconTrash size={15} /></span>
+            <span className="hd-setrow__body"><span className="hd-setrow__label">Delete habit</span><span className="hd-setrow__sub">Permanently delete</span></span>
+            {confirmDelete ? (
+              <>
+                <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(false)}>Keep</Button>
+                <Button variant="danger" size="sm" onClick={() => { setConfirmDelete(false); habitUI.remove(habit); navigate('habits') }}>
+                  Delete for good
+                </Button>
+              </>
+            ) : (
+              <Button variant="quiet" size="sm" onClick={() => setConfirmDelete(true)} aria-describedby="hd-delete-note">
+                Delete
+              </Button>
+            )}
+          </div>
           <p id="hd-delete-note" className="hd-manage__note">
             {confirmDelete
               ? `This removes ${habit.name} and its check-ins. An Undo is offered right after.`

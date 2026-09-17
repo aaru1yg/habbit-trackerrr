@@ -37,7 +37,8 @@
 }
 .today-now {
   position: relative;
-  padding: var(--space-section) 0;
+  /* Compact: the work list below is the primary surface, not this block. */
+  padding: var(--space-default) 0;
   background: transparent;
   display: grid;
   gap: var(--space-default);
@@ -45,23 +46,23 @@
 .today-now__surface {
   position: relative;
   background: var(--surface-inset);
-  border-radius: var(--radius-lg);
-  padding: var(--space-comfortable) var(--space-default) var(--space-comfortable) calc(var(--space-default) + 3px);
+  border-radius: var(--radius-md);
+  padding: var(--space-default) var(--space-default) var(--space-default) calc(var(--space-default) + 3px);
   border-left: 3px solid var(--accent);
   box-shadow: var(--hairline-highlight, inset 0 1px 0 rgba(255,255,255,0.04));
 }
 .today-now__surface[data-tone='danger']  { border-left-color: var(--color-danger); }
 .today-now__surface[data-tone='warning'] { border-left-color: var(--color-warning); }
-.today-now--empty   { border-left: 3px solid var(--color-border); padding: var(--space-section) var(--space-default); }
+.today-now--empty   { border-left: 3px solid var(--color-border); padding: var(--space-default) var(--space-default); }
 .today-now--done .today-now__surface     { border-left-color: var(--color-success); }
 .today-now--overloaded {
   border-left: 3px solid var(--color-warning);
-  padding: var(--space-section) var(--space-default);
+  padding: var(--space-default) var(--space-default);
 }
 .today-now__object {
   display: flex;
   align-items: center;
-  gap: var(--space-comfortable);
+  gap: var(--space-default);
 }
 .today-now__body {
   display: grid;
@@ -145,9 +146,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: var(--now-ring-size, 84px);
-  height: var(--now-ring-size, 84px);
-  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.25));
+  width: var(--now-ring-size, 44px);
+  height: var(--now-ring-size, 44px);
 }
 .now-ring__svg {
   display: block;
@@ -535,15 +535,15 @@
   .today { padding: var(--space-default) var(--space-default) calc(var(--app-mobile-nav-h) + var(--space-4) + env(safe-area-inset-bottom)); gap: 0; }
   .today__header { flex-direction: column; align-items: flex-start; gap: var(--space-compact); padding-bottom: var(--space-compact); }
   .today__header h1 { font-size: var(--font-h1); }
-  .today-now { padding: var(--space-comfortable) 0; gap: var(--space-default); }
-  .today-now__surface { padding: var(--space-comfortable) var(--space-default); border-left-width: 3px; border-radius: var(--radius-md); }
-  .today-now--empty, .today-now--overloaded { padding: var(--space-comfortable) var(--space-default); border-left-width: 3px; }
-  .today-now__object { flex-direction: column; align-items: flex-start; gap: var(--space-default); }
-  .now-ring { --now-ring-size: 72px; }
+  .today-now { padding: var(--space-default) 0; gap: var(--space-default); }
+  .today-now__surface { padding: var(--space-default); border-left-width: 3px; border-radius: var(--radius-md); }
+  .today-now--empty, .today-now--overloaded { padding: var(--space-default); border-left-width: 3px; }
+  .today-now__object { flex-direction: row; align-items: center; gap: var(--space-default); }
+  .now-ring { --now-ring-size: 40px; }
   .now-ring__check { width: 24px; height: 24px; }
-  .today-now__title { font-size: 1.5rem; max-width: none; }
-  .today-now__actions { flex-direction: column; align-items: stretch; }
-  .today-now__actions .p-btn { width: 100%; justify-content: center; min-height: 44px; }
+  .today-now__title { font-size: 1.25rem; max-width: none; }
+  .today-now__actions { flex-direction: row; flex-wrap: wrap; }
+  .today-now__actions .p-btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
   .today-section { padding: var(--space-comfortable) 0; gap: var(--space-compact); }
   .today-section__head { flex-direction: column; align-items: flex-start; gap: var(--space-compact); }
   .today-section__head-actions { width: 100%; justify-content: space-between; }
@@ -587,7 +587,7 @@
 }
 @media (min-width: 1024px) {
   .today { padding-top: var(--space-comfortable); }
-  .today-now { padding: var(--space-6) 0 var(--space-6) calc(var(--space-comfortable) + var(--space-compact)); }
+  .today-now { padding: var(--space-default) 0 var(--space-default) calc(var(--space-comfortable) + var(--space-compact)); }
   .today-section__head { align-items: baseline; }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -35,9 +35,8 @@
   transition: background .15s ease, color .15s ease;
 }
 .hc-range button[aria-pressed="true"] {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  background: var(--accent);
+  color: var(--text-on-accent);
 }
 .hc-range button:focus-visible {
   outline: 2px solid var(--focus-ring, var(--accent));
@@ -657,3 +656,34 @@
   padding: 15px 0;
   margin: -15px 0;
 }
+
+/* ================================================================
+   Reference language alignment (Today/Habits baseline, Sept 2026).
+   Card surfaces → inset + border-2; range segs → violet pill active;
+   day-panel title → 15px sentence case. Grid/cells/legend semantics
+   (done green · scheduled · missed · note dot) unchanged.
+   ================================================================ */
+.hc-range {
+  background: var(--surface-inset);
+  border-color: var(--border-2);
+  border-radius: var(--r-pill, 999px);
+}
+.hc-range button { border-radius: var(--r-pill, 999px); }
+.hc-range button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+.hc-wrap,
+.hc-day,
+.hc-summary {
+  background: var(--surface-inset);
+  border-color: var(--border-2);
+  border-radius: var(--radius-md);
+}
+.hc-day__title { font: var(--fw-semibold) var(--fs-15, 15px)/1.3 var(--font-family); letter-spacing: 0; }
+.hc-today {
+  border-color: var(--border-2);
+  background: var(--surface-inset);
+  border-radius: var(--r-pill, 999px);
+}
+.hc-nav-btn { border-color: var(--border-2); background: var(--surface-inset); }

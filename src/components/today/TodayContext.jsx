@@ -123,7 +123,7 @@ export default function TodaySignals({
       <header className="today-signals__head">
         <span className="today-signals__eyebrow">
           <span className={`today-signals__dot today-signals__dot--${sectionTone}`} aria-hidden="true" />
-          <h2 id="today-signals-heading" className="today-signals__title">Today signals</h2>
+          <h2 id="today-signals-heading" className="today-signals__title">Today&apos;s insights</h2>
         </span>
         <span className="today-signals__state">{toneLabel}</span>
       </header>

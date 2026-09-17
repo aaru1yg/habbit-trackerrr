@@ -183,7 +183,7 @@ export default function App() {
 
   // Step 4G-3: pick an explicit content-width family per route.
   const pageSize = (() => {
-    if (route === 'today') return 'narrow'
+    if (route === 'today') return 'workspace'
     if (route === 'work' || route === 'projects' || route === 'assignments' || route === 'workload' || route === 'timeline') return 'workspace'
     if (route === 'goals') return param ? 'detail' : 'workspace'
     if (route === 'habits') {
@@ -191,7 +191,7 @@ export default function App() {
       if (view === 'calendar') return 'wide'
       if (view === 'week') return 'workspace'
       if (view === 'routines') return 'narrow'
-      return 'workspace'
+      return 'wide'
     }
     return undefined
   })()

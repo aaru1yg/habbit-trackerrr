@@ -8,9 +8,9 @@ import PlanningPanel from '../components/today/PlanningPanel.jsx'
 import FocusMode from '../components/today/FocusMode.jsx'
 import { Button, Progress } from '../components/primitives/index.js'
 import { takeIntent, onIntent, INTENTS } from '../lib/intents.js'
-import { todayStr, prettyDate } from '../lib/dates.js'
-import { activeHabits, todayStats, isDone, eligibleOn } from '../lib/stats.js'
-import { todayHeadline } from '../lib/today.js'
+import { todayStr, prettyDate, dayStr } from '../lib/dates.js'
+import { activeHabits, todayStats, isDone, eligibleOn, dayStats, habitStreak } from '../lib/stats.js'
+import { todayHeadline, todayPriorities } from '../lib/today.js'
 import { getTodayPriorities, workloadCapacity } from '../lib/adaptive.js'
 import { recoveryPlan } from '../lib/planning.js'
 import { isScheduled } from '../lib/schedule.js'
@@ -18,12 +18,14 @@ import { preferencesOf } from '../lib/personalization.js'
 import { assignmentProgress, projectProgress } from '../lib/work.js'
 import { Link } from '../lib/router.jsx'
 import {
-  IconPlus, IconTarget, IconClock, IconCalendar, IconMind,
+  IconPlus, IconTarget, IconClock, IconCalendar, IconMind, IconChevronRight, IconFlame,
 } from '../lib/icons.jsx'
 
 export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, onSearch: _onSearch }) {
   const { state, dispatch } = useStore()
   const habitUI = useHabitUI()
+  // Reference composition state: list filter chips (All / Habits / Work).
+  const [listFilter, setListFilter] = useState('all')
   const today = todayStr()
   const now = useMemo(() => new Date(), [])
   const prefs = preferencesOf(state)
@@ -173,6 +175,36 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
   const overloaded = adaptive.workload.overloaded && nextIsTodayRelevant
 
   const headline = useMemo(() => todayHeadline(state, { now }), [state, now])
+  // Reference "Today at a glance" numbers + week strip + streaks card.
+  const overdueCount = useMemo(
+    () => todayPriorities(state, { now, limit: 99 }).filter((pr) => pr.tone === 'bad').length,
+    [state, now],
+  )
+  const completedCount = useMemo(() => workItems.reduce((n, row) => {
+    if (row.kind === 'habit') return n + (isDone(state, row.item.id, today) ? 1 : 0)
+    return n + ((row.progress ?? 0) >= 100 ? 1 : 0)
+  }, 0), [workItems, state, today])
+  const weekStrip = useMemo(() => {
+    const base = new Date(now)
+    base.setDate(base.getDate() - ((base.getDay() + 6) % 7)) // Monday
+    return [...Array(7)].map((_, i) => {
+      const d = new Date(base)
+      d.setDate(base.getDate() + i)
+      return dayStats(state, dayStr(d))
+    })
+  }, [state, now])
+  const topStreaks = useMemo(
+    () => activeHabits(state)
+      .map((h) => ({ h, days: habitStreak(state, h) }))
+      .filter((x) => x.days > 0)
+      .sort((a, b) => b.days - a.days)
+      .slice(0, 4),
+    [state],
+  )
+  const kindCounts = useMemo(() => ({
+    habit: workItems.filter((r) => r.kind === 'habit').length,
+    work: workItems.filter((r) => r.kind !== 'habit').length,
+  }), [workItems])
 
   const completeNext = (entry) => {
     const item = entry?.item
@@ -215,16 +247,22 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
         {stats.total > 0 && (
           <div className="today__header-meta" aria-label="Today's progress">
             <span className="today__header-count">
-              {stats.done}/{stats.total}
+              <span className="tdy-countline">
+                {stats.done} of {stats.total} <strong>completed</strong>
+              </span>
+              <strong className="tdy-headpct">{stats.pct || 0}%</strong>
             </span>
-            <span className="today-progress__bar"><Progress value={stats.pct || 0} /></span>
+            <span className="today-progress__bar tdy-bar"><Progress value={stats.pct || 0} /></span>
           </div>
         )}
       </header>
 
-      <hr className="today-rule" aria-hidden="true" />
-
-      {/* 2. NOW — dominant area (single next action, no competition). */}
+      {/* Reference layout (designer sheet): row 1 = Next up + Today at a
+          glance; row 2 = Today's work + quick actions/art; lower band =
+          Daily progress + Current streaks + Today's insights; full-width
+          quote bar closes the page. */}
+      <div className="tdy-body">
+      {/* 2. NEXT UP — compact priority card (kept .today-now contract). */}
       <NextAction
         mode={nowMode}
         entry={adaptive.next ? { ...adaptive.next, kind: adaptive.next.item.kind } : null}
@@ -237,10 +275,19 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
         onStart={openPlan}
       />
 
-      <hr className="today-rule" aria-hidden="true" />
+      {/* 2b. TODAY AT A GLANCE — four compact stats (reference top-right). */}
+      <section className="tdy-card tdy-glance" aria-labelledby="tdy-glance-heading">
+        <h2 id="tdy-glance-heading" className="tdy-card__title">Today at a glance</h2>
+        <ul className="tdy-glance__list">
+          <li><span className="tdy-glance__ico" data-tone="total" aria-hidden="true"><IconTarget size={14} /></span><span className="tdy-glance__num">{workItems.length}</span><span className="tdy-glance__label">Total</span></li>
+          <li><span className="tdy-glance__ico" data-tone="done" aria-hidden="true">✓</span><span className="tdy-glance__num">{completedCount}</span><span className="tdy-glance__label">Completed</span></li>
+          <li><span className="tdy-glance__ico" data-tone="overdue" aria-hidden="true">!</span><span className="tdy-glance__num">{overdueCount}</span><span className="tdy-glance__label">Overdue</span></li>
+          <li><span className="tdy-glance__ico" data-tone="remaining" aria-hidden="true">◦</span><span className="tdy-glance__num">{Math.max(0, workItems.length - completedCount)}</span><span className="tdy-glance__label">Remaining</span></li>
+        </ul>
+      </section>
 
-      {/* 3. TODAY'S WORK — editorial list, not card wall. */}
-      <section className="today-section" aria-labelledby="todays-work-heading">
+      {/* 3. TODAY'S WORK — the primary surface, with kind filter chips. */}
+      <section className="today-section" aria-labelledby="todays-work-heading" data-filter={listFilter}>
         <div className="today-section__head">
           <div>
             <h2 id="todays-work-heading" className="today-section__title">Today's work</h2>
@@ -251,6 +298,13 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
             <Button variant="quiet" size="sm" icon={<IconPlus size={14} />} onClick={habitUI.openAdd}>Add habit</Button>
           </div>
         </div>
+        {workItems.length > 0 && (
+          <div className="tdy-chiprow" role="group" aria-label="Filter today's list">
+            <button type="button" className={`tdy-chipbtn${listFilter === 'all' ? ' is-active' : ''}`} aria-pressed={listFilter === 'all'} onClick={() => setListFilter('all')}>All ({workItems.length})</button>
+            <button type="button" className={`tdy-chipbtn${listFilter === 'habit' ? ' is-active' : ''}`} aria-pressed={listFilter === 'habit'} onClick={() => setListFilter('habit')}>Habits ({kindCounts.habit})</button>
+            <button type="button" className={`tdy-chipbtn${listFilter === 'work' ? ' is-active' : ''}`} aria-pressed={listFilter === 'work'} onClick={() => setListFilter('work')}>Work ({kindCounts.work})</button>
+          </div>
+        )}
         {workItems.length === 0 ? (
           <p className="today-list__empty">
             {nothingScheduled
@@ -262,8 +316,109 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
         )}
       </section>
 
-      {/* 4. CONTEXT — "Today signals" compact strip: capacity · attention · completion.
-         Quieter than NOW and Today's Work; no card wall. */}
+      {/* Recovery note (overloaded, when recoveryPlan has suggestions). */}
+      {overloaded && recovery.keep.length > 0 && (
+        <p className="today-overload" role="note">
+          <strong>Suggestion:</strong> {recovery.explanation}
+        </p>
+      )}
+
+      {/* 4. SIDE — quick actions + art (reference right column). */}
+      <div className="tdy-side">
+
+        <section className="tdy-card tdy-quick" aria-labelledby="tdy-quick-heading">
+          <h2 id="tdy-quick-heading" className="tdy-card__title">Quick actions</h2>
+          <nav className="tdy-quick__list" aria-label="Today utilities">
+            <button type="button" className="tdy-quick__row" onClick={openFocus} aria-label="Open focus mode">
+              <span className="tdy-quick__ico" data-tone="accent" aria-hidden="true"><IconClock size={16} /></span>
+              <span className="tdy-quick__body"><span className="tdy-quick__title">Start focus</span><span className="tdy-quick__sub">25 min Pomodoro</span></span>
+              <IconChevronRight size={14} aria-hidden="true" />
+            </button>
+            <button type="button" className="tdy-quick__row" onClick={openPlan} aria-label="Open day planner">
+              <span className="tdy-quick__ico" data-tone="plan" aria-hidden="true"><IconTarget size={16} /></span>
+              <span className="tdy-quick__body"><span className="tdy-quick__title">Plan my day</span><span className="tdy-quick__sub">Time block</span></span>
+              <IconChevronRight size={14} aria-hidden="true" />
+            </button>
+            {recovery?.keep?.length > 0 && (
+              <button type="button" className="tdy-quick__row" onClick={() => setPlanTick((n) => n + 1)} aria-label="View recovery suggestions">
+                <span className="tdy-quick__ico" data-tone="recover" aria-hidden="true"><IconMind size={16} /></span>
+                <span className="tdy-quick__body"><span className="tdy-quick__title">Recovery</span><span className="tdy-quick__sub">Get unstuck</span></span>
+                <IconChevronRight size={14} aria-hidden="true" />
+              </button>
+            )}
+            <Link className="tdy-quick__row" to="habits?view=calendar" aria-label="Open calendar view">
+              <span className="tdy-quick__ico" data-tone="calendar" aria-hidden="true"><IconCalendar size={16} /></span>
+              <span className="tdy-quick__body"><span className="tdy-quick__title">Open calendar</span><span className="tdy-quick__sub">View month</span></span>
+              <IconChevronRight size={14} aria-hidden="true" />
+            </Link>
+          </nav>
+        </section>
+
+
+        <div className="tdy-art" aria-hidden="true">
+          <img src="art/scene-hero.webp" alt="" loading="lazy" />
+          <p>Small steps every day lead to big changes.</p>
+        </div>
+
+      </div>
+
+      {/* 5. LOWER BAND — daily progress, current streaks, today's insights. */}
+      <div className="tdy-lower">
+      {/* 4. DAILY PROGRESS — week strip answers "how consistent am I?". */}
+      <section className="tdy-card tdy-progress" aria-labelledby="tdy-progress-heading">
+        <div className="tdy-progress__head">
+          <div>
+            <h2 id="tdy-progress-heading" className="tdy-card__title">Daily progress</h2>
+            <p className="tdy-progress__sub">{stats.total ? 'Your consistency this week.' : 'Nothing scheduled for today yet.'}</p>
+          </div>
+          {stats.total > 0 && <span className="tdy-progress__pct">{stats.pct || 0}%</span>}
+        </div>
+        {stats.total > 0 && <span className="today-progress__bar tdy-bar tdy-bar--lg"><Progress value={stats.pct || 0} /></span>}
+        <div className="tdy-week" role="list" aria-label="This week's completion">
+          {weekStrip.map((d, i) => (
+            <div key={d.date} role="listitem" className={`tdy-day${d.date === today ? ' is-today' : ''}${d.date > today ? ' is-future' : ''}${d.total ? '' : ' is-off'}`}>
+              <span className="tdy-day__mark" aria-hidden="true">
+                <svg className="tdy-day__ring" viewBox="0 0 24 24" data-state={d.date > today ? 'future' : d.total ? (d.done >= d.total ? 'done' : 'partial') : 'off'} focusable="false">
+                  <circle className="tdy-day__ring-track" cx="12" cy="12" r="10" fill="none" strokeWidth="3.5" />
+                  {d.date <= today && d.total > 0 && (
+                    <circle
+                      className="tdy-day__ring-arc"
+                      cx="12" cy="12" r="10" fill="none" strokeWidth="3.5" strokeLinecap="round"
+                      strokeDasharray={`${Math.max(2, Math.round((100 * d.done / d.total) * 0.6283))} 62.83`}
+                      transform="rotate(-90 12 12)"
+                    />
+                  )}
+                </svg>
+              </span>
+              <span className="tdy-day__label">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}</span>
+              <span className="tdy-day__num">{d.date > today ? '' : d.total ? `${d.done}/${d.total}` : '–'}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+        <section className="tdy-card tdy-streaks" aria-labelledby="tdy-streaks-heading">
+          <div className="tdy-streaks__head">
+            <h2 id="tdy-streaks-heading" className="tdy-card__title">Current streaks</h2>
+            <Link className="tdy-streaks__more" to="habits?view=calendar">View calendar →</Link>
+          </div>
+          {topStreaks.length === 0 ? (
+            <p className="tdy-streaks__empty">Complete a habit today to start a streak.</p>
+          ) : (
+            <ul className="tdy-streaks__list">
+              {topStreaks.map(({ h, days }) => (
+                <li key={h.id}>
+                  <Link to={`habits/${h.id}`} className="tdy-streaks__row">
+                    <span className="tdy-streaks__dot" style={{ background: `var(${h.category ? `--cat-${h.category}` : '--accent'})` }} aria-hidden="true" />
+                    <span className="tdy-streaks__name">{h.name}</span>
+                    <span className="tdy-streaks__days"><IconFlame size={12} aria-hidden="true" /> {days} days</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
       <TodaySignals
         stats={stats}
         workload={adaptive.workload}
@@ -271,39 +426,13 @@ export default function TodayScreen({ onFire: _onFire, onCapture: _onCapture, on
         attentionLead={attentionLead}
         sectionTone={signalsTone}
       />
+      </div>
 
-      {/* Recovery note (overloaded, when recoveryPlan has suggestions).
-         Quiet single line; no repeat of the warning already in Now. */}
-      {overloaded && recovery.keep.length > 0 && (
-        <p className="today-overload" role="note">
-          <strong>Suggestion:</strong> {recovery.explanation}
-        </p>
-      )}
-
-      {/* 5. TOOLS — quiet utility dock. Focus is the primary utility on Today
-         (matches the NBA action above); Plan and Calendar are supporting.
-         No card, no equal-loud pills, no duplicate CTAs. */}
-      <section aria-labelledby="today-tools-heading" className="today-tools">
-        <h2 id="today-tools-heading" className="today-tools__label">Tools</h2>
-        <nav className="p-cluster today-tools__dock" aria-label="Today utilities">
-          <Button variant="primary" size="sm" className="today-tool"
-                  icon={<IconClock size={14} aria-hidden="true" />}
-                  onClick={openFocus} aria-label="Open focus mode">Focus</Button>
-          {recovery?.keep?.length > 0 && (
-            <Button variant="quiet" size="sm" className="today-tool"
-                    icon={<IconMind size={14} aria-hidden="true" />}
-                    onClick={() => setPlanTick((n) => n + 1)}
-                    aria-label="View recovery suggestions">Recovery</Button>
-          )}
-          <Button variant="quiet" size="sm" className="today-tool"
-                  icon={<IconTarget size={14} aria-hidden="true" />}
-                  onClick={openPlan} aria-label="Open day planner">Plan</Button>
-          <Button variant="quiet" size="sm" className="today-tool"
-                  icon={<IconCalendar size={14} aria-hidden="true" />}
-                  as={Link} to="habits?view=calendar"
-                  aria-label="Open calendar view">Calendar</Button>
-        </nav>
-      </section>
+      <p className="tdy-quotebar" role="note">
+        <span className="tdy-quotebar__main">"Progress, not perfection."</span>
+        <span className="tdy-quotebar__sub">You've got this! <span className="tdy-quotebar__heart" aria-hidden="true">♥</span></span>
+      </p>
+      </div>
 
       {/* Panels mount on first open and unmount on dismiss so the closed
          "Plan my day" card and ghost "Focus mode" button never live inline

@@ -98,7 +98,7 @@ describe('§22.1 Empty day', () => {
 })
 
 describe('§22.2 Loaded day — hierarchy', () => {
-  it('eye lands on NOW first, then today\'s work, then context, then tools; rules separate sections; NOW is flat with accent hairline (not a card)', async () => {
+  it('reference composition: header, compact NOW, work list, daily progress, then supporting rail; NOW is flat with accent hairline (not a card)', async () => {
     await mount(seedLoaded())
     // Wait until the Today's work heading is rendered (section settled).
     const workHeading = await screen.findByRole('heading', { name: /Today's work/i })
@@ -108,14 +108,27 @@ describe('§22.2 Loaded day — hierarchy', () => {
     const posH = html.indexOf('today__header')
     const posNow = html.indexOf('today-now')
     const posWork = html.indexOf("Today's work")
-    const posCtx = html.indexOf('today-signals')
-    const posTools = html.indexOf('today-tools')
+    const posGlance = html.indexOf('tdy-glance')
+    const posSide = html.indexOf('tdy-side')
+    const posLower = html.indexOf('tdy-lower')
+    const posQuote = html.indexOf('tdy-quotebar')
+    // Reference order: header → Next up → glance → work → side → lower → quote
     expect(posH).toBeLessThan(posNow)
-    expect(posNow).toBeLessThan(posWork)
-    expect(posWork).toBeLessThan(posCtx)
-    expect(posCtx).toBeLessThan(posTools)
-    // Two editorial hr rules (header/NOW and NOW/work)
-    expect(root.querySelectorAll('.today-rule').length).toBeGreaterThanOrEqual(2)
+    expect(posNow).toBeLessThan(posGlance)
+    expect(posGlance).toBeLessThan(posWork)
+    expect(posWork).toBeLessThan(posSide)
+    expect(posSide).toBeLessThan(posLower)
+    expect(posLower).toBeLessThan(posQuote)
+    // Bands carry the reference cards: quick actions + art, progress,
+    // streaks, and the renamed "Today's insights" (TodaySignals)
+    const lower = root.querySelector('.tdy-lower')
+    expect(lower.querySelector('.tdy-progress')).toBeTruthy()
+    expect(lower.querySelector('.tdy-streaks')).toBeTruthy()
+    expect(lower.querySelector('.today-signals')).toBeTruthy()
+    expect(root.querySelector('.tdy-side .tdy-quick')).toBeTruthy()
+    expect(root.querySelector('.tdy-glance')).toBeTruthy()
+    // Filter chips live in the work section (reference)
+    expect(root.querySelector('.today-section .tdy-chiprow')).toBeTruthy()
     // NOW is quiet (outer container flat, no card wall); the inner __surface
     // adds ONE subtle inset layer + accent hairline (no glass/glow/gradient).
     const now = root.querySelector('.today-now')
@@ -179,10 +192,12 @@ describe('§22.2 Loaded day — hierarchy', () => {
     expect(hobj.querySelector('button[aria-label*="Mark"][aria-label*="as complete"]')).toBeTruthy()
     // Legacy today-row__ring markup is gone
     expect(document.querySelector('.today-row__ring')).toBeNull()
-    // NOW signature ring remains larger
+    // NOW ring stays a compact inline instrument (visual-reset composition:
+    // the ring must not behave like a decorative centerpiece), but remains
+    // larger than the 28px habit rows' inline ring.
     const nowRing = document.querySelector('.now-ring')
     const nowSize = nowRing ? getComputedStyle(nowRing).getPropertyValue('--now-ring-size').trim() : null
-    expect(['72px','84px','']).toContain(nowSize || '')
+    expect(['44px', '40px']).toContain(nowSize || '')
   })
 
   it('Context is a compact ≤3-signal strip that sits BELOW Today\'s work; no card wall', async () => {
@@ -230,13 +245,13 @@ describe('§22.2 Loaded day — hierarchy', () => {
     }
   })
 
-  it('Tools row is quiet: Plan + Focus at minimum', async () => {
+  it('Quick actions are quiet rows: Focus mode + Plan my day at minimum', async () => {
     await mount(seedLoaded())
-    const tools = document.querySelector('.today-tools')
-    expect(tools).toBeTruthy()
-    expect(within(tools).getByText('Plan')).toBeTruthy()
-    expect(within(tools).getByText('Focus')).toBeTruthy()
-    // Tools should not render a permanently-open PlanningPanel/FocusMode as giant UI
+    const quick = document.querySelector('.tdy-quick')
+    expect(quick).toBeTruthy()
+    expect(within(quick).getByText('Start focus')).toBeTruthy()
+    expect(within(quick).getByText('Plan my day')).toBeTruthy()
+    // Quick actions should not render a permanently-open PlanningPanel/FocusMode as giant UI
     expect(document.querySelector('.planning-panel--open')).toBeNull()
   })
 

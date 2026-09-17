@@ -1,0 +1,263 @@
+/* ================================================================
+   HABITS — reference composition (designer sheets, Sept 2026)
+   Desktop: header · stat tiles + list (main) | tabs, This week,
+   Quick actions, art (rail). Mobile: tiles strip, chips+search,
+   list, then rail cards. Visual language = Today's.
+   ================================================================ */
+
+/* --- Route canvas: active view uses the wide workspace. --- */
+.habits-screen[data-view='active'] { max-width: 1240px; }
+
+/* --- Two-column composition (desktop). DOM order is frozen by tests:
+       habits-head, habit-tabs, hw-summary, habit-list-view, hb-rail. --- */
+@media (min-width: 1024px) {
+  .habits-screen[data-view='active'] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 316px;
+    column-gap: var(--space-5);
+    align-items: start;
+  }
+  .habits-screen[data-view='active'] .habits-head { grid-column: 1 / -1; }
+  .habits-screen[data-view='active'] .hw-summary { grid-column: 1; grid-row: 2; }
+  .habits-screen[data-view='active'] .habit-tabs {
+    grid-column: 2; grid-row: 2;
+    margin: 0;
+    align-self: center;
+    justify-self: stretch;
+  }
+  .habits-screen[data-view='active'] .habit-list-view { grid-column: 1; grid-row: 3; }
+  .habits-screen[data-view='active'] .hb-rail { grid-column: 2; grid-row: 3; }
+}
+
+/* --- Stat tiles (reference top band: four across on desktop). --- */
+.hw-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin-bottom: var(--space-4);
+}
+@media (min-width: 1024px) {
+  .hw-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.hb-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+}
+.hb-tile__body { display: grid; gap: 1px; min-width: 0; }
+.hb-tile__num {
+  font: var(--fw-bold) var(--fs-17)/1.1 var(--font-family);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.hb-tile__label {
+  font: var(--fw-medium) var(--fs-12)/1.2 var(--font-family);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hb-tile__ring { flex: none; width: 40px; height: 40px; display: grid; place-items: center; }
+.hb-tile__ring svg { width: 40px; height: 40px; display: block; }
+.hb-tile__ring-track { stroke: color-mix(in srgb, var(--border-2) 70%, transparent); }
+.hb-tile__ring-arc { stroke: var(--accent); }
+.hb-tile__dot {
+  flex: none;
+  width: 10px; height: 10px;
+  margin-inline: 15px;
+  border-radius: var(--radius-full);
+}
+.hb-tile__dot[data-tone='remaining'] { background: var(--color-success); box-shadow: 0 0 0 4px var(--color-success-soft); }
+.hb-tile__dot[data-tone='attention'] { background: var(--color-danger); box-shadow: 0 0 0 4px var(--color-danger-soft); }
+.hb-tile__flame {
+  flex: none;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-warning, var(--accent)) 14%, transparent);
+  color: var(--color-warning, var(--accent));
+}
+/* Keep the paused note readable if present. */
+.hw-summary .hw-summary__paused {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-3);
+  font: var(--fw-regular) var(--fs-12)/1.4 var(--font-family);
+}
+
+/* --- Tabs: segmented card (reference rail top / mobile row). --- */
+.habit-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-2);
+}
+.habit-tabs a {
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: calc(var(--radius-md) - 4px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--fw-medium) var(--fs-13)/1 var(--font-family);
+  color: var(--text-2);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard);
+}
+.habit-tabs a:hover { color: var(--text-primary); background: var(--surface-raised); }
+.habit-tabs a[aria-current='page'] {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: var(--fw-semibold);
+  box-shadow: none;
+}
+.habit-tabs a:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+
+/* --- Filter chips + search (Today language). --- */
+.hw-controls { border-bottom: 0; margin-bottom: var(--space-2); gap: var(--space-2); }
+.hw-filter {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-2);
+  font: var(--fw-medium) var(--fs-12)/1 var(--font-family);
+  font-variant-numeric: tabular-nums;
+  transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+.hw-filter:hover { background: var(--surface-raised); color: var(--text-primary); }
+.hw-filter[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: var(--fw-semibold);
+}
+.hw-filter__count { margin-left: 5px; font-size: 11px; opacity: 0.85; }
+.hw-filter[aria-pressed='true'] .hw-filter__count { color: var(--text-on-accent); opacity: 1; }
+.hw-filter:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.hb-search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-pill);
+  background: var(--surface-inset);
+  color: var(--text-3);
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.hb-search:focus-within { border-color: var(--accent); }
+.hb-search input {
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: var(--fw-regular) var(--fs-13)/1 var(--font-family);
+  width: 150px;
+  min-height: 42px;
+}
+.hb-search input:focus { outline: none; }
+.hb-search input::placeholder { color: var(--text-3); }
+.hb-search__clear {
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  font: var(--fw-semibold) 16px/1 var(--font-family);
+  cursor: pointer;
+  padding: 8px;
+  margin-right: -8px;
+}
+.hb-search__clear:focus-visible { outline: var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+/* --- Missed strip: compact inline nudge, not a stretched row. --- */
+.hlist .hlist-missed {
+  justify-content: flex-start;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+.hlist .hlist-missed .p-btn { flex: none; }
+
+/* --- List density: Today-row rhythm. --- */
+.hlist .hlist-item { padding: 2px 0; }
+.hlist .hlist-item .habit-obj { --ho-py: 10px; }
+.hlist .hlist-item .habit-obj .habit-obj__name { font-weight: var(--fw-semibold); }
+
+/* --- Rail --- */
+.hb-rail { display: grid; gap: var(--space-4); align-content: start; min-width: 0; margin-top: var(--space-4); }
+.hb-week { display: grid; gap: var(--space-2); }
+.hb-week__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.hb-week__pct { font: var(--fw-bold) var(--fs-17)/1 var(--font-family); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.hb-week__sub { margin: 0; font: var(--fw-regular) var(--fs-13)/1.5 var(--font-family); color: var(--text-2); }
+.hb-week__bar { height: 8px; background: color-mix(in srgb, var(--border-2) 55%, transparent); }
+.hb-week__bar-fill { background: var(--color-success); }
+.hb-week__strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+.hb-week__day { display: grid; justify-items: center; gap: 3px; min-width: 0; padding: 5px 0; border-radius: var(--radius-sm); }
+.hb-week__day.is-today { background: var(--accent-soft); }
+.hb-week__day-label { font: var(--fw-medium) 10px/1 var(--font-family); color: var(--text-3); }
+/* Accent mixed toward text: keeps the highlight violet and ≥4.5:1 on the tint. */
+.hb-week__day.is-today .hb-week__day-label { color: color-mix(in srgb, var(--accent) 58%, var(--text-primary)); font-weight: var(--fw-semibold); }
+.hb-week__day-num { font: var(--fw-medium) 10px/1 var(--font-family); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.hb-week__day.is-future { opacity: 0.4; }
+.hb-quote {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  font: var(--fw-semibold) var(--fs-13)/1.4 var(--font-family);
+  color: var(--text-primary);
+}
+
+/* Rail quick rows inherit .tdy-quick__* from today-v3.css (shared language).
+   The signals card treatment is not needed here. */
+
+/* --- Mobile / narrow: single column, reference order. --- */
+@media (max-width: 1023px) {
+  .habits-screen[data-view='active'] {
+    display: flex;
+    flex-direction: column;
+  }
+  .habits-screen[data-view='active'] .habits-head { order: 1; }
+  .habits-screen[data-view='active'] .hw-summary { order: 2; }
+  .habits-screen[data-view='active'] .habit-tabs { order: 3; margin-bottom: var(--space-3); }
+  .habits-screen[data-view='active'] .habit-list-view { order: 4; }
+  .habits-screen[data-view='active'] .hb-rail { order: 5; }
+}
+@media (max-width: 620px) {
+  .hw-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); }
+  .hb-tile { flex-direction: column; align-items: flex-start; gap: var(--space-1); padding: var(--space-2); }
+  .hb-tile__dot { margin-inline: 0; }
+  .hb-tile__num { font-size: var(--fs-15); }
+  .hb-tile__label { font-size: 10px; white-space: normal; overflow: visible; text-overflow: unset; }
+  .hb-tile--ring { flex-direction: row; grid-column: 1 / -1; }
+  .hb-tile__ring, .hb-tile__ring svg { width: 34px; height: 34px; }
+  .hb-search { margin-left: 0; flex: 1 1 100%; }
+  .hb-search input { width: 100%; flex: 1; }
+  .hb-search svg { flex: none; }
+  /* Single scrollable chip row (reference mobile), search on its own row. */
+  .hw-controls { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .hw-controls::-webkit-scrollbar { display: none; }
+  .hw-filter { flex: 0 0 auto; padding: 0 12px; }
+}

@@ -191,7 +191,7 @@ export default function App() {
       if (view === 'calendar') return 'wide'
       if (view === 'week') return 'workspace'
       if (view === 'routines') return 'narrow'
-      return 'workspace'
+      return 'wide'
     }
     return undefined
   })()

@@ -572,8 +572,8 @@ describe('mobile structure and Omni', () => {
     const kids = [...screenEl.children].map((el) => el.className.split(' ')[0])
     // Step 4B hierarchy: habits-head → habit-tabs → hw-summary → (habit-list-view)
     expect(kids.slice(0, 3)).toEqual(['habits-head', 'habit-tabs', 'hw-summary'])
-    expect(screenEl.querySelector('.screen-sub').textContent).toMatch(/daily system/)
-    expect(screenEl.querySelector('.hw-summary').textContent).toMatch(/complete/)
+    expect(screenEl.querySelector('.screen-sub').textContent).toMatch(/Small habits\. Big results\./)
+    expect(screenEl.querySelector('.hw-summary').textContent).toMatch(/Completed today/)
     expect(document.querySelector('.habit-obj__complete')).toBeTruthy()
     // Step 2 mobile nav exposes 4 pillars + Omni + More
     const nav = document.querySelector('.app-mobile-nav')

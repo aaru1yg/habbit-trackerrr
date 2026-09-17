@@ -15,6 +15,15 @@ import { describeHabit, HABIT_FILTERS, matchesFilter, filterCounts } from './hab
 import HabitObject from './HabitObject.jsx'
 import { IconPlus } from '../../lib/icons.jsx'
 
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  )
+}
+
 function HabitRowLine({ row, onMore, onFire }) {
   const actions = useHabitActions()
   const { habit, status, done, scheduledToday, paused, archived, streak, miss, atRisk, schedule, next } = row
@@ -81,6 +90,7 @@ export default function HabitList() {
   const actions = useHabitActions()
   const [filter, setFilter] = useState('all')
   const [more, setMore] = useState(null)
+  const [query, setQuery] = useState('')
   const today = todayStr()
 
   const rows = useMemo(
@@ -90,7 +100,12 @@ export default function HabitList() {
     [state, today],
   )
   const counts = useMemo(() => filterCounts(rows), [rows])
-  const visible = useMemo(() => rows.filter((r) => matchesFilter(r, filter)), [rows, filter])
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return rows
+      .filter((r) => matchesFilter(r, filter))
+      .filter((r) => !q || r.habit.name.toLowerCase().includes(q))
+  }, [rows, filter, query])
   // Hide Archived filter unless something is archived (existing behaviour).
   const filters = useMemo(
     () => HABIT_FILTERS.filter((f) => f.id !== 'archived' || counts.archived > 0),
@@ -141,16 +156,30 @@ export default function HabitList() {
             </button>
           )
         })}
+        <label className="hb-search">
+          <SearchIcon />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search habits..."
+            aria-label="Search habits"
+          />
+          {query && (
+            <button type="button" className="hb-search__clear" onClick={() => setQuery('')} aria-label="Clear search">×</button>
+          )}
+        </label>
       </div>
 
       {visible.length === 0 ? (
         <p className="hw-filter-empty">
-          {filter === 'attention' ? 'Nothing needs attention right now.'
-            : filter === 'today' ? 'No habits scheduled for today.'
-              : filter === 'paused' ? 'No paused habits.'
-                : filter === 'archived' ? 'Nothing archived.'
-                  : filter === 'active' ? 'No active habits.'
-                    : 'No habits match this filter.'}
+          {query.trim() ? `No habits match "${query.trim()}".`
+            : filter === 'attention' ? 'Nothing needs attention right now.'
+              : filter === 'today' ? 'No habits scheduled for today.'
+                : filter === 'paused' ? 'No paused habits.'
+                  : filter === 'archived' ? 'Nothing archived.'
+                    : filter === 'active' ? 'No active habits.'
+                      : 'No habits match this filter.'}
         </p>
       ) : (
         <ul className="hlist" aria-label="Habits">

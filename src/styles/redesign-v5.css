@@ -1,0 +1,106 @@
+/* V5 visual layer — presentation only. Domain styles and behavior remain untouched. */
+:root {
+  --v5-bg: #0b0d12;
+  --v5-panel: #12161e;
+  --v5-panel-raised: #171c26;
+  --v5-border: rgba(255, 255, 255, 0.09);
+  --v5-border-strong: rgba(255, 255, 255, 0.16);
+  --v5-text: #f4f5f7;
+  --v5-muted: #9aa3b2;
+  --v5-subtle: #687283;
+  --v5-accent: #a78bfa;
+  --v5-accent-strong: #8b5cf6;
+  --v5-success: #4ade80;
+  --v5-warning: #fbbf24;
+  --v5-danger: #fb7185;
+  --v5-radius-sm: 10px;
+  --v5-radius-md: 16px;
+  --v5-radius-lg: 22px;
+  --v5-shadow: 0 16px 45px rgba(0, 0, 0, 0.24);
+}
+
+html { background: var(--v5-bg); }
+body {
+  background: var(--v5-bg);
+  color: var(--v5-text);
+  font-family: Inter, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Remove visual noise without touching layout or interaction contracts. */
+#root { min-height: 100vh; }
+button, input, select, textarea { font: inherit; }
+button { transition: border-color .18s ease, background .18s ease, transform .18s ease, box-shadow .18s ease; }
+button:hover { transform: translateY(-1px); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--v5-accent) 42%, transparent);
+  outline-offset: 3px;
+}
+
+/* Common surfaces used across the existing shell and screens. */
+.card, .panel, .surface, .glass-card, .stat-card, .habit-card, .work-card,
+[class*="Card"], [class*="card"] {
+  background: var(--v5-panel);
+  border: 1px solid var(--v5-border);
+  border-radius: var(--v5-radius-md);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.card:hover, .panel:hover, .habit-card:hover, .work-card:hover,
+[class*="Card"]:hover, [class*="card"]:hover {
+  border-color: var(--v5-border-strong);
+}
+
+h1, h2, h3, h4 { color: var(--v5-text); letter-spacing: -0.035em; }
+p, small, .muted, [class*="muted"] { color: var(--v5-muted); }
+
+/* A quieter, more legible shell. */
+nav, aside, header {
+  border-color: var(--v5-border) !important;
+}
+nav a, aside a {
+  color: var(--v5-muted);
+  border-radius: var(--v5-radius-sm);
+}
+nav a:hover, aside a:hover, nav a[aria-current="page"], aside a[aria-current="page"] {
+  color: var(--v5-text);
+  background: rgba(167, 139, 250, 0.11);
+}
+
+button.primary, button[class*="primary"], .btn-primary, [data-variant="primary"] {
+  background: var(--v5-accent-strong);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 8px 22px rgba(139, 92, 246, .22);
+}
+button.secondary, .btn-secondary, [data-variant="secondary"] {
+  background: var(--v5-panel-raised);
+  color: var(--v5-text);
+  border-color: var(--v5-border);
+}
+
+input, select, textarea {
+  background: var(--v5-panel-raised) !important;
+  color: var(--v5-text) !important;
+  border: 1px solid var(--v5-border) !important;
+  border-radius: var(--v5-radius-sm) !important;
+}
+input::placeholder, textarea::placeholder { color: var(--v5-subtle); }
+
+/* Progress and completion states. */
+.progress, [role="progressbar"] { accent-color: var(--v5-accent); }
+.is-complete, [data-completed="true"], [aria-checked="true"] {
+  border-color: rgba(74, 222, 128, .35) !important;
+}
+
+/* Mobile-first spacing guardrails. */
+@media (max-width: 720px) {
+  main, .page, .screen, [class*="page-container"], [class*="Page"] { padding-inline: 16px; }
+  h1 { font-size: clamp(1.8rem, 8vw, 2.5rem); }
+  .card, .panel, .habit-card, .work-card { border-radius: var(--v5-radius-md); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

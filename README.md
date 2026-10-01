@@ -127,6 +127,9 @@ a backup you hold yourself.
 
 Optional, and off until you sign in. The app is fully usable without one.
 
+Setting the backend up, or working out why sign-in is failing, is in
+[`docs/backend.md`](docs/backend.md).
+
 | | No account | Signed in |
 | --- | --- | --- |
 | Where data lives | This browser | This browser **and** your account |

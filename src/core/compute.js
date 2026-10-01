@@ -338,15 +338,15 @@ export function moodCorrelation(habits, checkins, moods, window = 60, ref = toda
    ============================================================ */
 
 export const MILESTONES = [
-  { id: 'first',   label: 'First check-in',  icon: '🌱', test: (s) => s.totalCheckins >= 1 },
-  { id: 'week',    label: '7-day streak',    icon: '🔥', test: (s) => s.bestStreak >= 7 },
-  { id: 'month',   label: '30-day streak',   icon: '⚡', test: (s) => s.bestStreak >= 30 },
-  { id: 'hundred', label: '100 check-ins',   icon: '💯', test: (s) => s.totalCheckins >= 100 },
-  { id: 'perfect', label: 'A perfect day',   icon: '🎯', test: (s) => s.perfectDays >= 1 },
-  { id: 'five',    label: '5 perfect days',  icon: '🏅', test: (s) => s.perfectDays >= 5 },
-  { id: 'ship',    label: 'Shipped work',    icon: '🚀', test: (s) => s.workDone >= 1 },
-  { id: 'ship5',   label: 'Shipped 5',       icon: '🛠', test: (s) => s.workDone >= 5 },
-  { id: 'goal',    label: 'Goal reached',    icon: '🏆', test: (s) => s.goalsDone >= 1 },
+  { id: 'first',   label: 'First check-in',  icon: 'seed', test: (s) => s.totalCheckins >= 1 },
+  { id: 'week',    label: '7-day streak',    icon: 'flame', test: (s) => s.bestStreak >= 7 },
+  { id: 'month',   label: '30-day streak',   icon: 'bolt', test: (s) => s.bestStreak >= 30 },
+  { id: 'hundred', label: '100 check-ins',   icon: 'grid', test: (s) => s.totalCheckins >= 100 },
+  { id: 'perfect', label: 'A perfect day',   icon: 'target', test: (s) => s.perfectDays >= 1 },
+  { id: 'five',    label: '5 perfect days',  icon: 'medal', test: (s) => s.perfectDays >= 5 },
+  { id: 'ship',    label: 'Shipped work',    icon: 'ship', test: (s) => s.workDone >= 1 },
+  { id: 'ship5',   label: 'Shipped 5',       icon: 'layers', test: (s) => s.workDone >= 5 },
+  { id: 'goal',    label: 'Goal reached',    icon: 'trophy', test: (s) => s.goalsDone >= 1 },
 ]
 
 export function lifetime(state, ref = today()) {

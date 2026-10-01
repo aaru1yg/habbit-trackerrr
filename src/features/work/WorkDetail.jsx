@@ -8,7 +8,7 @@ import { workProgress, workStatus, pace, minutesLogged } from '../../core/comput
 import { lastDays, fmtMoment, fmtRelative, fmtMins, countdown, dayOf } from '../../core/date.js'
 import {
   Surface, Panel, Button, Badge, Bar, Ring, Empty, Confirm, IconButton,
-  Input, Field, Spark, Num, Stepper, useToast, 
+  Input, Field, Columns, Num, Stepper, useToast, 
 } from '../../ui/index.jsx'
 import {
   IconBack, IconEdit, IconTrash, IconArchive, IconPlus, IconCheck, IconX, IconGoals, IconClock,
@@ -36,6 +36,7 @@ export default function WorkDetail() {
       st: workStatus(item),
       pc: pace(item),
       mins30: minutesLogged(item, days),
+      days,
       series: buildSeries(item, days),
       hasTimeLog: item.log.some((e) => e.minutes),
     }
@@ -107,7 +108,7 @@ export default function WorkDetail() {
           <Button
             variant={item.doneAt ? 'ghost' : 'primary'}
             icon={item.doneAt ? <IconX size={16} /> : <IconCheck size={16} />}
-            onClick={() => { actions.completeWork(item.id); toast(item.doneAt ? 'Reopened' : 'Finished 🚀', item.doneAt ? 'info' : 'good') }}
+            onClick={() => { actions.completeWork(item.id); toast(item.doneAt ? 'Reopened' : 'Finished', item.doneAt ? 'info' : 'good') }}
           >
             {item.doneAt ? 'Reopen' : 'Mark done'}
           </Button>
@@ -135,7 +136,7 @@ export default function WorkDetail() {
       {isProject && (
         <Panel
           title="Checklist"
-          sub={item.tasks.length ? `${doneTasks} of ${item.tasks.length} done — this is what drives the percentage` : 'Add tasks and progress becomes automatic'}
+          sub={item.tasks.length ? `${doneTasks} of ${item.tasks.length} done. This is what drives the percentage.` : 'Add tasks and progress becomes automatic'}
           className="rise"
           style={{ '--i': 3 }}
         >
@@ -174,7 +175,7 @@ export default function WorkDetail() {
 
       {/* ---------- Manual progress (tasks win when present) ---------- */}
       {(!isProject || !item.tasks.length) && !item.doneAt && (
-        <Panel title="Progress" sub="Set it honestly — nothing here is guessed for you" className="rise" style={{ '--i': 4 }}>
+        <Panel title="Progress" sub="Set it honestly. Nothing here is guessed for you." className="rise" style={{ '--i': 4 }}>
           <div className="row row--wrap" style={{ gap: 'var(--s2)' }}>
             {[0, 10, 25, 50, 75, 90, 100].map((p) => (
               <Button
@@ -221,12 +222,12 @@ export default function WorkDetail() {
         {item.log.length > 0 && derived.series.some((v) => v > 0) && (
           <div style={{ marginBottom: 'var(--s4)' }}>
             <div className="eyebrow" style={{ marginBottom: 6 }}>Minutes · last 30 days</div>
-            <Spark points={derived.series} height={70} />
+            <Columns data={derived.series.map((v, i) => ({ value: v, title: `${derived.days[i]}: ${v ? fmtMins(v) : 'nothing logged'}` }))} height={70} />
           </div>
         )}
 
         {item.log.length === 0 ? (
-          <p className="small dim">Nothing logged yet. Entries you add here feed the chart above — and nothing else invents data for you.</p>
+          <p className="small dim">Nothing logged yet. Entries you add here feed the chart above, and nothing else writes to it.</p>
         ) : (
           <div className="stack stack--tight">
             {[...item.log].reverse().slice(0, 12).map((e, i) => (

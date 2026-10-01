@@ -149,7 +149,7 @@ function PressureStrip({ counts, onPick }) {
           style={{ textAlign: 'left', cursor: 'pointer' }}
         >
           <div className="stat stat--sm">
-            <span className="stat__v num" style={{ color: c.n ? toneColor(c.tone) : 'var(--t4)' }}>
+            <span className="stat__v num" style={{ color: c.n ? toneColor(c.tone) : 'var(--faint)' }}>
               <Num value={c.n} />
             </span>
             <span className="stat__k">{c.label}</span>
@@ -160,7 +160,7 @@ function PressureStrip({ counts, onPick }) {
   )
 }
 
-const toneColor = (t) => ({ good: '#2fd6a6', warn: '#ffd24c', risk: '#ff8a4c', bad: '#ff5a72' }[t])
+const toneColor = (t) => ({ good: 'var(--ok)', warn: 'var(--warn)', risk: 'var(--urgent)', bad: 'var(--danger)' }[t])
 
 /* ============================================================
    TIMELINE — the workload answer. Every deadline, soonest
@@ -204,7 +204,7 @@ function Timeline({ work }) {
 
       {grouped.length === 0 ? (
         <Surface variant="flat" className="d1">
-          <Empty title="No deadlines set" body="Work without a deadline still shows on the board — it just has nothing to be late for." />
+          <Empty title="No deadlines set" body="Work without a deadline still shows on the board. It just has nothing to be late for." />
         </Surface>
       ) : (
         <Panel title="Every deadline" sub="Soonest first" className="rise" style={{ '--i': 2 }}>

@@ -8,7 +8,7 @@ import { Link } from '../../app/router.jsx'
 import { useActions } from '../../core/store.jsx'
 import { progressOn, streak } from '../../core/compute.js'
 import { Check, Bar, Stepper, cx } from '../../ui/index.jsx'
-import { IconFlame, IconChevron } from '../../ui/icons.jsx'
+import { IconFlame, IconChevron, HabitGlyph } from '../../ui/icons.jsx'
 
 /* `compact` is used by Today's "Next up" shortlist: the same row,
    minus the stepper, so a habit appearing in both places reads as
@@ -23,7 +23,9 @@ export default function HabitRow({ habit, checkins, day, showStreak = true, link
 
   return (
     <div className="erow" data-done={p.done} data-counted={counted && !compact}>
-      <span className="erow__icon" aria-hidden="true">{habit.icon}</span>
+      <span className="erow__icon" aria-hidden="true">
+        <HabitGlyph icon={habit.icon} category={habit.category} size={17} />
+      </span>
 
       <div className="erow__main">
         {linkable ? (

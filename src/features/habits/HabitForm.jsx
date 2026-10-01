@@ -7,12 +7,13 @@ import { CATEGORIES } from '../../core/schema.js'
 import {
   Sheet, Button, Field, Input, Textarea, Segmented, Chip, Stepper, useToast,
 } from '../../ui/index.jsx'
+import { HABIT_ICONS, HABIT_ICON_KEYS } from '../../ui/icons.jsx'
 
-const ICONS = ['✦', '💪', '🏃', '📖', '🧘', '💧', '🛏', '🥗', '🧠', '✍️', '🎸', '📵', '☀️', '🧹', '💬', '💻']
+
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 const blank = () => ({
-  name: '', icon: '✦', category: 'mind',
+  name: '', icon: '', category: 'mind',
   targetType: 'done', goal: 8, unit: 'times',
   cadenceType: 'daily', days: [1, 2, 3, 4, 5], perWeek: 3,
   cue: '', notes: '',
@@ -92,11 +93,21 @@ export default function HabitForm({ open, onClose, habit }) {
 
         <Field label="Icon">
           <div className="pill-row">
-            {ICONS.map((i) => (
-              <Chip key={i} on={f.icon === i} onClick={() => set({ icon: i })} aria-label={`Icon ${i}`}>
-                <span style={{ fontSize: 15 }}>{i}</span>
-              </Chip>
-            ))}
+            {HABIT_ICON_KEYS.map((key) => {
+              const Glyph = HABIT_ICONS[key]
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className="iconpick"
+                  aria-pressed={f.icon === key}
+                  aria-label={key}
+                  onClick={() => set({ icon: f.icon === key ? '' : key })}
+                >
+                  <Glyph size={17} />
+                </button>
+              )
+            })}
           </div>
         </Field>
 
@@ -104,7 +115,7 @@ export default function HabitForm({ open, onClose, habit }) {
           <div className="pill-row">
             {CATEGORIES.map((c) => (
               <Chip key={c.id} on={f.category === c.id} onClick={() => set({ category: c.id })}>
-                {c.icon} {c.label}
+                {c.label}
               </Chip>
             ))}
           </div>

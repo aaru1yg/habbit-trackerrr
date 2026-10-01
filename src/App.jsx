@@ -8,7 +8,7 @@ import TodayScreen from './features/today/TodayScreen.jsx'
 
 /* Today is in the main bundle because it is always the first
    paint. Everything else is split, so the initial download stays
-   small and the 3D core is the only heavy thing on entry. */
+   small. */
 const HabitsScreen   = lazy(() => import('./features/habits/HabitsScreen.jsx'))
 const HabitDetail    = lazy(() => import('./features/habits/HabitDetail.jsx'))
 const WorkScreen     = lazy(() => import('./features/work/WorkScreen.jsx'))
@@ -17,6 +17,8 @@ const GoalsScreen    = lazy(() => import('./features/goals/GoalsScreen.jsx'))
 const GoalDetail     = lazy(() => import('./features/goals/GoalDetail.jsx'))
 const InsightsScreen = lazy(() => import('./features/insights/InsightsScreen.jsx'))
 const SettingsScreen = lazy(() => import('./features/settings/SettingsScreen.jsx'))
+const PrivacyScreen  = lazy(() => import('./features/legal/PrivacyScreen.jsx'))
+const TermsScreen    = lazy(() => import('./features/legal/TermsScreen.jsx'))
 
 const ROUTES = {
   today:    TodayScreen,
@@ -27,6 +29,8 @@ const ROUTES = {
   goal:     GoalDetail,
   insights: InsightsScreen,
   settings: SettingsScreen,
+  privacy:  PrivacyScreen,
+  terms:    TermsScreen,
 }
 
 export default function App() {
@@ -46,11 +50,11 @@ export default function App() {
 function ScreenSkeleton() {
   return (
     <div className="stack" aria-busy="true" aria-label="Loading">
-      <div className="skel" style={{ height: 180, borderRadius: 'var(--r-xl)' }} />
+      <div className="skel" style={{ height: 150, borderRadius: 'var(--r-md)' }} />
       <div className="grid grid--4">
-        {[0, 1, 2, 3].map((i) => <div key={i} className="skel" style={{ height: 92, borderRadius: 'var(--r-md)' }} />)}
+        {[0, 1, 2, 3].map((i) => <div key={i} className="skel" style={{ height: 84, borderRadius: 'var(--r-md)' }} />)}
       </div>
-      <div className="skel" style={{ height: 260, borderRadius: 'var(--r-lg)' }} />
+      <div className="skel" style={{ height: 240, borderRadius: 'var(--r-md)' }} />
     </div>
   )
 }

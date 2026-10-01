@@ -43,19 +43,18 @@ export function fileInventory(root) {
 }
 
 /**
- * Performance budgets, enforced on the artifact:
- *  - initial JS stays under 240 kB gzip (raised in Step 2 as the new
- *    App Shell joins the initial bundle; returns toward 232 kB once
- *    legacy layout/FAB/navigation code is retired during screen rebuild)
- *  - initial CSS stays under 49 kB gzip (raised for Steps 1A+1B+2+3 —
- *    the new shell + Today ship alongside still-present legacy UI styles
- *    so V4 screens render unchanged; once legacy styles retire this
- *    budget drops back toward 42 kB)
- *  - three.js is never referenced from index.html — it may only be reached
- *    through dynamic imports inside lazy scene chunks
- * Fails loudly; numbers are logged so CI shows what the build actually cost.
+ * Performance budgets, enforced on the artifact.
+ *
+ * These are ratchets, not aspirations: they sit just above what the build
+ * currently costs, so any regression has to be argued for rather than drift
+ * in unnoticed. At the time of writing the redesign ships 76 kB of initial
+ * JS and 8 kB of CSS gzipped; three.js and the whole 3D layer are gone, and
+ * every screen except Today is a lazy chunk.
+ *
+ * If you legitimately need more, raise the number in the same commit that
+ * spends it and say why.
  */
-export const BUDGETS = { initialJsGzip: 236 * 1024, initialCssGzip: 55 * 1024 }
+export const BUDGETS = { initialJsGzip: 96 * 1024, initialCssGzip: 16 * 1024 }
 
 export function assertPerformanceBudget(dir = 'dist') {
   const root = resolve(dir)
@@ -70,15 +69,19 @@ export function assertPerformanceBudget(dir = 'dist') {
     if (name.endsWith('.css')) css += gz
   }
   if (!js || !css) throw new Error('Perf budget probe found no initial JS/CSS in index.html — asset regex or build output changed.')
-  const lazyThree = assets.some((name) => /three/i.test(name))
-  if (lazyThree) throw new Error('Perf budget: three.js is referenced from index.html — WebGL must stay lazy-only.')
+  // Only Today is eager. Every other screen must stay behind React.lazy, or
+  // the initial bundle quietly absorbs the whole app again.
+  const eagerScreens = assets.filter((name) => /(Habits|Work|Goals|Insights|Settings|Privacy|Terms)(Screen|Detail)/.test(name))
+  if (eagerScreens.length) {
+    throw new Error(`Perf budget: ${eagerScreens.join(', ')} are referenced from index.html and must stay lazy.`)
+  }
   if (js > BUDGETS.initialJsGzip) {
     throw new Error(`Perf budget: initial JS ${(js / 1024).toFixed(1)} kB gzip exceeds ${(BUDGETS.initialJsGzip / 1024).toFixed(0)} kB.`)
   }
   if (css > BUDGETS.initialCssGzip) {
     throw new Error(`Perf budget: initial CSS ${(css / 1024).toFixed(1)} kB gzip exceeds ${(BUDGETS.initialCssGzip / 1024).toFixed(0)} kB.`)
   }
-  console.log(`Perf budget OK — initial JS ${(js / 1024).toFixed(1)} kB gz, CSS ${(css / 1024).toFixed(1)} kB gz, three lazy-only.`)
+  console.log(`Perf budget OK: initial JS ${(js / 1024).toFixed(1)} kB gz, CSS ${(css / 1024).toFixed(1)} kB gz, screens lazy.`)
 }
 
 export function buildProof(dir = 'dist') {
@@ -92,7 +95,7 @@ export function buildProof(dir = 'dist') {
   const buildId = html.match(/<meta name="build-id" content="([^"]+)"/)?.[1]
   const builtAt = html.match(/<meta name="build-time" content="([^"]+)"/)?.[1]
   if (buildId !== commit.slice(0, 7) || !builtAt) throw new Error('Build metadata does not match the checked-out commit.')
-  if (!readFileSync(resolve(root, 'sw.js'), 'utf8').includes(`aaru-habits-v7-${buildId}`)) {
+  if (!readFileSync(resolve(root, 'sw.js'), 'utf8').includes(`habit-os-v8-${buildId}`)) {
     throw new Error('Service worker build identity does not match.')
   }
   writeFileSync(resolve(root, 'release.json'), JSON.stringify({ commit, buildId, builtAt, files }, null, 2) + '\n')

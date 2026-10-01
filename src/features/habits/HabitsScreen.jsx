@@ -14,7 +14,7 @@ import {
 import {
   Surface, Panel, Button, Segmented, Empty, SectionHead, Bar, Columns, IconButton,
 } from '../../ui/index.jsx'
-import { IconPlus, IconHabits, IconChevron, IconBack } from '../../ui/icons.jsx'
+import { IconPlus, IconHabits, IconChevron, IconBack, IconFlame, HabitGlyph } from '../../ui/icons.jsx'
 import HabitRow from './HabitRow.jsx'
 import HabitForm from './HabitForm.jsx'
 
@@ -40,7 +40,7 @@ export default function HabitsScreen() {
           <Empty
             icon={<IconHabits size={24} />}
             title="No habits yet"
-            body="A habit is anything you want to repeat. Start with one — you can always add more once it sticks."
+            body="A habit is anything you want to repeat. Start with one; you can add more once it sticks."
             action={<Button variant="primary" icon={<IconPlus size={16} />} onClick={() => setAdding(true)}>Add a habit</Button>}
           />
         </Surface>
@@ -119,14 +119,18 @@ function ListView({ habits, archived, checkins, showArchived, onToggleArchived }
               const st = streak(h, checkins)
               return (
                 <div key={h.id} className="row" style={{ gap: 'var(--s4)' }}>
-                  <span style={{ width: 22, textAlign: 'center' }}>{h.icon}</span>
+                  <HabitGlyph icon={h.icon} category={h.category} size={15} />
                   <span className="small clamp1" style={{ flex: '0 0 30%', minWidth: 0 }}>{h.name}</span>
                   <Bar value={c.rate * 100} thin className="spacer" />
                   <span className="tiny num dim" style={{ width: 92, textAlign: 'right' }}>
                     {Math.round(c.rate * 100)}% · {c.hit}/{c.due}
                   </span>
-                  <span className="tiny num" style={{ width: 46, textAlign: 'right', color: st.current ? '#ff8a4c' : 'var(--t4)' }}>
-                    🔥{st.current}
+                  <span
+                    className="tiny num row"
+                    style={{ width: 46, gap: 3, justifyContent: 'flex-end', color: st.current ? 'var(--urgent)' : 'var(--faint)' }}
+                    title={`${st.current} ${st.unit === 'week' ? 'week' : 'day'} streak`}
+                  >
+                    <IconFlame size={11} />{st.current}
                   </span>
                 </div>
               )
@@ -153,7 +157,7 @@ function ListView({ habits, archived, checkins, showArchived, onToggleArchived }
 
 /* ============================================================
    MONTH — the auto-building grid. One cell per day, filled by
-   that day's completion. Future days are locked.
+   that day’s completion. Future days are locked.
    ============================================================ */
 function MonthView({ habits, checkins }) {
   const now = new Date()
@@ -259,6 +263,8 @@ function WeekView({ habits, checkins }) {
           data={scores.map((s, i) => ({ value: Math.round(s.ratio * 100), title: `${days[i]}: ${s.done}/${s.due}` }))}
           labels={days.map(fmtInitial)}
           height={100}
+          max={100}
+          ceiling
         />
       </Panel>
 
@@ -266,7 +272,7 @@ function WeekView({ habits, checkins }) {
         <div className="stack stack--tight">
           {habits.map((h) => (
             <div key={h.id} className="row" style={{ gap: 'var(--s3)' }}>
-              <span style={{ width: 22, textAlign: 'center' }}>{h.icon}</span>
+              <HabitGlyph icon={h.icon} category={h.category} size={15} />
               <span className="small clamp1" style={{ flex: 1, minWidth: 0 }}>{h.name}</span>
               <div className="row" style={{ gap: 4 }}>
                 {days.map((d) => {
@@ -277,10 +283,9 @@ function WeekView({ habits, checkins }) {
                       key={d}
                       title={`${d}${due ? '' : ' (not due)'}`}
                       style={{
-                        width: 15, height: 15, borderRadius: 5,
-                        background: p.done ? 'var(--accent)' : p.started ? 'rgb(var(--accent-rgb)/.4)' : due ? '#ffffff12' : 'transparent',
-                        border: due ? 'none' : '1px dashed #ffffff14',
-                        boxShadow: p.done ? '0 0 8px -2px rgb(var(--accent-rgb)/.9)' : 'none',
+                        width: 15, height: 15, borderRadius: 'var(--r-xs)', boxSizing: 'border-box',
+                        background: p.done ? 'var(--accent)' : p.started ? 'rgb(var(--accent-rgb)/.4)' : due ? 'var(--sunken)' : 'transparent',
+                        border: p.done ? '1px solid var(--accent)' : due ? '1px solid var(--rule)' : '1px dashed var(--rule)',
                       }}
                     />
                   )

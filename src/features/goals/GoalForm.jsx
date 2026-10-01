@@ -59,7 +59,7 @@ export default function GoalForm({ open, onClose, goal }) {
           />
         </Field>
 
-        <Field label="Why it matters" hint="Read this on the days you don't feel like it.">
+        <Field label="Why it matters" hint="Read this on the days you don’t feel like it.">
           <Textarea value={f.why} onChange={(e) => setF({ ...f, why: e.target.value })} rows={3} maxLength={400} placeholder="Optional" />
         </Field>
 

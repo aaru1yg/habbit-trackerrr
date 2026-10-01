@@ -7,25 +7,23 @@
    with four different opinions about priority. This is the one
    opinion, computed by nextUp() in compute.js.
    ============================================================ */
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from '../../app/router.jsx'
 import { useStore, useActions } from '../../core/store.jsx'
 import {
   dayScore, scheduled, nextUp, sortByUrgency, workStatus, lifetime,
 } from '../../core/compute.js'
 import { today, fmtLong, greeting, lastDays, fmtInitial, countdown } from '../../core/date.js'
+import { progressOn } from '../../core/compute.js'
 import {
   Surface, Panel, Button, Badge, Empty, Columns, SectionHead, Num,
 } from '../../ui/index.jsx'
 import {
-  IconPlus, IconFlame, IconSpark, IconChevron, IconMood, IconLayers, IconWork, IconFace,
+  IconPlus, IconFlame, IconChevron, IconMood, IconLayers, IconWork, IconFace, Wordmark,
 } from '../../ui/icons.jsx'
-import { webglAvailable } from '../../three/capability.js'
 import HabitRow from '../habits/HabitRow.jsx'
 import WorkCard from '../work/WorkCard.jsx'
 import HabitForm from '../habits/HabitForm.jsx'
-
-const Core = lazy(() => import('../../three/Core.jsx'))
 
 export default function TodayScreen() {
   const state = useStore()
@@ -53,38 +51,28 @@ export default function TodayScreen() {
   const stats = useMemo(() => lifetime(state, d), [state, d])
 
   const pct = Math.round(score.ratio * 100)
-  const openCount = score.due - score.done
   const isEmpty = habits.length === 0 && work.length === 0
 
   if (isEmpty) return <FirstRun onAdd={() => setAdding(true)} adding={adding} onClose={() => setAdding(false)} />
 
   return (
     <div className="stack stack--loose">
-      {/* ---------- Hero ---------- */}
-      <Surface variant="lit" className="hero rise d2" style={{ '--i': 0 }}>
+      {/* ---------- Masthead ---------- */}
+      <header className="hero">
         <div className="hero__copy">
-          <div>
-            <div className="hero__greet">{greeting(profile.name)}</div>
-            <div className="hero__date">{fmtLong(d)}</div>
-          </div>
-
+          <p className="hero__date">{fmtLong(d)}</p>
+          <h1 className="hero__greet">{greeting(profile.name)}</h1>
           <p className="hero__line">{headline(score, queue, stats)}</p>
 
           <div className="hero__stats">
-            <Figure value={`${score.done}/${score.due}`} label="Habits today" />
-            <Figure value={<><Num value={stats.bestStreak} /></>} label="Best streak" icon={<IconFlame size={13} />} />
+            <Figure value={`${score.done} of ${score.due}`} label="Habits today" />
+            <Figure value={<Num value={stats.bestStreak} />} label="Best streak" icon={<IconFlame size={13} />} />
             <Figure value={<Num value={openWork.length} />} label="Open work" />
           </div>
         </div>
 
-        <div className="hero__core">
-          <CoreVisual progress={score.ratio} open={openCount} />
-          <div className="hero__coreLabel">
-            <span className="hero__coreNum num"><Num value={pct} />%</span>
-            <span className="eyebrow" style={{ marginTop: 4 }}>of today</span>
-          </div>
-        </div>
-      </Surface>
+        <DayMeter habits={due} checkins={checkins} day={d} pct={pct} />
+      </header>
 
       {/* ---------- Next up ---------- */}
       {queue.length > 0 && (
@@ -92,7 +80,7 @@ export default function TodayScreen() {
           <SectionHead
             eyebrow="Start here"
             title="Next up"
-            sub="Ranked by deadline pressure, then by the streaks you'd break"
+            sub="Ranked by deadline pressure, then by the streaks you’d break"
           />
           <Surface variant="flat" className="d1">
             {queue.map((q) =>
@@ -110,7 +98,7 @@ export default function TodayScreen() {
       <section className="rise" style={{ '--i': 2 }}>
         <SectionHead
           eyebrow="Repeat"
-          title="Today's habits"
+          title="Today’s habits"
           sub={due.length ? `${score.done} done · ${score.partial} started · ${due.length - score.done - score.partial} untouched` : undefined}
           action={<Button size="sm" icon={<IconPlus size={15} />} onClick={() => setAdding(true)}>Habit</Button>}
         />
@@ -153,7 +141,7 @@ export default function TodayScreen() {
 
         <div className="stack">
           <Panel title="Last 7 days" sub={`${Math.round(weekData.reduce((s, x) => s + x.value, 0) / 7)}% average`}>
-            <Columns data={weekData} labels={week.map(fmtInitial)} height={88} />
+            <Columns data={weekData} labels={week.map(fmtInitial)} height={88} max={100} ceiling />
           </Panel>
           <MoodCard day={d} value={moods[d]} onSet={(patch) => actions.setMood(d, patch)} />
         </div>
@@ -175,18 +163,36 @@ function Figure({ value, label, icon }) {
   )
 }
 
-function CoreVisual({ progress, open }) {
-  const [ok] = useState(webglAvailable)
-  const p = Math.round(progress * 100)
-  const fallback = (
-    <div className="hero__css" style={{ '--p': p }} aria-hidden="true">
-      <div className="hero__cssOrbit" />
-      <div className="hero__cssRing" />
-      <div className="hero__cssOrb" />
+/* The day at a glance. One cell per habit due today, so the
+   figure can be verified by counting rather than trusted: filled
+   is done, half-filled is started, outlined is untouched. A ring
+   showing the same percentage would carry strictly less. */
+function DayMeter({ habits, checkins, day, pct }) {
+  const cells = habits.map((h) => {
+    const p = progressOn(h, checkins, day)
+    return { id: h.id, name: h.name, state: p.done ? 'done' : p.started ? 'part' : 'open' }
+  })
+
+  return (
+    <div className="daymeter">
+      <div className="daymeter__fig">
+        <span className="daymeter__pct figure"><Num value={pct} />%</span>
+        <span className="eyebrow">of today</span>
+      </div>
+      {cells.length > 0 && (
+        <ul className="daymeter__cells">
+          {cells.map((c) => (
+            <li
+              key={c.id}
+              className="daymeter__cell"
+              data-state={c.state}
+              title={`${c.name}: ${c.state === 'done' ? 'done' : c.state === 'part' ? 'started' : 'not started'}`}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   )
-  if (!ok) return fallback
-  return <Suspense fallback={fallback}><Core progress={progress} open={open} size={268} /></Suspense>
 }
 
 function NextWorkRow({ item, reason }) {
@@ -214,7 +220,7 @@ function MoodCard({ value, onSet }) {
   return (
     <Panel
       title="How did it feel?"
-      sub={value?.mood ? 'Logged — tap to change' : 'One tap, used in Insights'}
+      sub={value?.mood ? 'Logged. Tap to change.' : 'One tap, used in Insights'}
       action={<IconMood size={18} />}
     >
       <div className="mood">
@@ -239,7 +245,7 @@ function headline(score, queue, stats) {
   if (score.due === 0) return 'No habits are due today. Work and goals are still waiting below.'
   if (score.done === score.due) return `Every habit is done. That is ${stats.perfectDays === 1 ? 'your first' : `perfect day #${stats.perfectDays}`}.`
   const urgent = queue.find((q) => q.type === 'work' && q.status?.rank <= 1)
-  if (urgent) return `${urgent.item.title} needs attention first — ${urgent.reason?.toLowerCase() || 'it is due'}.`
+  if (urgent) return `${urgent.item.title} needs attention first: ${urgent.reason?.toLowerCase() || 'it is due'}.`
   const left = score.due - score.done
   return `${left} habit${left === 1 ? '' : 's'} left. The fastest win is at the top of the list.`
 }
@@ -252,15 +258,15 @@ function FirstRun({ onAdd, adding, onClose }) {
   return (
     <>
       <div className="onboard">
-        <Surface variant="float" className="onboard__card">
-          <div className="onboard__mark"><IconSpark size={32} /></div>
-          <h1 style={{ fontSize: 'var(--fs-2xl)', marginBottom: 'var(--s3)' }}>
+        <div className="onboard__card">
+          <div className="onboard__mark"><Wordmark size={40} /></div>
+          <h1 style={{ fontSize: 'var(--fs-2xl)' }}>
             {profile.name ? `Welcome, ${profile.name}.` : 'Welcome to Habit OS.'}
           </h1>
-          <p className="muted" style={{ marginBottom: 'var(--s6)' }}>
-            Three nouns, nothing more: <strong>habits</strong> you repeat, <strong>work</strong> you finish,
-            and <strong>goals</strong> they add up to. It starts completely empty —
-            every number you ever see here will be one you made.
+          <p className="muted" style={{ marginBottom: 'var(--s3)' }}>
+            Three things: <strong>habits</strong> you repeat, <strong>work</strong> you finish,
+            and <strong>goals</strong> they add up to. It starts empty, so every number you
+            see here will be one you made.
           </p>
 
           {!profile.name && (
@@ -276,10 +282,10 @@ function FirstRun({ onAdd, adding, onClose }) {
           <Button variant="primary" size="lg" block icon={<IconPlus size={18} />} onClick={onAdd}>
             Add your first habit
           </Button>
-          <p className="tiny faint" style={{ marginTop: 'var(--s4)' }}>
+          <p className="tiny faint">
             Everything stays in this browser. Export a backup any time from Settings.
           </p>
-        </Surface>
+        </div>
       </div>
       <HabitForm open={adding} onClose={onClose} />
     </>

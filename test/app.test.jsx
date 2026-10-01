@@ -170,3 +170,59 @@ describe('accessibility basics', () => {
     expect(screen.getByRole('link', { name: /Skip to content/i })).toHaveAttribute('href', '#main')
   })
 })
+
+/* ------------------------------------------------------------------
+   The redesign introduced three things that are easy to regress by
+   hand-editing: the legal routes, the single icon system, and the
+   theme values. Each gets a test that fails loudly.
+   ------------------------------------------------------------------ */
+
+describe('legal pages', () => {
+  it('renders the privacy policy and names the real storage key', async () => {
+    mount(seeded())
+    window.location.hash = '#/privacy'
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Privacy', level: 1 })).toBeInTheDocument())
+    expect(screen.getAllByText(STORAGE_KEY).length).toBeGreaterThan(0)
+    expect(screen.getByRole('navigation', { name: /On this page/i })).toBeInTheDocument()
+  })
+
+  it('renders the terms page', async () => {
+    mount(seeded())
+    window.location.hash = '#/terms'
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Terms/i, level: 1 })).toBeInTheDocument())
+  })
+
+  it('links to both from the footer on every screen', () => {
+    mount(seeded())
+    const foot = screen.getByRole('navigation', { name: 'Legal' })
+    expect(within(foot).getByRole('link', { name: 'Privacy' })).toBeInTheDocument()
+    expect(within(foot).getByRole('link', { name: 'Terms' })).toBeInTheDocument()
+  })
+})
+
+describe('design invariants', () => {
+  it('ships no emoji in rendered output', () => {
+    mount(seeded())
+    // Pictographs and variation selectors. Icons must come from icons.jsx so
+    // they inherit colour, size and stroke weight; emoji do none of that and
+    // render as tofu wherever the font is missing.
+    const text = document.body.textContent
+    const ranges = [[0x1f000, 0x1faff], [0x2600, 0x27bf]]
+    const found = [...text].filter((ch) => {
+      const cp = ch.codePointAt(0)
+      return cp === 0xfe0f || ranges.some(([a, b]) => cp >= a && cp <= b)
+    })
+    expect(found).toEqual([])
+  })
+
+  it('accepts only the two real theme values', async () => {
+    const user = userEvent.setup()
+    mount(seeded())
+    window.location.hash = '#/settings'
+    await waitFor(() => expect(screen.getByText('Appearance')).toBeInTheDocument())
+    const tabs = screen.getAllByRole('tab').map((t) => t.textContent)
+    expect(tabs).toEqual(expect.arrayContaining(['Light', 'Dark']))
+    await user.click(screen.getByRole('tab', { name: 'Dark' }))
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'))
+  })
+})

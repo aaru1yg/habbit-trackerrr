@@ -100,7 +100,7 @@ export default function WorkForm({ open, onClose, item, defaultKind = 'task' }) 
         </div>
 
         {openGoals.length > 0 && (
-          <Field label="Part of a goal" hint="Optional. Linked work feeds that goal's progress.">
+          <Field label="Part of a goal" hint="Optional. Linked work feeds that goal’s progress.">
             <Select value={f.goalId} onChange={(e) => set({ goalId: e.target.value })}>
               <option value="">Not linked</option>
               {openGoals.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}

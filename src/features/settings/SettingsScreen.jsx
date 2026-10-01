@@ -10,6 +10,7 @@ import {
   Panel, Button, Field, Input, Segmented, SwitchRow, Confirm, SectionHead, useToast, Badge,
 } from '../../ui/index.jsx'
 import { IconDownload, IconUpload, IconTrash } from '../../ui/icons.jsx'
+import { Link } from '../../app/router.jsx'
 
 export default function SettingsScreen() {
   const state = useStore()
@@ -51,8 +52,9 @@ export default function SettingsScreen() {
       <SectionHead eyebrow="Yours" title="Settings" sub="This app has no account and no server. Everything lives in this browser." />
 
       <Panel title="You" className="rise" style={{ '--i': 0 }}>
-        <Field label="Name" hint="Used in the greeting on Today. Leave it blank if you'd rather not.">
+        <Field label="Name" hint="Used in the greeting on Today. Leave it blank if you’d rather not.">
           <Input
+            style={{ maxWidth: '22rem' }}
             defaultValue={state.profile.name}
             placeholder="Your name"
             maxLength={40}
@@ -70,15 +72,15 @@ export default function SettingsScreen() {
               value={state.profile.theme}
               onChange={(v) => actions.setProfile({ theme: v })}
               options={[
-                { value: 'midnight', label: 'Midnight' },
-                { value: 'daylight', label: 'Daylight' },
+                { value: 'light', label: 'Light' },
+                { value: 'dark', label: 'Dark' },
               ]}
             />
           </Field>
 
           <SwitchRow
-            label="Full depth and motion"
-            hint="Turn off for a flat, still interface. Your system's reduce-motion setting always wins over this."
+            label="Interface transitions"
+            hint="Short fades when a screen changes. Turn off for a completely still interface. Your system’s reduce-motion setting overrides this either way."
             checked={state.profile.motion === 'full'}
             onChange={(on) => actions.setProfile({ motion: on ? 'full' : 'calm' })}
           />
@@ -108,7 +110,7 @@ export default function SettingsScreen() {
               onChange={(e) => { const f = e.target.files?.[0]; if (f) doImport(f); e.target.value = '' }}
             />
           </div>
-          {importErr && <p className="small" style={{ color: 'var(--a-danger)' }}>{importErr}</p>}
+          {importErr && <p className="small" style={{ color: 'var(--danger)' }}>{importErr}</p>}
 
           <p className="tiny faint">
             Importing replaces everything currently in the app. Export first if you are not sure.
@@ -117,7 +119,7 @@ export default function SettingsScreen() {
           {hasLegacy && (
             <p className="tiny faint">
               <Badge tone="neutral">Legacy data found</Badge>{' '}
-              Your previous version's data was migrated into this one and the old copy was left untouched,
+              Your previous version’s data was migrated into this one and the old copy was left untouched,
               so nothing was lost in the upgrade.
             </p>
           )}
@@ -145,6 +147,10 @@ export default function SettingsScreen() {
           No analytics, no telemetry, no network requests for your data. The only way anything leaves this
           device is the export button above.
         </p>
+        <div className="row" style={{ gap: 'var(--s2)', marginTop: 'var(--s4)' }}>
+          <Link to="privacy" className="btn btn--sm">Privacy</Link>
+          <Link to="terms" className="btn btn--sm">Terms</Link>
+        </div>
       </Panel>
 
       <Confirm

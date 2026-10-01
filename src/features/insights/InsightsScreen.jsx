@@ -16,9 +16,10 @@ import {
 import { CATEGORIES } from '../../core/schema.js'
 import { today, lastDays, shift, dayOf } from '../../core/date.js'
 import {
-  Surface, Panel, Segmented, Empty, SectionHead, Spark, Columns, Heatmap, Bar, Num, Badge,
+  Surface, Panel, Segmented, Empty, SectionHead, Columns, Heatmap, Bar, Num, Badge,
 } from '../../ui/index.jsx'
 import { IconInsights, IconTrophy, IconMood, IconFlame } from '../../ui/icons.jsx'
+import { HabitGlyph, MilestoneGlyph } from '../../ui/icons.jsx'
 
 const RANGES = [
   { value: 30, label: '30 days' },
@@ -151,11 +152,17 @@ export default function InsightsScreen() {
 
       {/* ---------- Trend + heatmap ---------- */}
       <div className="grid grid--2 rise" style={{ '--i': 1 }}>
-        <Panel title="Weekly completion" sub="Each point is one week's average">
+        <Panel title="Weekly completion" sub="Each bar is one week’s average">
           {data.weekly.some((v) => v > 0) ? (
-            <Spark points={data.weekly} height={120} />
+            <Columns
+              height={132}
+              max={100}
+              ceiling
+              data={data.weekly.map((v, i) => ({ value: v, title: `${v}% completed`, key: i }))}
+              labels={data.weekly.map((_, i, a) => (i === a.length - 1 ? 'This week' : `${a.length - 1 - i}w ago`))}
+            />
           ) : (
-            <Empty title="Not enough history" body="A line needs a few weeks of check-ins to mean anything." />
+            <Empty title="Not enough history" body="This needs a few weeks of check-ins before it means anything." />
           )}
         </Panel>
 
@@ -178,8 +185,7 @@ export default function InsightsScreen() {
             <div className="stack stack--tight">
               {byArea.map((c) => (
                 <div key={c.id} className="row" style={{ gap: 'var(--s3)' }}>
-                  <span style={{ width: 22 }}>{c.icon}</span>
-                  <span className="small" style={{ width: 62 }}>{c.label}</span>
+                                    <span className="small" style={{ width: 62 }}>{c.label}</span>
                   <Bar value={c.rate * 100} className="spacer" />
                   <span className="tiny num dim" style={{ width: 66, textAlign: 'right' }}>
                     {Math.round(c.rate * 100)}% · {c.count}
@@ -197,11 +203,11 @@ export default function InsightsScreen() {
             <div className="stack stack--tight">
               {ranked.map(({ h, c, st }) => (
                 <div key={h.id} className="row" style={{ gap: 'var(--s3)' }}>
-                  <span style={{ width: 22, textAlign: 'center' }}>{h.icon}</span>
+                  <HabitGlyph icon={h.icon} category={h.category} size={15} />
                   <span className="small clamp1" style={{ flex: '0 0 34%', minWidth: 0 }}>{h.name}</span>
                   <Bar value={c.rate * 100} thin className="spacer" />
                   <span className="tiny num dim" style={{ width: 40, textAlign: 'right' }}>{Math.round(c.rate * 100)}%</span>
-                  <span className="tiny num row" style={{ width: 40, justifyContent: 'flex-end', gap: 3, color: st.current ? '#ff8a4c' : 'var(--t4)' }}>
+                  <span className="tiny num row" style={{ width: 40, justifyContent: 'flex-end', gap: 3, color: st.current ? 'var(--urgent)' : 'var(--faint)' }}>
                     <IconFlame size={11} />{st.current}
                   </span>
                 </div>
@@ -226,12 +232,14 @@ export default function InsightsScreen() {
             <Columns
               data={moodSeries.map((v, i) => ({ value: v ?? 0, title: `${data.days[i]}: ${v ?? 'not logged'}` }))}
               height={80}
+              max={5}
+              ceiling
             />
             <div style={{ marginTop: 'var(--s4)' }}>
               {corr.r == null ? (
                 <p className="small dim">
                   {corr.n} day{corr.n === 1 ? '' : 's'} have both a mood and habit activity.
-                  At {corr.need} the correlation becomes worth showing — below that it would just be noise.
+                  At {corr.need} the correlation becomes worth showing. Below that it would be noise.
                 </p>
               ) : (
                 <p className="small muted">
@@ -266,7 +274,7 @@ export default function InsightsScreen() {
       {/* ---------- Milestones ---------- */}
       <Panel
         title="Milestones"
-        sub={`${medals.filter((m) => m.earned).length} of ${medals.length} earned — none are given away`}
+        sub={`${medals.filter((m) => m.earned).length} of ${medals.length} earned`}
         className="rise"
         style={{ '--i': 5 }}
         action={<IconTrophy size={18} />}
@@ -274,7 +282,7 @@ export default function InsightsScreen() {
         <div className="medals">
           {medals.map((m) => (
             <div key={m.id} className="medal" data-earned={m.earned}>
-              <span className="medal__ico">{m.icon}</span>
+              <span className="medal__ico"><MilestoneGlyph icon={m.icon} size={17} /></span>
               <span className="medal__t">{m.label}</span>
             </div>
           ))}
@@ -312,7 +320,7 @@ function heatCells(habits, checkins, window, ref) {
   })
 }
 
-const momentumColor = (m) => (m == null ? 'var(--t4)' : m > 0.03 ? '#2fd6a6' : m < -0.03 ? '#ff8a4c' : undefined)
+const momentumColor = (m) => (m == null ? 'var(--faint)' : m > 0.03 ? 'var(--accent)' : m < -0.03 ? 'var(--urgent)' : undefined)
 
 const corrLabel = (r) => {
   const a = Math.abs(r)

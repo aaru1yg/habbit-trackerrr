@@ -39,3 +39,8 @@ HTMLCanvasElement.prototype.getContext ||= () => null
 /* Deterministic ids keep snapshots of reducer output stable. */
 let seq = 0
 vi.stubGlobal('cryptoSeq', () => ++seq)
+
+/* The build plugin replaces __BUILD_ID__ at bundle time, so under vitest it
+   is an undefined global and Settings throws on render. Give it a value here
+   rather than guarding the reference in app code. */
+globalThis.__BUILD_ID__ = globalThis.__BUILD_ID__ ?? 'test'

@@ -187,12 +187,25 @@ export function Segmented({ options, value, onChange, label }) {
   const ref = useRef(null)
   const [pill, setPill] = useState(null)
 
+  /* The thumb is measured, not calculated, so it has to be re-measured
+     whenever the control is resized: the segments are flexible, and a
+     single mount-time reading goes stale as soon as the control is
+     stretched into a narrow column or a webfont swaps in. */
   useLayoutEffect(() => {
-    const el = ref.current?.querySelector(`[data-v="${CSS.escape(String(value))}"]`)
-    if (!el || !ref.current) return
-    const r = ref.current.getBoundingClientRect()
-    const b = el.getBoundingClientRect()
-    setPill({ left: b.left - r.left, width: b.width })
+    const host = ref.current
+    if (!host) return
+    const measure = () => {
+      const el = host.querySelector(`[data-v="${CSS.escape(String(value))}"]`)
+      if (!el) return
+      const r = host.getBoundingClientRect()
+      const b = el.getBoundingClientRect()
+      setPill({ left: b.left - r.left, width: b.width })
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(measure)
+    ro.observe(host)
+    return () => ro.disconnect()
   }, [value, options])
 
   return (
@@ -301,7 +314,7 @@ export function Ring({ value, size = 120, stroke = 9, children, label, tone }) {
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const v = useCountUp(Math.max(0, Math.min(100, value)))
-  const toneColor = tone && { good: '#2fd6a6', warn: '#ffd24c', risk: '#ff8a4c', bad: '#ff5a72' }[tone]
+  const toneColor = tone && { good: 'var(--ok)', warn: 'var(--warn)', risk: 'var(--urgent)', bad: 'var(--danger)' }[tone]
   return (
     <div className="ring" style={{ width: size, height: size }} role="img" aria-label={label || `${Math.round(value)} percent`}>
       <svg width={size} height={size}>
@@ -344,33 +357,20 @@ export const Num = ({ value, decimals = 0, suffix = '' }) => {
 
 /* ---- Charts: hand-rolled SVG, every pixel is real data ---- */
 
-export function Spark({ points, height = 48, fill = true }) {
-  const id = useMemo(() => `sg${Math.random().toString(36).slice(2, 8)}`, [])
-  if (!points?.length) return null
-  const n = points.length
-  const max = Math.max(1, ...points)
-  const x = (i) => (n === 1 ? 50 : (i / (n - 1)) * 100)
-  const y = (v) => 100 - (v / max) * 92 - 4
-  const d = points.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' ')
-  return (
-    <svg className="spark" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ height }} aria-hidden="true">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgb(var(--accent-rgb))" stopOpacity=".34" />
-          <stop offset="100%" stopColor="rgb(var(--accent-rgb))" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {fill && <path d={`${d} L100,100 L0,100 Z`} fill={`url(#${id})`} stroke="none" />}
-      <path className="spark__line" d={d} vectorEffect="non-scaling-stroke" />
-    </svg>
-  )
-}
 
-export function Columns({ data, height = 76, labels }) {
-  const max = Math.max(1, ...data.map((d) => (typeof d === 'number' ? d : d.value)))
+/**
+ * Bars on a shared baseline.
+ *
+ * `max` sets the top of the axis. Pass it whenever the values have a real
+ * ceiling (a ratio has one: 1). Auto-scaling a percentage series to its own
+ * tallest bar makes a flat week look like a triumph, which is a lie told with
+ * geometry. `ceiling` draws that top edge so the scale is visible, not implied.
+ */
+export function Columns({ data, height = 76, labels, max: maxProp, ceiling }) {
+  const max = maxProp ?? Math.max(1, ...data.map((d) => (typeof d === 'number' ? d : d.value)))
   return (
     <div>
-      <div className="cols" style={{ height }}>
+      <div className="cols" style={{ height }} data-ceiling={ceiling ? '1' : undefined}>
         {data.map((d, i) => {
           const v = typeof d === 'number' ? d : d.value
           return (
@@ -378,7 +378,7 @@ export function Columns({ data, height = 76, labels }) {
               key={i}
               className="cols__col"
               data-empty={v <= 0 ? '1' : '0'}
-              style={{ '--i': i, height: `${Math.max(3, (v / max) * 100)}%` }}
+              style={{ '--i': i, height: `${Math.min(100, Math.max(v > 0 ? 3 : 2, (v / max) * 100))}%` }}
               title={typeof d === 'object' ? d.title : undefined}
             />
           )

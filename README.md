@@ -2,8 +2,8 @@
 
 A habit tracker that also holds the work and the goals those habits are *for*.
 
-Everything lives in your browser. No account, no server, no sync — open it and
-start. [Live app →](https://aaru1yg.github.io/habbit-trackerrr/)
+Everything lives in your browser. No account, no server, no sync: open it and
+start. [Live app](https://aaru1yg.github.io/habbit-trackerrr/)
 
 ---
 
@@ -25,15 +25,15 @@ ranks what to do next by deadline pressure and by which streaks are at risk.
 
 ## The five screens
 
-- **Today** — a 3D core whose charge *is* your day's completion, a ranked
-  "Next up" queue, today's habits, priority work, your week, and a one-tap mood
-  log.
-- **Habits** — split into due / not due today, with 30-day consistency scored
+- **Today**: the date, the day's completion as a figure and a cell per habit, a
+  ranked "Next up" queue, today's habits, priority work, your week, and a
+  one-tap mood log.
+- **Habits**: split into due and not due today, with 30-day consistency scored
   only against the days a habit was actually scheduled.
-- **Work** — projects and one-off tasks in one list, sorted by urgency, with
+- **Work**: projects and one-off tasks in one list, sorted by urgency, with
   pace tracking against the deadline.
-- **Goals** — outcomes with their linked habits and work, and honest progress.
-- **Insights** — a heatmap, weekday profile, streaks, mood correlation and
+- **Goals**: outcomes with their linked habits and work, and honest progress.
+- **Insights**: a heatmap, weekday profile, streaks, mood correlation and
   milestones. Statistics refuse to appear until there is enough data to support
   them.
 
@@ -42,19 +42,31 @@ Plus **⌘K / Ctrl-K**, which searches everything and quick-adds with a prefix:
 
 ## Design
 
-The interface is built on real depth rather than a flat page with shadows
-painted on: a shared `--perspective`, a four-step elevation scale, and surfaces
-that tilt and catch light as the pointer moves.
+Light-first, editorial and typographic. Warm paper, ink, hairline rules, and
+colour used only where it carries meaning.
 
-The centrepiece on Today is an actual **three.js** object — a layered core that
-charges as the day fills. It is lazily loaded in its own chunk and never ships
-to a device that can't use it well: `src/three/capability.js` returns `false`
-for `prefers-reduced-motion` and for viewports under 480px, and those sessions
-get a pure-CSS fallback that costs nothing. If the WebGL import fails for any
-reason the component renders `null` and the layout is unaffected.
+- **One accent.** A deep pine-teal marks the active view, a completed check and
+  a progress fill. Nothing else is tinted, so the accent always means
+  something.
+- **A status ramp, not a palette.** Brick, terracotta, ochre and the accent run
+  overdue to urgent to at-risk to on-track, in that order, and appear nowhere
+  else.
+- **Serif for figures, sans for interface.** Source Serif 4 sets page titles,
+  percentages and headline numbers; Inter does the work.
+- **One icon system.** `src/ui/icons.jsx` holds every glyph, drawn on a 24-unit
+  grid at a single stroke weight. There are no emoji anywhere in the product,
+  and there is a test that fails if one reappears.
+- **Charts state their ceiling.** A percentage series is plotted against 0–100
+  with the top edge drawn, never auto-scaled to its own tallest bar. A flat
+  week has to look flat.
+- **Two themes**, light and dark, plus a transitions switch. The system
+  `prefers-reduced-motion` setting overrides both.
 
-Two themes (midnight / daylight) and a **calm motion** setting that disables
-every transform.
+What the interface deliberately does not do: gradients as decoration, glass,
+perspective tilt, pointer-tracking effects, scroll-triggered animation, or
+pill-shaped buttons applied by default. Nothing is invented for the user
+either, so there are no scores, grades, levels or encouragement the data does
+not support.
 
 ## Running it
 
@@ -81,10 +93,9 @@ src/
   main.jsx App.jsx index.css
   core/      date.js  schema.js  compute.js  store.jsx
   design/    tokens · base · stage · ui · shell · features (.css)
-  ui/        icons.jsx  index.jsx          — every primitive, one file
-  three/     Core.jsx (lazy)  capability.js
+  ui/        icons.jsx  index.jsx          every primitive, one file
   app/       router.jsx  nav.js  Shell.jsx  CommandPalette.jsx
-  features/  today/ habits/ work/ goals/ insights/ settings/
+  features/  today/ habits/ work/ goals/ insights/ settings/ legal/
 ```
 
 Three rules this codebase holds to:
@@ -95,7 +106,7 @@ Three rules this codebase holds to:
 2. **One primitive library.** `src/ui/index.jsx` is the only place a `Button`,
    `Surface` or `Sheet` is defined.
 3. **One source of truth per value.** A project's progress comes from its tasks
-   *or* its manual dial, never both — adding a task clears the dial.
+   *or* its manual dial, never both: adding a task clears the dial.
 
 State is a `useReducer` in `src/core/store.jsx`, persisted to `localStorage`
 under `aaru.os.v5` and validated on every read.
@@ -104,8 +115,8 @@ under `aaru.os.v5` and validated on every read.
 
 The schema (`src/core/schema.js`) is version 5. Older saves are migrated on
 load: projects and assignments fold into one **work** list, milestones flatten
-into the task checklist, and `routines`, `signals` and `focusLog` — scaffolding
-nothing ever read back — are dropped.
+into the task checklist, and `routines`, `signals` and `focusLog` (scaffolding
+nothing ever read back) are dropped.
 
 Settings has **Export** (a JSON file you own) and **Import**. Import accepts
 v4 backups and migrates them.
@@ -122,7 +133,8 @@ v4 backups and migrates them.
 ```
 test/compute.test.js   38 tests — scheduling, streaks, pace, correlation
 test/store.test.js     23 tests — reducer invariants, normalisation, v4 → v5
-test/app.test.jsx      13 tests — first run, check-in, navigation, ⌘K, a11y
+test/app.test.jsx      18 tests — first run, check-in, navigation, ⌘K, legal
+                                  pages, design invariants, a11y
 ```
 
 The tests assert behaviour that is easy to get wrong and easy to regress: that
@@ -132,4 +144,49 @@ it from goals, and that an empty app shows an invitation rather than a row of
 confident zeroes.
 
 `npm run test:visual` drives a headless browser over every route at desktop and
-mobile widths, writes PNGs to `qa/shots/`, and fails on any console error.
+mobile widths plus a dark-theme pass, writes PNGs to `qa/shots/`, and fails on
+any console error.
+
+## Deploying
+
+The default build targets GitHub Pages at a project path:
+
+```bash
+GH_PAGES=true npm run build     # base = /habbit-trackerrr/
+```
+
+### A custom domain
+
+Set `SITE_DOMAIN` and the build configures itself for a root-hosted site:
+
+```bash
+SITE_DOMAIN=habits.example.com npm run build
+```
+
+That one variable does five things, so there is no second place to keep in
+sync:
+
+| It writes | Why |
+| --- | --- |
+| `dist/CNAME` | What GitHub Pages reads to serve the domain |
+| `base = '/'` | Assets resolve from the root, not a project subpath |
+| `<link rel="canonical">` and `og:url` | One canonical address instead of two |
+| `dist/robots.txt` with a `Sitemap:` line | Crawlers find the sitemap |
+| `dist/sitemap.xml` | Lists `/`, `/privacy` and `/terms` |
+
+A scheme or a trailing slash in the value is stripped, so
+`https://habits.example.com/` and `habits.example.com` behave identically.
+`SITE_DOMAIN` overrides `GH_PAGES`. With neither set the build is root-relative
+and still writes a `robots.txt`.
+
+`public/CNAME` is deliberately **not** committed: a stale or placeholder CNAME
+takes a live Pages site offline, so the domain has to be stated at build time
+by whoever owns it.
+
+## Privacy and terms
+
+`/#/privacy` and `/#/terms` are real pages, reachable from the footer on every
+screen and from Settings. The privacy policy describes what the app actually
+does, down to the `localStorage` key and the individual fields stored under it.
+If the app ever gains a network call, an account or an analytics script, that
+page has to change in the same commit.

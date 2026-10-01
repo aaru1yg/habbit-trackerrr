@@ -26,11 +26,11 @@ export const uid = () =>
 /* ---- Enumerations ---------------------------------------- */
 
 export const CATEGORIES = [
-  { id: 'body',   label: 'Body',   icon: '💪' },
-  { id: 'mind',   label: 'Mind',   icon: '🧠' },
-  { id: 'craft',  label: 'Craft',  icon: '🛠' },
-  { id: 'care',   label: 'Care',   icon: '🌿' },
-  { id: 'social', label: 'Social', icon: '🤝' },
+  { id: 'body',   label: 'Body' },
+  { id: 'mind',   label: 'Mind' },
+  { id: 'craft',  label: 'Craft' },
+  { id: 'care',   label: 'Care' },
+  { id: 'social', label: 'Social' },
 ]
 const CATEGORY_IDS = CATEGORIES.map((c) => c.id)
 
@@ -63,7 +63,7 @@ export function makeHabit(p = {}) {
   return {
     id: str(p.id, 24) || uid(),
     name: str(p.name, 80, 'Untitled habit'),
-    icon: str(p.icon, 4, '✦'),
+    icon: str(p.icon, 16, ''),
     category: CATEGORY_IDS.includes(p.category) ? p.category : 'mind',
     target: {
       type,
@@ -146,7 +146,7 @@ export function makeGoal(p = {}) {
 export const DEFAULT_PROFILE = {
   name: '',
   onboarded: false,
-  theme: 'midnight',
+  theme: 'light',
   motion: 'full',       // 'full' | 'calm'
   weekStart: 1,
   lastExport: null,
@@ -157,7 +157,7 @@ export function makeProfile(p = {}) {
     ...DEFAULT_PROFILE,
     name: str(p.name, 40),
     onboarded: bool(p.onboarded),
-    theme: p.theme === 'daylight' ? 'daylight' : 'midnight',
+    theme: p.theme === 'dark' ? 'dark' : 'light',
     motion: p.motion === 'calm' ? 'calm' : 'full',
     weekStart: int(p.weekStart, 0, 1, 1),
     lastExport: momentOrNull(p.lastExport),
@@ -248,7 +248,7 @@ export function migrate(raw) {
   out.profile = makeProfile({
     name: raw.profile?.name,
     onboarded: raw.profile?.onboarded,
-    theme: raw.profile?.theme === 'daylight' ? 'daylight' : 'midnight',
+    theme: raw.profile?.theme === 'midnight' || raw.profile?.theme === 'dark' ? 'dark' : 'light',
   })
 
   /* ---- Habits ---- */

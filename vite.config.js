@@ -4,9 +4,15 @@ import { execSync } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 
-// When deploying to GitHub Pages (subpath URL), build with a base of '/habbit-trackerrr/'.
-// Dev / preview (the sandbox live preview) uses the root base so nothing breaks.
-const base = process.env.GH_PAGES === 'true' ? '/habbit-trackerrr/' : '/'
+// Where the build will be served from.
+//   SITE_DOMAIN=habits.example.com  -> custom domain, served at the root
+//   GH_PAGES=true                   -> github.io/habbit-trackerrr/ subpath
+//   neither                         -> root (dev, preview, self-hosting)
+// A custom domain always wins: it is served at the root, so the subpath
+// base would break every asset URL.
+const SITE_DOMAIN = (process.env.SITE_DOMAIN || '').trim().replace(/^https?:\/\//, '').replace(/\/$/, '')
+const base = SITE_DOMAIN ? '/' : process.env.GH_PAGES === 'true' ? '/habbit-trackerrr/' : '/'
+const SITE_URL = SITE_DOMAIN ? `https://${SITE_DOMAIN}` : ''
 
 // Deterministic build identity: the deployed commit's short SHA. CI provides
 // GITHUB_SHA; local builds resolve it from git; anything else is 'dev'.
@@ -37,13 +43,22 @@ function buildIdentity() {
       outDir = config.build.outDir
     },
     transformIndexHtml(html) {
-      return {
-        html,
-        tags: [
-          { tag: 'meta', attrs: { name: 'build-id', content: BUILD_ID }, injectTo: 'head' },
-          { tag: 'meta', attrs: { name: 'build-time', content: BUILD_TIME }, injectTo: 'head' },
-        ],
+      const tags = [
+        { tag: 'meta', attrs: { name: 'build-id', content: BUILD_ID }, injectTo: 'head' },
+        { tag: 'meta', attrs: { name: 'build-time', content: BUILD_TIME }, injectTo: 'head' },
+      ]
+      // A canonical URL and absolute social images only make sense once
+      // the site has one real address, so they appear with SITE_DOMAIN.
+      if (SITE_URL) {
+        tags.push(
+          { tag: 'link', attrs: { rel: 'canonical', href: `${SITE_URL}/` }, injectTo: 'head' },
+          { tag: 'meta', attrs: { property: 'og:url', content: `${SITE_URL}/` }, injectTo: 'head' },
+        )
+        html = html
+          .replace('content="./icon-512.png"', `content="${SITE_URL}/icon-512.png"`)
+          .replaceAll('content="./icon-512.png"', `content="${SITE_URL}/icon-512.png"`)
       }
+      return { html, tags }
     },
     // public/sw.js is copied verbatim to dist — stamp the per-build cache
     // version after the copy (closeBundle runs last). Fail loudly if the
@@ -64,6 +79,31 @@ function buildIdentity() {
         throw new Error('aaru-build-identity: __BUILD_ID__ placeholder missing from sw.js')
       }
       writeFileSync(swPath, text.replaceAll('__BUILD_ID__', BUILD_ID))
+
+      // GitHub Pages reads dist/CNAME to bind the custom domain. It is
+      // written only when a domain was supplied, because an empty or
+      // wrong CNAME takes the whole site offline.
+      if (SITE_DOMAIN) {
+        writeFileSync(resolve(outDir, 'CNAME'), `${SITE_DOMAIN}\n`)
+        console.log(`[aaru-build-identity] custom domain ${SITE_DOMAIN} → CNAME`)
+      }
+      // Tell crawlers where the canonical copy lives.
+      writeFileSync(
+        resolve(outDir, 'robots.txt'),
+        SITE_URL
+          ? `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`
+          : 'User-agent: *\nAllow: /\n'
+      )
+      if (SITE_URL) {
+        const pages = ['', 'privacy', 'terms']
+        writeFileSync(
+          resolve(outDir, 'sitemap.xml'),
+          '<?xml version="1.0" encoding="UTF-8"?>\n' +
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+          pages.map((p) => `  <url><loc>${SITE_URL}/${p ? `#/${p}` : ''}</loc></url>`).join('\n') +
+          '\n</urlset>\n'
+        )
+      }
       console.log(`[aaru-build-identity] build ${BUILD_ID} (${BUILD_TIME}) → ${swPath}`)
     },
   }

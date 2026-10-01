@@ -11,9 +11,7 @@ import { fmtRelative, daysUntil, fmtLong } from '../../core/date.js'
 import {
   Surface, Panel, Button, Badge, Bar, Ring, Empty, Confirm, IconButton, Num, Chip, Sheet, plural,
 } from '../../ui/index.jsx'
-import {
-  IconBack, IconEdit, IconTrash, IconCheck, IconX, IconHabits, IconWork, IconLink, IconChevron, IconLayers,
-} from '../../ui/icons.jsx'
+import { IconBack, IconEdit, IconTrash, IconCheck, IconX, IconHabits, IconWork, IconLink, IconChevron, IconLayers, IconFlame, HabitGlyph } from '../../ui/icons.jsx'
 import GoalForm from './GoalForm.jsx'
 
 export default function GoalDetail() {
@@ -49,7 +47,7 @@ export default function GoalDetail() {
       <Surface variant="lit" className="detail__head rise d2" style={{ '--i': 0 }}>
         <Ring value={goal.doneAt ? 100 : p.percent} size={94} stroke={9}>
           <span className="num" style={{ fontSize: 22, fontWeight: 740, fontFamily: 'var(--font-display)' }}>
-            {goal.doneAt ? '✓' : <><Num value={p.percent} />%</>}
+            {goal.doneAt ? <IconCheck size={26} /> : <><Num value={p.percent} />%</>}
           </span>
         </Ring>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -74,14 +72,14 @@ export default function GoalDetail() {
       {/* ---------- How it's computed ---------- */}
       <Panel
         title="Where this number comes from"
-        sub="A goal has no progress of its own — it is the average of what you linked to it"
+        sub="A goal has no progress of its own. This is the average of what you linked to it."
         className="rise"
         style={{ '--i': 1 }}
       >
         {p.empty ? (
           <Empty
             title="Nothing linked yet"
-            body="Link the habits you're relying on and the projects that have to ship. Until then there is honestly nothing to measure."
+            body="Link the habits you’re relying on and the projects that have to ship. Until then there is honestly nothing to measure."
             action={<Button variant="primary" icon={<IconLink size={16} />} onClick={() => setLinking(true)}>Link something</Button>}
           />
         ) : (
@@ -104,7 +102,7 @@ export default function GoalDetail() {
         <div className="row row--between row--wrap">
           <div>
             <div className="strong">{goal.doneAt ? 'Reached' : 'Mark as reached'}</div>
-            <div className="tiny dim">You decide when a goal is met — the percentage is a signal, not a judge.</div>
+            <div className="tiny dim">You decide when a goal is met. The percentage is a signal, not a verdict.</div>
           </div>
           <Button
             variant={goal.doneAt ? 'ghost' : 'primary'}
@@ -133,11 +131,17 @@ export default function GoalDetail() {
               const st = streak(h, state.checkins)
               return (
                 <div key={h.id} className="row" style={{ gap: 'var(--s3)' }}>
-                  <span style={{ width: 22, textAlign: 'center' }}>{h.icon}</span>
+                  <HabitGlyph icon={h.icon} category={h.category} size={15} />
                   <Link to={`habit/${h.id}`} className="small clamp1" style={{ flex: '0 0 30%', minWidth: 0 }}>{h.name}</Link>
                   <Bar value={c.rate * 100} thin className="spacer" />
                   <span className="tiny num dim" style={{ width: 40, textAlign: 'right' }}>{Math.round(c.rate * 100)}%</span>
-                  <span className="tiny num" style={{ width: 40, textAlign: 'right', color: st.current ? '#ff8a4c' : 'var(--t4)' }}>🔥{st.current}</span>
+                  <span
+                    className="tiny num row"
+                    style={{ width: 40, gap: 3, justifyContent: 'flex-end', color: st.current ? 'var(--urgent)' : 'var(--faint)' }}
+                    title={`${st.current} day streak`}
+                  >
+                    <IconFlame size={11} />{st.current}
+                  </span>
                   <IconButton label={`Unlink ${h.name}`} icon={<IconX size={14} />} onClick={() => actions.linkHabit(goal.id, h.id)} />
                 </div>
               )
@@ -193,7 +197,7 @@ export default function GoalDetail() {
       <Confirm
         open={confirming}
         title={`Delete “${goal.title}”?`}
-        body="The goal is removed. Your habits and work are kept — they are just unlinked."
+        body="The goal is removed. Your habits and work are kept, just unlinked."
         onConfirm={() => { actions.removeGoal(goal.id); go('goals') }}
         onClose={() => setConfirming(false)}
       />
@@ -221,7 +225,9 @@ function LinkSheet({ open, onClose, habits, work, onHabit, onWork }) {
               <div className="eyebrow" style={{ marginBottom: 'var(--s3)' }}><IconHabits size={12} /> Habits</div>
               <div className="pill-row">
                 {habits.map((h) => (
-                  <Chip key={h.id} onClick={() => onHabit(h.id)}>{h.icon} {h.name}</Chip>
+                  <Chip key={h.id} onClick={() => onHabit(h.id)}>
+                    <HabitGlyph icon={h.icon} category={h.category} size={13} /> {h.name}
+                  </Chip>
                 ))}
               </div>
             </div>
@@ -239,7 +245,7 @@ function LinkSheet({ open, onClose, habits, work, onHabit, onWork }) {
             </div>
           )}
           <p className="tiny faint">
-            Linking a work item moves it here from any other goal — a project belongs to one outcome at a time.
+            Linking a work item moves it here from any other goal. A project belongs to one outcome at a time.
           </p>
         </div>
       )}

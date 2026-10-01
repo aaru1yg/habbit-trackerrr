@@ -20,9 +20,7 @@ import { NAV } from './nav.js'
 import { useStore, useActions } from '../core/store.jsx'
 import { workProgress } from '../core/compute.js'
 import { Surface, useToast } from '../ui/index.jsx'
-import {
-  IconSearch, IconPlus, IconHabits, IconWork, IconGoals, IconLayers, IconChevron,
-} from '../ui/icons.jsx'
+import { IconSearch, IconPlus, IconHabits, IconWork, IconGoals, IconLayers, IconChevron, HabitGlyph } from '../ui/icons.jsx'
 
 const PREFIX = {
   h: { kind: 'habit',   label: 'habit',   Icon: IconHabits },
@@ -149,7 +147,7 @@ function buildResults(q, state) {
   for (const h of habits) {
     out.push({
       key: `h${h.id}`, group: 'Habits', run: 'go', to: `habit/${h.id}`,
-      icon: <span style={{ fontSize: 14 }}>{h.icon}</span>,
+      icon: <HabitGlyph icon={h.icon} category={h.category} size={15} />,
       label: h.name, sub: h.cue || null, meta: h.category,
     })
   }

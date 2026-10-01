@@ -11,9 +11,9 @@ import {
 import { today, lastDays, shift } from '../../core/date.js'
 import { CATEGORIES } from '../../core/schema.js'
 import {
-  Surface, Panel, Button, Badge, Heatmap, Spark, Empty, Confirm, IconButton, Num, Check, Bar,
+  Surface, Panel, Button, Badge, Heatmap, Columns, Empty, Confirm, IconButton, Num, Check, Bar,
 } from '../../ui/index.jsx'
-import { IconBack, IconEdit, IconArchive, IconTrash, IconFlame, IconGoals, IconClock } from '../../ui/icons.jsx'
+import { IconBack, IconEdit, IconArchive, IconTrash, IconFlame, IconGoals, IconClock, HabitGlyph } from '../../ui/icons.jsx'
 import HabitForm from './HabitForm.jsx'
 
 export default function HabitDetail() {
@@ -60,11 +60,13 @@ export default function HabitDetail() {
 
       {/* ---------- Head ---------- */}
       <Surface variant="lit" className="detail__head rise d2" style={{ '--i': 0 }}>
-        <span className="detail__mark">{habit.icon}</span>
+        <span className="detail__mark">
+          <HabitGlyph icon={habit.icon} category={habit.category} size={24} />
+        </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="detail__title">{habit.name}</div>
           <div className="row row--wrap" style={{ marginTop: 'var(--s2)' }}>
-            <Badge tone="neutral">{cat?.icon} {cat?.label}</Badge>
+            <Badge tone="neutral">{cat?.label}</Badge>
             <Badge tone="neutral">{cadenceLabel(habit)}</Badge>
             <Badge tone="neutral">{targetLabel(habit)}</Badge>
             {habit.archivedAt && <Badge tone="warn">Archived</Badge>}
@@ -120,7 +122,7 @@ export default function HabitDetail() {
       <div className="grid grid--4 rise" style={{ '--i': 2 }}>
         <Surface variant="flat" lift sheen depth={1} className="tile">
           <div className="stat stat--sm">
-            <span className="stat__v row num" style={{ gap: 5, color: data.st.current ? '#ff8a4c' : undefined }}>
+            <span className="stat__v row num" style={{ gap: 5, color: data.st.current ? 'var(--urgent)' : undefined }}>
               <IconFlame size={18} /><Num value={data.st.current} />
             </span>
             <span className="stat__k">Current streak</span>
@@ -156,7 +158,13 @@ export default function HabitDetail() {
         </Panel>
         <Panel title="Weekly trend" sub="Completion rate over the last 12 weeks">
           {data.trend.some((v) => v > 0) ? (
-            <Spark points={data.trend} height={110} />
+            <Columns
+              data={data.trend.map((v, i) => ({ value: v, title: `${data.trend.length - i} weeks ago: ${v}%` }))}
+              labels={data.trend.map((_, i, a) => (i === 0 ? '12w' : i === a.length - 1 ? 'Now' : ''))}
+              height={110}
+              max={100}
+              ceiling
+            />
           ) : (
             <Empty title="Not enough history" body="Come back after a couple of weeks of check-ins." />
           )}
@@ -206,7 +214,7 @@ export default function HabitDetail() {
       <Confirm
         open={confirming}
         title={`Delete “${habit.name}”?`}
-        body="This removes the habit and every check-in it has. There is no undo — export a backup from Settings first if you might want it back."
+        body="This removes the habit and every check-in it has. There is no undo. Export a backup from Settings first if you might want it back."
         onConfirm={() => { actions.removeHabit(habit.id); go('habits') }}
         onClose={() => setConfirming(false)}
       />

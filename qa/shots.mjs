@@ -10,11 +10,11 @@ const day = (n = 0) => { const d = new Date(); d.setDate(d.getDate() + n); retur
 
 function seed() {
   const habits = [
-    { id: 'h1', name: 'Read 20 pages', icon: '📖', category: 'mind', target: { type: 'done', goal: 1, unit: '' }, cadence: { type: 'daily' }, cue: 'After morning coffee', notes: '', createdAt: null, archivedAt: null, order: 0 },
-    { id: 'h2', name: 'Drink water', icon: '💧', category: 'body', target: { type: 'count', goal: 8, unit: 'glasses' }, cadence: { type: 'daily' }, cue: 'Bottle on the desk', notes: '', createdAt: null, archivedAt: null, order: 1 },
-    { id: 'h3', name: 'Deep work', icon: '💻', category: 'craft', target: { type: 'minutes', goal: 90, unit: 'min' }, cadence: { type: 'days', days: [1,2,3,4,5] }, cue: '9am, phone in a drawer', notes: '', createdAt: null, archivedAt: null, order: 2 },
-    { id: 'h4', name: 'Gym', icon: '💪', category: 'body', target: { type: 'done', goal: 1, unit: '' }, cadence: { type: 'weekly', perWeek: 3 }, cue: '', notes: '', createdAt: null, archivedAt: null, order: 3 },
-    { id: 'h5', name: 'Call someone', icon: '🤝', category: 'social', target: { type: 'done', goal: 1, unit: '' }, cadence: { type: 'days', days: [0, 3] }, cue: '', notes: '', createdAt: null, archivedAt: null, order: 4 },
+    { id: 'h1', name: 'Read 20 pages', icon: 'book', category: 'mind', target: { type: 'done', goal: 1, unit: '' }, cadence: { type: 'daily' }, cue: 'After morning coffee', notes: '', createdAt: null, archivedAt: null, order: 0 },
+    { id: 'h2', name: 'Drink water', icon: 'water', category: 'body', target: { type: 'count', goal: 8, unit: 'glasses' }, cadence: { type: 'daily' }, cue: 'Bottle on the desk', notes: '', createdAt: null, archivedAt: null, order: 1 },
+    { id: 'h3', name: 'Deep work', icon: 'code', category: 'craft', target: { type: 'minutes', goal: 90, unit: 'min' }, cadence: { type: 'days', days: [1,2,3,4,5] }, cue: '9am, phone in a drawer', notes: '', createdAt: null, archivedAt: null, order: 2 },
+    { id: 'h4', name: 'Gym', icon: 'gym', category: 'body', target: { type: 'done', goal: 1, unit: '' }, cadence: { type: 'weekly', perWeek: 3 }, cue: '', notes: '', createdAt: null, archivedAt: null, order: 3 },
+    { id: 'h5', name: 'Call someone', icon: 'people', category: 'social', target: { type: 'done', goal: 1, unit: '' }, cadence: { type: 'days', days: [0, 3] }, cue: '', notes: '', createdAt: null, archivedAt: null, order: 4 },
   ]
   const checkins = {}
   const moods = {}
@@ -33,7 +33,7 @@ function seed() {
   delete checkins.h3?.[day(0)]
 
   const work = [
-    { id: 'w1', kind: 'project', title: 'Dissertation — chapter 3', notes: 'Methods + results.', deadline: `${day(9)}T18:00`, startedAt: day(-40), tasks: [
+    { id: 'w1', kind: 'project', title: 'Dissertation chapter 3', notes: 'Methods + results.', deadline: `${day(9)}T18:00`, startedAt: day(-40), tasks: [
       { id: 't1', title: 'Outline', done: true, due: null, doneAt: `${day(-30)}T12:00` },
       { id: 't2', title: 'Draft methods', done: true, due: null, doneAt: `${day(-14)}T12:00` },
       { id: 't3', title: 'Run the analysis', done: true, due: null, doneAt: `${day(-6)}T12:00` },
@@ -60,7 +60,7 @@ function seed() {
     { id: 'g2', title: 'Run a half marathon', why: '', due: day(46), habitIds: ['h4'], createdAt: day(-30), doneAt: null, order: 1 },
   ]
 
-  return { version: 5, profile: { name: 'Aaru', onboarded: true, theme: 'midnight', motion: 'full', weekStart: 1, lastExport: null }, habits, checkins, work, goals, moods }
+  return { version: 5, profile: { name: 'Aaru', onboarded: true, theme: 'light', motion: 'full', weekStart: 1, lastExport: null }, habits, checkins, work, goals, moods }
 }
 
 const SHOTS = [
@@ -73,6 +73,8 @@ const SHOTS = [
   ['goal-detail', '#/goal/g1'],
   ['insights', '#/insights'],
   ['settings', '#/settings'],
+  ['privacy', '#/privacy'],
+  ['terms', '#/terms'],
 ]
 
 const browser = await launch()
@@ -89,13 +91,31 @@ for (const [vp, dims] of Object.entries(VIEWPORTS)) {
   await page.evaluate((d) => localStorage.setItem('aaru.os.v5', JSON.stringify(d)), data)
 
   for (const [name, hash] of SHOTS) {
-    if (vp === 'mobile' && !['today', 'habits', 'work', 'insights'].includes(name)) continue
+    if (vp === 'mobile' && !['today', 'habits', 'work', 'insights', 'privacy'].includes(name)) continue
     // Full document load each time: a hash-only change would reuse the
     // already-booted store and skip the route's first-paint path.
     await page.goto('about:blank')
     await page.goto(BASE + hash, { waitUntil: 'networkidle0' })
     await new Promise((r) => setTimeout(r, 1400))
     await page.screenshot({ path: `${OUT}/${vp}-${name}.png`, fullPage: vp === 'desktop' })
+  }
+  await page.close()
+}
+
+/* The dark theme is a first-class surface, not an afterthought: shoot it. */
+{
+  const page = await browser.newPage()
+  await page.setViewport(VIEWPORTS.desktop)
+  page.on('pageerror', (e) => errors.push(`dark: ${e.message}`))
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(`dark console: ${m.text()}`) })
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  await page.evaluate((d) => localStorage.setItem('aaru.os.v5', JSON.stringify(d)),
+    { ...seed(), profile: { ...seed().profile, theme: 'dark' } })
+  for (const [name, hash] of [['today', '#/today'], ['insights', '#/insights'], ['work', '#/work']]) {
+    await page.goto('about:blank')
+    await page.goto(BASE + hash, { waitUntil: 'networkidle0' })
+    await new Promise((r) => setTimeout(r, 1200))
+    await page.screenshot({ path: `${OUT}/dark-${name}.png`, fullPage: true })
   }
   await page.close()
 }

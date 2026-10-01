@@ -13,7 +13,7 @@ import { fmtRelative, daysUntil } from '../../core/date.js'
 import {
   Surface, Button, Badge, Empty, SectionHead, Ring, plural,
 } from '../../ui/index.jsx'
-import { IconPlus, IconGoals, IconHabits, IconWork } from '../../ui/icons.jsx'
+import { IconPlus, IconGoals, IconHabits, IconWork, IconCheck } from '../../ui/icons.jsx'
 import GoalForm from './GoalForm.jsx'
 
 export default function GoalsScreen() {
@@ -77,7 +77,7 @@ function GoalCard({ goal, p }) {
     <Surface as={Link} to={`goal/${goal.id}`} variant="flat" lift sheen depth={1} className="wcard">
       <div className="wcard__top">
         <Ring value={goal.doneAt ? 100 : p.percent} size={60} stroke={6}>
-          <span className="num tiny strong">{goal.doneAt ? '✓' : `${p.percent}%`}</span>
+          <span className="num tiny strong row" style={{ justifyContent: 'center' }}>{goal.doneAt ? <IconCheck size={16} /> : `${p.percent}%`}</span>
         </Ring>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="wcard__title clamp2">{goal.title}</div>
@@ -86,7 +86,7 @@ function GoalCard({ goal, p }) {
       </div>
 
       {p.empty ? (
-        <p className="tiny faint">Nothing linked yet — link habits or work to give this a real number.</p>
+        <p className="tiny faint">Nothing linked yet. Add habits or work to give this a real number.</p>
       ) : (
         <div className="pill-row">
           {p.parts.map((part) => (

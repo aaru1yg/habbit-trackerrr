@@ -236,13 +236,15 @@ async function main() {
   // ---- cloud write ----
   const marker = `A-habit-${stamp}`
   const docA = {
-    version: 4,
+    version: 5,
     profile: { name: 'QA User A' },
     habits: [{ id: `h-${stamp}`, name: marker, order: 0, updatedAt: new Date().toISOString() }],
-    checkins: {}, moods: {}, projects: [], assignments: [], routines: [],
+    checkins: {}, moods: {}, work: [], goals: [], deleted: {},
   }
+  // Clear any row left by an earlier run so the insert path is the one tested.
+  await clientA.from('user_state').delete().eq('user_id', uidA)
   const { error: wErr } = await clientA.from('user_state')
-    .upsert({ user_id: uidA, doc: docA, revision: 1 }, { onConflict: 'user_id' })
+    .insert({ user_id: uidA, doc: docA, revision: 1, schema_version: 5 })
   check('User A can write their own row', !wErr, wErr?.message)
 
   // ---- persistence via a brand-new client + fresh login (multi-browser) ----
@@ -281,13 +283,13 @@ async function main() {
   // ---- local -> cloud migration, using the app\u2019s real merge engine ----
   // Simulates: device holds local-only data, account already holds cloud data,
   // user picks "merge". Both sides must survive; nothing may be lost.
-  const { mergeDocs, summarise } = await import('../src/lib/cloud/merge.js')
+  const { mergeDocs, summarise } = await import('../src/cloud/merge.js')
   const localOnly = {
-    version: 4,
+    version: 5,
     profile: { name: 'QA User A' },
     habits: [{ id: `local-${stamp}`, name: `local-habit-${stamp}`, order: 1, updatedAt: new Date().toISOString() }],
-    checkins: { [`local-${stamp}`]: { '2026-01-01': { done: true } } },
-    moods: {}, projects: [], assignments: [], routines: [],
+    checkins: { [`local-${stamp}`]: { '2026-01-01': { value: 1, at: '2026-01-01T09:00', updatedAt: new Date().toISOString() } } },
+    moods: {}, work: [], goals: [], deleted: {},
   }
   const cloudNow = (await clientA.from('user_state').select('doc').eq('user_id', uidA).maybeSingle()).data?.doc
   const merged = mergeDocs(localOnly, cloudNow)
@@ -295,9 +297,25 @@ async function main() {
   check('merge keeps both local and cloud habits (no data loss)', mSum.habits === 2, `habits=${mSum.habits}`)
   check('merge preserves local check-ins', mSum.checkins >= 1, `checkins=${mSum.checkins}`)
 
-  const { error: mErr } = await clientA.from('user_state')
-    .upsert({ user_id: uidA, doc: merged, revision: 2 }, { onConflict: 'user_id' })
-  check('merged document persists to the cloud', !mErr, mErr?.message)
+  const { data: casRow, error: mErr } = await clientA.from('user_state')
+    .update({ doc: merged, revision: 2 })
+    .eq('user_id', uidA).eq('revision', 1)
+    .select('revision').maybeSingle()
+  check('merged document persists to the cloud', !mErr && !!casRow, mErr?.message)
+
+  // ---- compare-and-swap actually guards against a lost update ----
+  // The app relies on a stale write matching zero rows. Prove the real
+  // database does that, rather than trusting the client to behave.
+  const { data: staleRow, error: staleErr } = await clientA.from('user_state')
+    .update({ doc: { version: 5, clobbered: true }, revision: 99 })
+    .eq('user_id', uidA).eq('revision', 1) // revision is 2 by now
+    .select('revision').maybeSingle()
+  check('a write based on a stale revision updates no rows (no lost update)',
+    !staleErr && !staleRow, staleErr?.message || `unexpectedly updated to ${staleRow?.revision}`)
+  const { data: unclobbered } = await clientA.from('user_state')
+    .select('doc, revision').eq('user_id', uidA).maybeSingle()
+  check('the document survived the stale write untouched',
+    unclobbered?.revision === 2 && !unclobbered?.doc?.clobbered)
 
   const { data: afterMerge } = await mkClient().auth
     .signInWithPassword({ email: preA.email, password: preA.password })
@@ -370,12 +388,12 @@ async function main() {
     {
       user_id: uidB,
       doc: {
-        version: 4,
+        version: 5,
         profile: { name: 'QA User B' },
         habits: [{ id: `hB-${stamp}`, name: markerB, order: 0, updatedAt: new Date().toISOString() }],
-        checkins: {}, moods: {}, projects: [], assignments: [], routines: [],
+        checkins: {}, moods: {}, work: [], goals: [], deleted: {},
       },
-      revision: 1,
+      revision: 1, schema_version: 5,
     },
     { onConflict: 'user_id' }
   )

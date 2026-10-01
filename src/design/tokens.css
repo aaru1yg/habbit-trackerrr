@@ -1,0 +1,153 @@
+/* ============================================================
+   TOKENS — one source of truth for the whole interface.
+
+   The design is light-first and typographic: warm paper, ink,
+   hairline rules, and colour used only where it carries meaning.
+   There is no glass, no glow, and no decorative gradient. A
+   surface is distinguished from the page by a border and, where
+   it genuinely floats, a short shadow.
+   ============================================================ */
+
+:root {
+  /* ---- Surfaces -------------------------------------------
+     Warm greys, not blue-greys. Paper is the page; raised is a
+     card sitting on it; sunken is a well (inputs, tracks). */
+  --paper:    #faf9f6;
+  --raised:   #ffffff;
+  --sunken:   #f2f1ec;
+  --hover:    #00000006;
+  --pressed:  #0000000f;
+
+  /* Hairlines. Two weights only: a quiet rule and a visible edge. */
+  --rule:     #e4e1d9;
+  --rule-firm:#cfcbc0;
+
+  /* ---- Ink ------------------------------------------------
+     A four-step ramp. Every step clears WCAG AA for body text
+     against the lightest surface it is ever placed on, which is
+     --sunken, not --paper. Measured on --paper / --sunken:
+       ink 15.8 / 14.7   strong 8.4 / 7.8
+       muted 6.4 / 6.0   faint 4.8 / 4.5
+     The ramp used to bottom out at 4.1:1, which failed at the
+     11.5px sizes --faint is actually used for. */
+  --ink:      #191918;
+  --strong:   #4a4843;
+  --muted:    #5e5b54;
+  --faint:    #726e65;
+
+  /* ---- Accent ---------------------------------------------
+     One accent: a deep pine-teal. It marks the active view, the
+     focus ring, completed state and primary data. Nothing is
+     tinted with it purely for decoration. */
+  --accent:      #0e5e58;
+  --accent-ink:  #0a4742;   /* text/hover on paper */
+  --accent-soft: #e2efed;   /* fills behind accent text */
+  --accent-rgb:  14 94 88;
+
+  /* ---- Status ---------------------------------------------
+     A deliberate hot-to-cool ramp for work pressure, so the
+     colours read as one scale rather than five unrelated hues. */
+  --danger:      #a8372a;   /* overdue */
+  --danger-soft: #f7e7e4;
+  --urgent:      #a84d1b;   /* due within a day */
+  --urgent-soft: #fbeade;
+  --warn:        #86661a;   /* behind pace */
+  --warn-soft:   #f7efdc;
+  --ok:          var(--accent);
+  --ok-soft:     var(--accent-soft);
+
+  /* ---- Elevation ------------------------------------------
+     Three steps. Most of the interface uses none. */
+  --shadow-1: 0 1px 2px #1919180f;
+  --shadow-2: 0 2px 4px -1px #19191814, 0 4px 12px -4px #1919181a;
+  --shadow-3: 0 8px 16px -6px #1919181f, 0 24px 48px -16px #19191826;
+
+  /* ---- Geometry -------------------------------------------
+     Rectangles with a small, consistent radius. The pill is
+     reserved for tags and status chips, where the shape says
+     "this is a label, not a button". */
+  --r-xs:   3px;
+  --r-sm:   5px;
+  --r-md:   8px;
+  --r-lg:   12px;
+  --r-pill: 999px;
+
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 24px; --s6: 32px; --s7: 48px; --s8: 72px;
+
+  /* ---- Type -----------------------------------------------
+     Inter for the interface, Source Serif for titles and large
+     figures. The serif is what stops this reading as another
+     all-Inter dashboard. */
+  --font:         'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
+  --font-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --fs-xs: 11.5px; --fs-sm: 13px;  --fs-md: 14.5px;
+  --fs-lg: 17px;   --fs-xl: 21px;  --fs-2xl: 27px;
+  --fs-3xl: 36px;  --fs-4xl: 48px;
+
+  /* ---- Motion ---------------------------------------------
+     Short and functional: things that appear, and state that
+     changes. Nothing animates on scroll. */
+  --e-out:   cubic-bezier(.2, .8, .3, 1);
+  --e-inout: cubic-bezier(.65, 0, .35, 1);
+  --d-fast:  120ms;
+  --d-mid:   200ms;
+
+  /* ---- Layout ---------------------------------------------- */
+  --rail:     68px;
+  --rail-open:216px;
+  --topbar:   56px;
+  --dock:     60px;
+  --page-max: 1100px;
+  --prose-max: 68ch;
+}
+
+/* ---- Dark theme -------------------------------------------
+   Warm charcoal rather than blue-black, so it reads as the same
+   product with the lights off. Accent and status all lighten to
+   hold their contrast against a dark ground. */
+[data-theme='dark'] {
+  --paper:    #1a1a18;
+  --raised:   #222220;
+  --sunken:   #141413;
+  --hover:    #ffffff08;
+  --pressed:  #ffffff14;
+
+  --rule:     #32322e;
+  --rule-firm:#45443f;
+
+  --ink:      #f4f2ed;
+  --strong:   #c3bfb6;
+  --muted:    #a39f95;
+  --faint:    #908c82;
+
+  --accent:      #5fb3a8;
+  --accent-ink:  #7fc7bd;
+  --accent-soft: #15302d;
+  --accent-rgb:  95 179 168;
+
+  --danger:      #e08273;
+  --danger-soft: #3a211d;
+  --urgent:      #dd9a63;
+  --urgent-soft: #382619;
+  --warn:        #cca74e;
+  --warn-soft:   #332b16;
+
+  --shadow-1: 0 1px 2px #00000040;
+  --shadow-2: 0 2px 4px -1px #00000050, 0 4px 12px -4px #00000060;
+  --shadow-3: 0 8px 16px -6px #00000066, 0 24px 48px -16px #00000080;
+}
+
+/* Honour the OS. Transitions collapse; nothing is lost, because
+   no information in this interface is conveyed by motion. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --d-fast: 1ms; --d-mid: 1ms; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

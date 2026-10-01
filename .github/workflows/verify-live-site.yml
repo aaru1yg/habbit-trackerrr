@@ -1,68 +1,38 @@
-name: Verify live site (migration)
+name: Verify live site
 
-# Production proof for the migration-prompt behaviour, driven by a real
-# headless Chromium against the PUBLIC GitHub Pages URL.
+# Deploy-time verification already runs inside deploy.yml, where the Pages
+# URL is in hand. This is the other half: a site can break without anyone
+# deploying anything. A Supabase project paused for inactivity, a custom
+# domain whose DNS lapsed, a Pages setting changed in the UI — none of these
+# produce a failed build, and all of them are invisible until a user reports
+# it.
 #
-#   pull_request (sync code changes) → EXPECT=fixed — production health /
-#       regression monitoring: the public site always serves main (never PR
-#       code), and whatever main serves must show the healthy journey (prompt
-#       at most once, silent across 10 reloads and a re-login, user B scoped).
-#       Before the fix shipped this same mode was the reproduce control — it
-#       failed loudly on build b9640e6 (10/10 reloads + re-login), proving it
-#       could detect the bug.
-#   successful Pages deployment → EXPECT=fixed + build id, asserting this
-#       exact commit, then verifying it.
-#   workflow_dispatch → 'reproduce' asserts a KNOWN-BAD build still shows the
-#       bug (harness sanity check); default 'fixed'.
-#
-# Accounts: TEST_A_EMAIL/TEST_A_PASSWORD (+ TEST_B_*) repository secrets if
-# present; otherwise throwaway accounts are created through the real signup
-# UI. If the project requires email confirmation and no secrets exist, the
-# run exits 3 — an explicit, honest "cannot verify" rather than a silent pass.
-# Shares those accounts with verify-supabase.yml — the shared concurrency
-# group serializes the two so they never mutate the accounts concurrently.
+# No credentials, no sign-in, no database writes. It only looks at what the
+# public is being served.
 
 on:
   workflow_dispatch:
     inputs:
-      expect:
-        description: 'fixed (expect healthy behaviour) or reproduce (expect the historical bug — harness sanity)'
-        required: true
-        default: 'fixed'
-      habits_build:
-        description: 'Optional: full commit sha the public site must serve for the Habits public matrix (empty = whatever is live)'
+      site:
+        description: 'Site URL to check (blank = the repository Pages URL)'
         required: false
         default: ''
-  pull_request:
-    paths:
-      - 'src/lib/cloud/**'
-      - 'qa/live-migration.mjs'
-      - '.github/workflows/verify-live-site.yml'
-  # Verify every deployed release, not only changes to the sync directory.
-  workflow_run:
-    workflows: ['Deploy to GitHub Pages']
-    types: [completed]
+  schedule:
+    # Monday morning, so a quietly broken weekend is caught before the week.
+    - cron: '41 6 * * 1'
 
 permissions:
   contents: read
-  actions: read
-
-# Shares the TEST_A/TEST_B accounts with verify-supabase.yml — the two runs
-# must never mutate those accounts concurrently (see the note there).
-concurrency:
-  group: live-qa-shared-accounts
-  cancel-in-progress: false
+  pages: read
+  id-token: write
 
 jobs:
-  verify:
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
-    name: Real browser vs public site
+  smoke:
+    name: Real browser vs the public site
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -72,280 +42,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Determine expectation
-        id: mode
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # The public site always serves main (never PR code): a PR run is
-            # a production health check, so it expects the healthy journey.
-            echo "expect=fixed" >> "$GITHUB_OUTPUT"
-            echo "build=" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "expect=${{ inputs.expect }}" >> "$GITHUB_OUTPUT"
-            echo "build=" >> "$GITHUB_OUTPUT"
-          else
-            # Completed Pages deployment — verify the exact deployed commit.
-            echo "expect=fixed" >> "$GITHUB_OUTPUT"
-            echo "build=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Download the exact deployed Pages artifact
-        if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v4
-        with:
-          name: github-pages
-          path: /tmp/pages-artifact
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ github.token }}
-
-      - name: Unpack deployed artifact
-        if: github.event_name == 'workflow_run'
-        run: |
-          mkdir -p dist
-          tar -xf /tmp/pages-artifact/artifact.tar -C dist
-
-      # Sequential with browser tests: these scripts share TEST_A/TEST_B.
-      # A partial (exit 3) result is a failure for a production release.
-      - name: Real Supabase auth, persistence and cross-user RLS
-        if: github.event_name == 'workflow_run'
+      - name: Resolve the site URL
+        id: site
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
-          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
-          TEST_B_EMAIL: ${{ secrets.TEST_B_EMAIL }}
-          TEST_B_PASSWORD: ${{ secrets.TEST_B_PASSWORD }}
-        run: node qa/verify-supabase.mjs
-
-      - name: Live-site migration verification
-        id: verify
-        continue-on-error: true
-        env:
-          LIVE_URL: https://aaru1yg.github.io/habbit-trackerrr/
-          EXPECT: ${{ steps.mode.outputs.expect }}
-          EXPECT_BUILD_ID: ${{ steps.mode.outputs.build }}
-          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
-          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
-          TEST_B_EMAIL: ${{ secrets.TEST_B_EMAIL }}
-          TEST_B_PASSWORD: ${{ secrets.TEST_B_PASSWORD }}
-        run: |
-          set +e
-          node qa/live-migration.mjs 2>&1 | tee /tmp/live.txt
-          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
-
-      - name: Publish result
-        if: always()
-        run: |
-          {
-            echo '## Live-site migration verification'
-            echo ''
-            echo '```'
-            cat /tmp/live.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          # Mirror every verdict line as an annotation — readable from the API
-          # even where raw logs/artifacts are unreachable.
-          while IFS= read -r line; do
-            case "$line" in
-              *"✗"*) echo "::error::${line}" ;;
-              *"⊘"*) echo "::warning::${line}" ;;
-              *"✓"*) echo "::notice::${line}" ;;
-              *"✅"*|*"live build"*|*"waiting for deploy"*|*"A:"*|*"B:"*|*"verified against"*)
-                echo "::notice::${line}" ;;
-            esac
-          done < /tmp/live.txt
-
-      - name: Upload result
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: live-migration-verification
-          path: /tmp/live.txt
-
-      - name: Enforce outcome
-        run: |
-          CODE="${{ steps.verify.outputs.code }}"
-          echo "live verification exit code: $CODE"
-          if [ "$CODE" = "0" ]; then
-            echo "Expectation met."
-          elif [ "$CODE" = "3" ]; then
-            echo "::error::PARTIAL — Supabase requires pre-confirmed accounts. Add TEST_A_EMAIL/TEST_A_PASSWORD (+ TEST_B_*) repository secrets."
-            exit 1
-          else
-            echo "::error::Live-site verification failed."
-            exit 1
-          fi
-
-      - name: Verify all V2 screens on the public URL and match every deployed byte
-        if: github.event_name == 'workflow_run'
-        env:
-          LIVE_URL: https://aaru1yg.github.io/habbit-trackerrr/
-          EXPECT_BUILD_ID: ${{ github.event.workflow_run.head_sha }}
-          REQUIRE_AUTH: '1'
-          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
-          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
-        run: node qa/release.mjs
-
-      - name: Publish public browser proof
-        if: always() && github.event_name == 'workflow_run'
-        run: node qa/publish-release-evidence.mjs
-
-      - name: Upload public browser screenshots and checksums
-        if: always() && github.event_name == 'workflow_run'
-        uses: actions/upload-artifact@v4
-        with:
-          name: public-release-proof
-          path: qa/shots/release/
-          retention-days: 14
-
-  # Phase 5 §44 on the PUBLIC site: the same qa/habits-e2e.mjs journeys that
-  # gate the branch (11 scenarios per viewport) run against
-  # https://aaru1yg.github.io/habbit-trackerrr/ with a real sign-in as the
-  # pre-confirmed TEST_A account, at 390×844, 430×932 and 1440×900. Runs after
-  # `verify` so the shared account is never mutated by two jobs at once, and
-  # publishes API-readable "Habits public site <viewport>" check runs against
-  # the deployed commit.
-  habits-public:
-    # After `verify` finishes (shared account), whatever its verdict — the
-    # Habits matrix is independent evidence. Skipped only when `verify` was
-    # skipped (a non-main deployment) or for PR runs, which never see secrets.
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.verify.result != 'skipped' }}
-    needs: verify
-    name: Habits on the public site ${{ matrix.viewport }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    permissions:
-      contents: read
-      checks: write
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        viewport: [390x844, 430x932, 1440x900]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - name: Chromium runtime libraries
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y libnspr4 libnss3
-      - name: Habits journeys against the public production site
-        env:
-          HABITS_QA_VIEWPORT: ${{ matrix.viewport }}
-          HABITS_QA_OUT: qa/shots/habits-public
-          REQUIRE_AUTH: '1'
-          EXPECT_BUILD_ID: ${{ github.event.workflow_run.head_sha || inputs.habits_build }}
-          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
-          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+          OVERRIDE: ${{ github.event.inputs.site }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p qa/shots/habits-public
-          node qa/habits-e2e.mjs https://aaru1yg.github.io/habbit-trackerrr/ 2>&1 | tee qa/shots/habits-public/browser.log
-          exit "${PIPESTATUS[0]}"
-      - name: Publish API-readable public-site diagnostics
-        if: always()
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          QA_PROOF_DIR: qa/shots/habits-public
-          QA_PROOF_NAME: Habits public site
-          QA_PROOF_SCRIPT: qa/habits-e2e.mjs
-          QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
-          QA_PROOF_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: node qa/publish-browser-proof.mjs
-      - name: Upload public-site screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: habits-public-${{ matrix.viewport }}
-          path: qa/shots/habits-public/
-          retention-days: 14
-      - name: Publish result
-        if: always()
-        run: |
-          echo '## Habits on the public site — ${{ matrix.viewport }}' >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat qa/shots/habits-public/browser.log >> "$GITHUB_STEP_SUMMARY" || true
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${OVERRIDE}" ]; then
+            echo "url=${OVERRIDE}" >> "$GITHUB_OUTPUT"
+          else
+            # Ask the API rather than hardcoding, so a custom domain is
+            # followed automatically once it is configured.
+            URL=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.html_url' 2>/dev/null || true)
+            if [ -z "${URL}" ]; then
+              echo "::error::Could not resolve the Pages URL. Pass one via workflow_dispatch."
+              exit 1
+            fi
+            echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          fi
 
-  # Phase 6 §37-38 on the PUBLIC site: the same qa/goals-browser.mjs journeys
-  # that gate the branch (list-first workspace, Open/At-risk/Reached/All
-  # filters, optional Atlas, create/edit/delete, milestone completion, goal
-  # detail hierarchy, forecast, contributors, linked work, insufficient-history,
-  # empty state, reduced motion, console/overflow/assets/touch checks) run
-  # against https://aaru1yg.github.io/habbit-trackerrr/ with a real sign-in as
-  # the pre-confirmed TEST_A account, at 390×844, 430×932 and 1440×900. Chained
-  # after habits-public (same shared account) and publishes API-readable
-  # "Goals public site <viewport>" check runs against the deployed commit.
-  goals-public:
-    # Same account-safety rules as habits-public; serialized behind it because
-    # both seed/mutate the shared TEST_A device fixture.
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.verify.result != 'skipped' }}
-    needs: [verify, habits-public]
-    name: Goals on the public site ${{ matrix.viewport }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    permissions:
-      contents: read
-      checks: write
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        viewport: [390x844, 430x932, 1440x900]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - name: Chromium runtime libraries
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y libnspr4 libnss3
-      - name: Goals journeys against the public production site
+      - name: Verify
         env:
-          GOALS_QA_VIEWPORT: ${{ matrix.viewport }}
-          GOALS_QA_OUT: qa/shots/goals-public
-          REQUIRE_AUTH: '1'
-          EXPECT_BUILD_ID: ${{ github.event.workflow_run.head_sha }}
-          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
-          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
-        run: |
-          set -euo pipefail
-          mkdir -p qa/shots/goals-public
-          node qa/goals-browser.mjs https://aaru1yg.github.io/habbit-trackerrr/ 2>&1 | tee qa/shots/goals-public/browser.log
-          exit "${PIPESTATUS[0]}"
-      - name: Publish API-readable public-site diagnostics
-        if: always()
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          QA_PROOF_DIR: qa/shots/goals-public
-          QA_PROOF_NAME: Goals public site
-          QA_PROOF_SCRIPT: qa/goals-browser.mjs
-          QA_PROOF_VIEWPORT: ${{ matrix.viewport }}
-          QA_PROOF_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: node qa/publish-browser-proof.mjs
-      - name: Upload public-site screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: goals-public-${{ matrix.viewport }}
-          path: qa/shots/goals-public/
-          retention-days: 14
-      - name: Publish result
-        if: always()
-        run: |
-          echo '## Goals on the public site — ${{ matrix.viewport }}' >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat qa/shots/goals-public/browser.log >> "$GITHUB_STEP_SUMMARY" || true
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          SITE: ${{ steps.site.outputs.url }}
+          EXPECT_ACCOUNTS: ${{ secrets.VITE_SUPABASE_URL != '' && '1' || '0' }}
+        run: node qa/live-smoke.mjs

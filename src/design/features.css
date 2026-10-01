@@ -1,0 +1,716 @@
+/* ============================================================
+   FEATURE LAYOUTS — the pieces that belong to one screen.
+   ============================================================ */
+
+/* ---------------- Today masthead ----------------------------
+   An editorial masthead rather than a hero card: the date and
+   greeting sit directly on the page, with a rule beneath. There
+   is no box, because there is nothing to separate it from. */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s7);
+  align-items: end;
+  padding-bottom: var(--s5);
+  border-bottom: 1px solid var(--rule);
+}
+.hero__copy { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+.hero__date {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hero__greet {
+  font-family: var(--font-display);
+  font-size: var(--fs-4xl);
+  font-weight: 600;
+  letter-spacing: -.028em;
+  line-height: 1.05;
+}
+.hero__line {
+  font-size: var(--fs-lg);
+  line-height: 1.45;
+  color: var(--strong);
+  max-width: 48ch;
+  margin-top: var(--s1);
+}
+.hero__stats {
+  display: flex;
+  gap: var(--s6);
+  flex-wrap: wrap;
+  margin-top: var(--s4);
+}
+
+/* ---- Day meter -------------------------------------------- */
+.daymeter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s3);
+}
+.daymeter__fig { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.daymeter__pct { font-size: var(--fs-4xl); line-height: 1; }
+.daymeter__cells {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 220px;
+}
+.daymeter__cell {
+  width: 16px;
+  height: 26px;
+  border-radius: var(--r-xs);
+  border: 1.5px solid var(--rule-firm);
+  background: var(--raised);
+}
+.daymeter__cell[data-state='done'] { background: var(--accent); border-color: var(--accent); }
+.daymeter__cell[data-state='part'] {
+  border-color: var(--accent);
+  background: linear-gradient(to top, var(--accent) 50%, transparent 50%);
+}
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; gap: var(--s4); align-items: start; }
+  .hero__greet { font-size: var(--fs-3xl); }
+  /* Stacked, the figure and its cells read as two separate blocks under the
+     stats row. Side by side they read as one measurement, and the hero stops
+     pushing the first real section below the fold. */
+  .daymeter { flex-direction: row; align-items: center; gap: var(--s4); }
+  .daymeter__pct { font-size: var(--fs-3xl); }
+  .daymeter__fig { align-items: flex-start; }
+  .daymeter__cells { justify-content: flex-start; max-width: none; }
+}
+
+/* ---------------- Entity row --------------------------------
+   One row shape for habits and for work, so the same thing looks
+   the same wherever it appears. */
+.erow {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 10px var(--s4);
+  transition: background var(--d-fast) var(--e-out);
+}
+.erow + .erow { border-top: 1px solid var(--rule); }
+@media (hover: hover) { .erow:hover { background: var(--hover); } }
+
+.erow__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.erow__title {
+  font-size: var(--fs-md);
+  font-weight: 550;
+  letter-spacing: -.004em;
+  color: var(--ink);
+}
+.erow[data-done='true'] .erow__title {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--rule-firm);
+}
+.erow__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.erow__icon {
+  width: 32px; height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--sunken);
+  color: var(--muted);
+}
+.erow[data-done='true'] .erow__icon { color: var(--accent); }
+.erow__side { display: flex; align-items: center; gap: var(--s2); flex: none; }
+.erow__step { flex: none; display: flex; }
+
+/* Phones: a counter row cannot fit name, cue, stepper and check
+   on one line without shredding the name. Stepper gets its own row. */
+@media (max-width: 620px) {
+  .erow[data-counted='true'] {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'icon main side'
+      'step step step';
+    column-gap: var(--s3);
+    row-gap: var(--s2);
+  }
+  .erow[data-counted='true'] .erow__icon { grid-area: icon; }
+  .erow[data-counted='true'] .erow__main { grid-area: main; }
+  .erow[data-counted='true'] .erow__side { grid-area: side; }
+  .erow[data-counted='true'] .erow__step { grid-area: step; }
+  .erow[data-counted='true'] .erow__step > * { width: 100%; }
+  .erow[data-counted='true'] .erow__step .stepper__btn { flex: 1; }
+}
+
+.erow__streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--urgent);
+}
+.erow__bar { margin-top: 5px; max-width: 200px; }
+
+/* ---------------- Work card ---------------------------------- */
+.wcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4);
+}
+.wcard__top { display: flex; align-items: flex-start; gap: var(--s3); }
+.wcard__kind {
+  width: 30px; height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--sunken);
+  color: var(--muted);
+}
+.wcard__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: -.008em;
+  line-height: 1.35;
+}
+.wcard__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.wcard__pct {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-xl);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+
+/* ---------------- Mood ---------------------------------------- */
+.mood { display: flex; gap: var(--s2); }
+.mood__btn {
+  flex: 1;
+  height: 42px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule);
+  background: var(--raised);
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  transition: color var(--d-fast) var(--e-out), border-color var(--d-fast) var(--e-out),
+              background var(--d-fast) var(--e-out);
+}
+.mood__btn:hover { color: var(--ink); border-color: var(--rule-firm); }
+.mood__btn[aria-pressed='true'] {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------------- Calendar ------------------------------------ */
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal__dow {
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--faint);
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+.cal__day {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule);
+  background: var(--raised);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  transition: border-color var(--d-fast) var(--e-out);
+}
+.cal__day:disabled { opacity: .4; }
+.cal__day:not(:disabled):hover { border-color: var(--rule-firm); }
+.cal__day[data-today='true'] { border-color: var(--ink); color: var(--ink); font-weight: 700; }
+.cal__day[data-sel='true'] { border-color: var(--accent); border-width: 2px; color: var(--ink); }
+.cal__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent-soft);
+}
+.cal__n { position: relative; z-index: 1; }
+
+/* ---------------- Detail header -------------------------------- */
+.detail__head {
+  display: flex;
+  align-items: flex-start;
+  /* .surface carries no padding of its own, so the head has to state it.
+     The extra on the left clears the 3px accent rule of .surface--lit. */
+  gap: var(--s5);
+  padding: var(--s5);
+  padding-left: calc(var(--s5) + 3px);
+}
+@media (max-width: 620px) {
+  .detail__head { gap: var(--s4); padding: var(--s4); padding-left: calc(var(--s4) + 3px); }
+}
+.detail__mark {
+  width: 46px; height: 46px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: var(--sunken);
+  color: var(--strong);
+}
+.detail__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+}
+
+/* ---------------- Checklist ------------------------------------- */
+.checklist { display: flex; flex-direction: column; }
+.ctask {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 9px var(--s4);
+  transition: background var(--d-fast) var(--e-out);
+}
+.ctask + .ctask { border-top: 1px solid var(--rule); }
+.ctask:hover { background: var(--hover); }
+.ctask__box {
+  width: 19px; height: 19px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-xs);
+  border: 1.5px solid var(--rule-firm);
+  background: var(--raised);
+  color: transparent;
+  transition: background var(--d-fast) var(--e-out), border-color var(--d-fast) var(--e-out);
+}
+.ctask__box:hover { border-color: var(--accent); }
+.ctask[data-done='true'] .ctask__box {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+[data-theme='dark'] .ctask[data-done='true'] .ctask__box { color: #10211f; }
+.ctask[data-done='true'] .ctask__t { color: var(--muted); text-decoration: line-through; }
+.ctask__t { flex: 1; min-width: 0; font-size: var(--fs-sm); }
+
+/* ---------------- Milestones ------------------------------------ */
+.medals { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.medal {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 10px var(--s3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule);
+  background: var(--raised);
+}
+.medal__ico { color: var(--rule-firm); flex: none; }
+.medal__t { font-size: var(--fs-xs); color: var(--faint); font-weight: 550; line-height: 1.3; }
+.medal[data-earned='true'] { border-color: var(--rule-firm); background: var(--sunken); }
+.medal[data-earned='true'] .medal__ico { color: var(--accent); }
+.medal[data-earned='true'] .medal__t { color: var(--ink); font-weight: 600; }
+
+/* ---------------- Deadline lane ---------------------------------- */
+.lane { display: flex; flex-direction: column; gap: var(--s2); }
+.lane__day {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: var(--s3);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--rule);
+}
+.lane__when {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  padding-top: 8px;
+}
+.lane__when[data-soon='true'] { color: var(--danger); }
+
+/* ---------------- First run -------------------------------------- */
+.onboard {
+  min-height: 70dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--s5);
+}
+.onboard__card {
+  max-width: 460px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s4);
+  text-align: center;
+}
+.onboard__mark { color: var(--accent); }
+
+/* ---------------- Utilities --------------------------------------- */
+.scroll-x {
+  display: flex;
+  gap: var(--s3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: var(--s2);
+}
+.scroll-x > * { scroll-snap-align: start; flex: none; }
+
+/* ---------------- Legal pages -------------------------------------
+   Long-form reading: one column, generous leading, real heading
+   hierarchy. The same page frame as the app, no marketing shell. */
+.legal { max-width: calc(var(--prose-max) + 260px); }
+.legal h1 { margin-bottom: var(--s2); }
+.legal__head { max-width: var(--prose-max); }
+.legal__body { max-width: var(--prose-max); min-width: 0; }
+.legal__cols { display: flex; flex-direction: column; }
+.legal__meta {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  padding-bottom: var(--s5);
+  border-bottom: 1px solid var(--rule);
+}
+.legal section { padding-top: var(--s6); }
+.legal h2 {
+  font-size: var(--fs-xl);
+  margin-bottom: var(--s3);
+}
+.legal h3 {
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  margin: var(--s4) 0 var(--s2);
+}
+.legal p, .legal li {
+  font-size: var(--fs-md);
+  line-height: 1.65;
+  color: var(--strong);
+}
+.legal p + p { margin-top: var(--s3); }
+.legal ul {
+  margin: var(--s3) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.legal li { padding-left: var(--s4); position: relative; }
+.legal li::before {
+  content: '';
+  position: absolute;
+  left: 2px; top: .62em;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--rule-firm);
+}
+.legal strong { color: var(--ink); font-weight: 600; }
+.legal__toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s4);
+  padding: var(--s4) 0;
+}
+.legal__toc a {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-firm);
+  text-underline-offset: 3px;
+}
+.legal__toc a:hover { color: var(--ink); }
+.legal__toch { display: none; }
+
+/* ---------------- Legal: contents beside the prose ---------------
+   The measure stays at --prose-max no matter how wide the window
+   gets; past 1120px the leftover space earns its keep as a sticky
+   table of contents rather than sitting empty. Contents come first
+   in the DOM so the narrow layout reads in the right order. */
+@media (min-width: 1120px) {
+  .legal__cols { flex-direction: row; align-items: flex-start; gap: var(--s8); }
+  .legal__body { flex: 1 1 auto; }
+  .legal__toc {
+    order: 2;
+    flex: 0 0 196px;
+    position: sticky;
+    top: var(--s6);
+    flex-direction: column;
+    gap: var(--s2);
+    border: 0;
+    border-left: 1px solid var(--rule);
+    padding: 2px 0 2px var(--s4);
+    margin: 0;
+  }
+  .legal__toch {
+    display: block;
+    font-size: var(--fs-xs);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--faint);
+    margin-bottom: var(--s1);
+  }
+  .legal__toc a { text-decoration: none; }
+  .legal__toc a:hover { text-decoration: underline; }
+}
+
+/* ============================================================
+   ACCOUNT, AUTH AND SYNC
+   ============================================================ */
+
+/* ---- Top bar sync indicator ----
+   Deliberately quiet. It is only worth looking at when something
+   is wrong, so only the states that need attention take colour. */
+.syncbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  height: 30px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background var(--d-fast) var(--e-out), border-color var(--d-fast) var(--e-out);
+}
+.syncbadge:hover { background: var(--hover); border-color: var(--rule-firm); }
+.syncbadge[data-tone='good'] { color: var(--muted); }
+.syncbadge[data-tone='warn'] { color: var(--warn);   border-color: var(--warn);   background: var(--warn-soft); }
+.syncbadge[data-tone='bad']  { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+
+/* The label is the first thing to go when the bar gets tight; the
+   icon plus the title attribute still carry the state. */
+@media (max-width: 760px) {
+  .syncbadge__t { display: none; }
+  .syncbadge { padding: 0 var(--s2); }
+}
+
+/* ---- Account page sync summary ---- */
+.syncstate {
+  display: flex;
+  gap: var(--s3);
+  align-items: flex-start;
+  padding: var(--s4);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--rule-firm);
+  border-radius: var(--r-sm);
+  background: var(--sunken);
+}
+.syncstate__ico {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-xs);
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  color: var(--muted);
+}
+.syncstate[data-tone='good'] { border-left-color: var(--accent); }
+.syncstate[data-tone='good'] .syncstate__ico { color: var(--accent); }
+.syncstate[data-tone='warn'] { border-left-color: var(--warn); }
+.syncstate[data-tone='warn'] .syncstate__ico { color: var(--warn); }
+.syncstate[data-tone='bad']  { border-left-color: var(--danger); }
+.syncstate[data-tone='bad']  .syncstate__ico { color: var(--danger); }
+
+/* ---- Form messages ---- */
+.authmsg {
+  display: flex;
+  gap: var(--s2);
+  align-items: flex-start;
+  margin: 0;
+  padding: var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--sunken);
+  color: var(--strong);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+.authmsg svg { flex: none; margin-top: 1px; }
+.authmsg--bad { background: var(--danger-soft); color: var(--danger); }
+/* Not an error the person made, so not red. The service is absent;
+   their data is fine, and the tone should say so. */
+.authmsg--warn { background: var(--warn-soft); color: var(--warn); }
+
+.authalt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
+}
+
+/* A real button that reads as a link: keyboard and screen readers get a
+   control, sighted users get the affordance they expect. */
+.linkish {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+}
+.linkish:hover { text-decoration-thickness: 2px; }
+
+/* ---- Plain prose list, no bullet glyph fight with the icon set ---- */
+.plainlist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--s3);
+  color: var(--muted);
+}
+.plainlist li { padding-left: var(--s4); position: relative; line-height: 1.5; }
+.plainlist li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: .62em;
+  width: 6px;
+  height: 1px;
+  background: var(--rule-firm);
+}
+
+/* ---- Migration dialog ---- */
+.migside {
+  padding: var(--s3) var(--s4);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  background: var(--sunken);
+}
+.migside__h {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: var(--s1);
+}
+
+.migopts { display: grid; gap: var(--s2); border: 0; padding: 0; margin: 0; }
+
+.migopt {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: var(--s3);
+  align-items: start;
+  padding: var(--s4);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: border-color var(--d-fast) var(--e-out), background var(--d-fast) var(--e-out);
+}
+.migopt:hover { background: var(--hover); }
+.migopt[data-on='true'] { border-color: var(--accent); background: var(--accent-soft); }
+.migopt input { margin-top: 3px; accent-color: var(--accent); }
+.migopt:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.migopt__ico { color: var(--muted); margin-top: 1px; }
+.migopt[data-on='true'] .migopt__ico { color: var(--accent-ink); }
+.migopt__body { display: grid; gap: 2px; }
+.migopt__t {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  font-weight: 600;
+  font-size: var(--fs-md);
+  color: var(--ink);
+}
+.migopt__rec {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: var(--raised);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-xs);
+  padding: 1px 6px;
+}
+.migopt__d { font-size: var(--fs-sm); color: var(--muted); line-height: 1.45; }
+
+@media (max-width: 620px) {
+  .migopt { grid-template-columns: auto 1fr; }
+  .migopt__ico { display: none; }
+}
+
+/* ---- Settings account row ---- */
+.acctrow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--s3);
+  align-items: center;
+  padding: var(--s4);
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--r-md);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: var(--shadow-1);
+  transition: border-color var(--d-fast) var(--e-out), box-shadow var(--d-fast) var(--e-out);
+}
+.acctrow:hover { box-shadow: var(--shadow-2); }
+.acctrow > svg:last-child { color: var(--faint); }
+.acctrow__ico {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.acctrow__body { display: grid; gap: 1px; min-width: 0; }
+.acctrow__t {
+  font-weight: 600;
+  font-size: var(--fs-md);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acctrow__d { font-size: var(--fs-sm); color: var(--muted); }
+
+/* Identity rows: the label stays put, the value takes what it needs and
+   wraps rather than pushing the row off a narrow screen. An email address
+   has no spaces, so it needs an explicit break opportunity. */
+.idrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s4);
+}
+.idrow > :first-child { flex: none; }
+.idrow__v { min-width: 0; text-align: right; overflow-wrap: anywhere; }

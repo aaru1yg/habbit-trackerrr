@@ -1,40 +1,35 @@
-name: Verify Supabase (live)
+name: Verify Supabase
 
-# Runs the real backend proof from a GitHub runner, which has network egress
-# to Supabase. Uses ONLY the public URL + publishable key, both read from
-# repository secrets. No service_role key is ever referenced.
+# The real proof that auth and sync work.
 #
-# Trigger manually: Actions -> "Verify Supabase (live)" -> Run workflow.
+# Unit tests run the merge rules against a fake backend, and qa/verify-sync.mjs
+# drives the real SDK against a local stub. Neither can prove that row level
+# security is actually enforced by Postgres, because only the real database can
+# refuse a cross-user read. That is what this job is for.
+#
+# It never prints a key, a token or a password, and it never needs the
+# service_role key.
 
 on:
   workflow_dispatch:
-  # Also runs automatically when the backend contract changes, so the proof is
-  # attached to the PR that changes it. Note: pull_request from a fork cannot
-  # read secrets — this repo's branches are same-repo, so secrets are available.
-  pull_request:
-    paths:
-      - 'supabase/schema.sql'
-      - 'qa/verify-supabase.mjs'
-      - 'src/lib/cloud/**'
-      - '.github/workflows/verify-supabase.yml'
+  schedule:
+    # Weekly, so a policy quietly disabled in the dashboard gets noticed
+    # rather than discovered by a user.
+    - cron: '17 6 * * 1'
   push:
     branches: [main]
     paths:
-      - 'supabase/schema.sql'
+      - 'supabase/**'
+      - 'src/cloud/**'
       - 'qa/verify-supabase.mjs'
       - '.github/workflows/verify-supabase.yml'
 
-# Shares the TEST_A/TEST_B accounts with verify-live-site.yml. Without this
-# group the two runs execute CONCURRENTLY on the same push and mutate the same
-# accounts' cloud rows mid-journey (signup writes → RLS matrix → row cleanup),
-# which the live migration journey legitimately reads as fresh divergence.
-concurrency:
-  group: live-qa-shared-accounts
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
-  verify:
-    name: Live auth, persistence and RLS isolation
+  live:
+    name: Live round-trip and RLS isolation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,74 +42,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fail fast if secrets are missing
+      - name: Check the credentials are present
+        env:
+          SUPA_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPA_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ] || [ -z "${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}" ]; then
+          if [ -z "${SUPA_URL}" ] || [ -z "${SUPA_KEY}" ]; then
             echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY are not set."
+            echo "Add them under Settings → Secrets and variables → Actions."
             exit 1
           fi
-          echo "Both public Supabase secrets are present."
+          echo "Credentials present."
 
-      # The script prints only pass/fail lines — never the key, never a token.
-      # Output is mirrored into the job summary and an artifact so the result
-      # is readable via the API, not only in the raw log viewer.
-      - name: Live Supabase verification
-        id: verify
-        continue-on-error: true
+      # Two pre-confirmed accounts let the isolation matrix run unattended even
+      # with email confirmation enabled (the secure default). Without them the
+      # script still runs, but reports the cross-user checks as skipped rather
+      # than claiming a pass it did not earn.
+      - name: Live verification
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          # Optional: two PRE-CONFIRMED accounts let the run prove the full
-          # two-user isolation matrix while "Confirm email" stays enabled.
           TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
           TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
           TEST_B_EMAIL: ${{ secrets.TEST_B_EMAIL }}
           TEST_B_PASSWORD: ${{ secrets.TEST_B_PASSWORD }}
-        run: |
-          set +e
-          node qa/verify-supabase.mjs 2>&1 | tee /tmp/verify.txt
-          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
-
-      - name: Publish result
-        run: |
-          {
-            echo '## Live Supabase verification'
-            echo ''
-            echo '```'
-            cat /tmp/verify.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          # Raw logs and artifacts are served from blob storage that some
-          # environments cannot reach. Annotations come from api.github.com,
-          # so echo every result line as one — this is the readable record.
-          while IFS= read -r line; do
-            case "$line" in
-              *"✗"*) echo "::error::${line}" ;;
-              *"⊘"*) echo "::warning::${line}" ;;
-              *"✓"*) echo "::notice::${line}" ;;
-              *"passed,"*|*"PARTIAL"*|*"PASSED"*|*"Confirm email"*|*"↳"*|*"cause"*|*"1."*|*"2."*|*"3."*)
-                echo "::notice::${line}" ;;
-            esac
-          done < /tmp/verify.txt
-
-      - name: Upload result
-        uses: actions/upload-artifact@v4
-        with:
-          name: supabase-verification
-          path: /tmp/verify.txt
-
-      # 0 = fully proven, 3 = partial (needs pre-confirmed accounts), else fail.
-      - name: Enforce outcome
-        run: |
-          CODE="${{ steps.verify.outputs.code }}"
-          echo "verification exit code: $CODE"
-          if [ "$CODE" = "0" ]; then
-            echo "Fully verified."
-          elif [ "$CODE" = "3" ]; then
-            echo "::warning::PARTIAL — connectivity/schema/signup verified, but login and isolation need pre-confirmed test accounts."
-          else
-            echo "::error::Live Supabase verification failed."
-            exit 1
-          fi
+        run: node qa/verify-supabase.mjs

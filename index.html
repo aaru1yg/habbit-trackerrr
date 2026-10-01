@@ -3,29 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Habit OS — habits, goals and work in one place</title>
-    <meta name="description" content="Habit OS is a personal productivity OS: habits, goals, projects, assignments, workload and analytics. Offline first, private by default." />
-    <meta name="theme-color" content="#0b0f1a" />
-    <meta name="color-scheme" content="dark light" />
+
+    <title>Habit OS: habits, work and goals in one place</title>
+    <meta name="description" content="Track the habits you repeat, the work you finish, and the goals they add up to. Progress is calculated from what you actually logged. Runs in your browser with no account and no server." />
+
+    <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a1a18" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
 
     <!-- PWA -->
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="./icon-192.png" sizes="192x192" type="image/png" />
-    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="icon" href="./favicon-64.png" sizes="64x64" type="image/png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Habit OS" />
 
     <!-- Social -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Habit OS — habits, goals and work in one place" />
-    <meta property="og:description" content="Habits, goals, projects, assignments, workload and analytics. Offline first, private by default." />
-    <meta property="og:image" content="./art/og-image.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Habit OS — habits, goals and work in one place" />
-    <meta name="twitter:description" content="Habits, goals, projects, assignments, workload and analytics. Offline first, private by default." />
-    <meta name="twitter:image" content="./art/og-image.png" />
+    <meta property="og:site_name" content="Habit OS" />
+    <meta property="og:title" content="Habit OS: habits, work and goals in one place" />
+    <meta property="og:description" content="Track the habits you repeat, the work you finish, and the goals they add up to. No account, no server, nothing leaves your browser." />
+    <meta property="og:image" content="./icon-512.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Habit OS: habits, work and goals in one place" />
+    <meta name="twitter:description" content="Track the habits you repeat, the work you finish, and the goals they add up to. No account, no server, nothing leaves your browser." />
+    <meta name="twitter:image" content="./icon-512.png" />
+
+    <!-- Paint the correct background before React mounts, so a dark-mode
+         user never gets a white flash on a cold load. -->
+    <script>
+      try {
+        var saved = JSON.parse(localStorage.getItem('aaru.os.v5') || 'null')
+        var theme = saved && saved.profile && saved.profile.theme
+        if (!theme) theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.background = theme === 'dark' ? '#1a1a18' : '#faf9f6'
+      } catch (e) { /* storage blocked: the stylesheet default applies */ }
+    </script>
   </head>
   <body>
     <div id="root"></div>

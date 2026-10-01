@@ -28,66 +28,69 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Unit and database security gates
+      - name: Lint and test
         run: |
+          npm run lint
           npm test
-          npm run test:schema
 
-      # Public Supabase client config must be injected at BUILD time — Vite
-      # inlines VITE_* into the bundle, and CI has no .env file. Both values
-      # are public-safe (the publishable key is constrained by RLS); the service_role
-      # key must never appear here.
+      # The public Supabase client config must be injected at BUILD time: Vite
+      # inlines VITE_* into the bundle and CI has no .env file. Both values are
+      # public-safe (the publishable key's authority is bounded by RLS). The
+      # service_role key must never appear here.
+      #
+      # Absent secrets are NOT a failure: the app is local-first and builds
+      # into an honest local-only mode that never offers a sign-in form.
       - name: Build (Pages subpath base)
         run: npm run build
         env:
           GH_PAGES: 'true'
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_GOOGLE: ${{ vars.VITE_SUPABASE_GOOGLE }}
 
-      # Fail loudly rather than deploying a build whose login screen cannot
-      # possibly create an account.
-      - name: Verify Supabase config was injected
-        run: |
-          set -euo pipefail
-          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ] || [ -z "${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}" ]; then
-            echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY repository secrets are not set."
-            echo "Add them under Settings → Secrets and variables → Actions."
-            exit 1
-          fi
-          # NOTE: do not grep for a bare "supabase.co" — supabase-js hardcodes
-          # "*.supabase.co" internally, so that matches even with NO config and
-          # would be a false pass. Assert the *actual* injected values instead.
-          # Secrets are compared inside node and never echoed to the log.
-          node -e '
-            const fs = require("fs");
-            const path = "dist/assets";
-            const js = fs.readdirSync(path).filter(f => f.endsWith(".js"))
-              .map(f => fs.readFileSync(path + "/" + f, "utf8")).join("");
-            const url = process.env.SUPA_URL, key = process.env.SUPA_KEY;
-            const host = new URL(url).host;
-            if (!js.includes(host)) {
-              console.error("::error::Injected Supabase URL host is absent from the bundle.");
-              process.exit(1);
-            }
-            if (!js.includes(key)) {
-              console.error("::error::Injected Supabase publishable key is absent from the bundle.");
-              process.exit(1);
-            }
-            console.log("Verified: Supabase URL host and publishable key are both present in the bundle.");
-          '
+      # Deploying a sign-in screen that cannot reach a server would be worse
+      # than deploying no sign-in screen at all, so when the secrets ARE set we
+      # assert the real values actually reached the bundle. Compared inside
+      # node; never echoed to the log.
+      - name: Verify the Supabase config matches the build
         env:
           SUPA_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPA_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPA_URL}" ] || [ -z "${SUPA_KEY}" ]; then
+            echo "::warning::Supabase secrets are not set. Deploying in local-only mode: the app will report 'This device only' and will not offer accounts."
+            exit 0
+          fi
+          node -e '
+            const fs = require("fs");
+            const dir = "dist/assets";
+            const js = fs.readdirSync(dir).filter(f => f.endsWith(".js"))
+              .map(f => fs.readFileSync(dir + "/" + f, "utf8")).join("");
+            // Do NOT grep for a bare "supabase.co": the SDK hardcodes that
+            // string internally, so it matches even with no config at all.
+            const host = new URL(process.env.SUPA_URL).host;
+            if (!js.includes(host)) {
+              console.error("::error::The injected Supabase URL host is absent from the bundle.");
+              process.exit(1);
+            }
+            if (!js.includes(process.env.SUPA_KEY)) {
+              console.error("::error::The injected publishable key is absent from the bundle.");
+              process.exit(1);
+            }
+            console.log("Verified: the Supabase host and publishable key are both present in the bundle.");
+          '
 
-      # Guard against a service-role key ever reaching the public bundle.
-      - name: Assert no service-role key in bundle
+      # A service_role key in a public bundle would hand every visitor full
+      # database access. Guard against it reaching production, ever.
+      - name: Assert no service-role key in the bundle
         run: |
           set -euo pipefail
           if grep -rlE '"role" *: *"service_role"|service_role' dist/ 2>/dev/null | grep -q .; then
             echo "::error::A service_role reference was found in the deployed bundle."
             exit 1
           fi
-          echo "No service-role key in bundle."
+          echo "No service-role key in the bundle."
 
       # Chain-of-evidence guard: the artifact must provably be built from the
       # checked-out commit, with the Pages subpath base applied. Fails loudly
@@ -99,10 +102,8 @@ jobs:
           echo "source commit: $SHA (full: $GITHUB_SHA)"
           test -f dist/index.html || { echo "dist/index.html missing"; exit 1; }
           grep -q '/habbit-trackerrr/assets/' dist/index.html || { echo "Pages subpath base missing — GH_PAGES=true not applied?"; exit 1; }
-          grep -o '<meta name="build-id" content="[^"]*"' dist/index.html
           grep -q "<meta name=\"build-id\" content=\"$SHA\"" dist/index.html || { echo "build-id meta does not match $SHA"; exit 1; }
-          grep -o "aaru-habits-v7-[0-9a-f]*" dist/sw.js | head -1
-          grep -q "aaru-habits-v7-$SHA" dist/sw.js || { echo "sw.js cache version does not match $SHA"; exit 1; }
+          grep -q "habit-os-v8-$SHA" dist/sw.js || { echo "sw.js cache version does not match $SHA"; exit 1; }
           echo "build identity OK: $SHA"
 
       - name: Upload Pages artifact
@@ -120,3 +121,36 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # Verifying the artifact is not the same as verifying the deployment.
+      # The build job proves the credentials reached dist/. This proves the
+      # site that is actually being served boots, still offers the account
+      # system, and is this commit. Losing auth silently is not hypothetical:
+      # it already happened once, and nothing noticed.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify the deployed site
+        env:
+          SITE: ${{ steps.deployment.outputs.page_url }}
+          EXPECT_BUILD: ${{ github.sha }}
+          # A deployment without credentials is a legitimate configuration,
+          # but it must be the declared one, not an accident.
+          EXPECT_ACCOUNTS: ${{ secrets.VITE_SUPABASE_URL != '' && '1' || '0' }}
+        run: |
+          # Pages can serve the previous version for a moment after the API
+          # reports success, so allow the new build id to appear.
+          for i in $(seq 1 10); do
+            if node qa/live-smoke.mjs; then exit 0; fi
+            echo "Attempt $i did not pass; waiting for propagation."
+            sleep 15
+          done
+          echo "::error::The deployed site failed verification."
+          exit 1

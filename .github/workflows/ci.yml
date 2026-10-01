@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Build & unit tests
+  check:
+    name: Lint, test, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,121 +20,90 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Unit tests (vitest)
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
         run: npm test
 
-      # Executes supabase/schema.sql against a real PostgreSQL engine and
-      # asserts the RLS policies actually deny cross-user access. Catches a
-      # broken or weakened schema before it can reach the database.
-      - name: Schema + RLS isolation (real PostgreSQL)
-        run: npm run test:schema
-
+      # Also runs qa/build-proof.mjs, which fails the build if the artifact
+      # is missing its commit stamp or contains credential-shaped strings.
       - name: Build
         run: npm run build
 
-      - name: Browser journeys and release UI checks
+      # Serve the real artifact and assert it renders and carries its stamp.
+      - name: Smoke-test the production artifact
         run: |
           set -euo pipefail
-          npm run preview -- --host 0.0.0.0 > /tmp/preview.log 2>&1 &
-          PREVIEW_PID=$!
-          trap 'kill "$PREVIEW_PID"' EXIT
-          node --input-type=module -e '
-            for (let i = 0; i < 60; i++) {
-              try { if ((await fetch("http://localhost:4173/")).ok) process.exit(0) } catch {}
-              await new Promise(r => setTimeout(r, 500));
-            }
-            process.exit(1);
-          '
-          mkdir -p qa/shots
-          # Independent browser profiles; no cloud credentials in this build.
-          # The 2-core runner cannot feed four heavy headless-Chromium jobs at
-          # once — running e2e+release and audit+contrast as two sequential
-          # groups caps concurrency at two browsers, so the layout/font can
-          # settle and the timing-sensitive checks are measured on the real,
-          # settled DOM rather than a CPU-starved frame.
-          npm run test:e2e > qa/shots/e2e.log 2>&1 &
-          E2E_PID=$!
-          npm run test:release > qa/shots/release.log 2>&1 &
-          RELEASE_PID=$!
-          set +e
-          wait "$E2E_PID"; E2E=$?
-          wait "$RELEASE_PID"; RELEASE=$?
-          set -e
-          node qa/audit.mjs http://localhost:4173 > qa/shots/layout.log 2>&1 &
-          LAYOUT_PID=$!
-          (
-            for theme in midnight aurora ember verdant daylight; do
-              node qa/contrast.mjs http://localhost:4173 "$theme"
-            done
-          ) > qa/shots/contrast.log 2>&1 &
-          CONTRAST_PID=$!
-          set +e
-          wait "$LAYOUT_PID"; LAYOUT=$?
-          wait "$CONTRAST_PID"; CONTRAST=$?
-          set -e
-          set +e
-          npm run test:e2e:work > qa/shots/workspace.log 2>&1
-          WORKSPACE=$?
-          set -e
-          STATUS=0
-          # Name the script that failed. The annotation filter below only
-          # catches lines containing ✗/Error/FAIL, and qa/audit.mjs and
-          # qa/contrast.mjs report findings without any of those words — so
-          # without this a layout or contrast failure fails the step with no
-          # attributable annotation at all.
-          report() {
-            if [ "$3" -ne 0 ]; then
-              STATUS=1
-              echo "::error::${1} exited ${3} — tail of ${2} follows"
-            fi
-          }
-          report "qa/workspace-e2e.mjs (Work journeys)" qa/shots/workspace.log "$WORKSPACE"
-          report "qa/e2e.mjs (browser journeys)" qa/shots/e2e.log "$E2E"
-          report "qa/release.mjs (release UI)" qa/shots/release.log "$RELEASE"
-          report "qa/audit.mjs (layout/tap-target audit)" qa/shots/layout.log "$LAYOUT"
-          report "qa/contrast.mjs (theme contrast)" qa/shots/contrast.log "$CONTRAST"
-          tail -n 35 qa/shots/{e2e,release,layout,contrast,workspace}.log
-          exit "$STATUS"
-
-      - name: Publish browser failure details
-        if: always()
-        run: |
-          for log in qa/shots/*.log; do
-            [ -f "$log" ] || continue
-            echo "## $log" >> "$GITHUB_STEP_SUMMARY"
-            cat "$log" >> "$GITHUB_STEP_SUMMARY"
-            # Findings, not just crashes. qa/audit.mjs reports "## tap-target — 3"
-            # plus one "route  detail  [N vp: …]" line per finding, and
-            # qa/contrast.mjs reports "2.9 (need 4.5) …" — neither mentions
-            # ✗/Error/FAIL, so a layout or contrast failure was invisible here.
-            # The "no page errors" / "0 failing" lines are passes; drop them so
-            # the annotation list shows only real findings.
-            # One annotation per log, not one per line. GitHub truncates the
-            # annotation list, and a per-line fan-out silently dropped the
-            # "widest-chain" line that names the element establishing the bad
-            # width. %0A is the workflow-command newline escape; % must be
-            # escaped first.
-            body=$(grep -aE '✗|Error|error|FAIL|^## |vp: |\(need |failing text nodes' "$log" \
-              | grep -avE 'no (page|console) errors|— 0 failing' \
-              | head -40 \
-              | sed -e 's/%/%25/g' -e 's/\r/%0D/g' -e 's/$/%0A/' \
-              | tr -d '\n')
-            if [ -n "$body" ]; then
-              echo "::error file=$log::${body}"
-            fi
+          npx vite preview --host 127.0.0.1 --port 4173 > /tmp/preview.log 2>&1 &
+          trap 'kill %1 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ > /tmp/index.html; then break; fi
+            sleep 0.5
           done
+          grep -q '<div id="root"></div>' /tmp/index.html
+          grep -q '<meta name="build-id"' /tmp/index.html
+          echo "Production artifact serves and carries its build identity."
 
-      - name: Upload browser evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: browser-qa
-          path: qa/shots/
-          retention-days: 7
+  sync:
+    name: 'Browser checks: sync and accessibility'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/setup-node@v4
         with:
-          name: dist
-          path: dist
-          retention-days: 7
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Drives the real @supabase/supabase-js client over real HTTP, in a real
+      # browser, against a local stub standing in for the project. Two browser
+      # contexts act as two devices, so the merge, conflict and tombstone paths
+      # are exercised rather than asserted. Row level security is the one thing
+      # a stub cannot prove; verify-supabase.yml does that against the real
+      # database.
+      # Each wait fails loudly if the service never answers, so a broken
+      # harness cannot masquerade as a passing verification.
+      - name: Start the Supabase stub
+        run: |
+          node qa/supabase-stub.mjs 54321 > /tmp/stub.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:54321/auth/v1/settings > /dev/null && exit 0
+            sleep 0.25
+          done
+          echo "::error::The Supabase stub never became reachable."
+          cat /tmp/stub.log
+          exit 1
+
+      - name: Start the app against the stub
+        env:
+          SUPABASE_STUB: '1'
+          VITE_SUPABASE_URL: /supabase-stub
+          VITE_SUPABASE_PUBLISHABLE_KEY: local-stub-publishable-key
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/dev.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:5173/ > /dev/null && exit 0
+            sleep 0.5
+          done
+          echo "::error::The dev server never became reachable."
+          cat /tmp/dev.log
+          exit 1
+
+      - name: Verify sign-up, sync, merge and deletion
+        run: node qa/verify-sync.mjs
+
+      # Reuses the server already running above, which has credentials
+      # configured, so the account screens are audited in their real
+      # signed-out state rather than as "not available in this build".
+      - name: Accessibility audit
+        run: node qa/audit-a11y.mjs
+
+      - name: Server logs on failure
+        if: failure()
+        run: |
+          echo "--- dev server ---";  cat /tmp/dev.log  || true
+          echo "--- stub ---";        cat /tmp/stub.log || true

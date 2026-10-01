@@ -12,10 +12,16 @@
 --   authority is bounded by the policies below.
 --
 -- DATA MODEL NOTE (read before extending)
---   The app's client state is one reduced document (habits, checkins,
---   routines, projects, assignments, moods, preferences). It is stored as a
+--   The app's client state is one reduced document (profile, habits,
+--   checkins, work, goals, moods, and a tombstone map). It is stored as a
 --   single owned jsonb row per user in `user_state`, which makes each sync an
 --   atomic, conflict-checked write and keeps the merge engine deterministic.
+--
+--   CONCURRENCY. `revision` is a compare-and-swap token, not a counter. The
+--   client writes with `... where user_id = $1 and revision = $expected`; a
+--   zero-row result means another device wrote first, and the client re-reads
+--   and merges rather than overwriting. Do not "simplify" this to an upsert:
+--   that is precisely the change that silently loses a device's edits.
 --
 --   `user_state.doc` is validated below so it cannot be a non-object, and
 --   generated columns expose per-entity counts for indexing/analytics without
@@ -53,7 +59,7 @@ create table if not exists public.user_state (
   user_id     uuid primary key references auth.users (id) on delete cascade,
   doc         jsonb  not null default '{}'::jsonb,
   revision    bigint not null default 1,
-  schema_version integer not null default 4,
+  schema_version integer not null default 5,
   updated_at  timestamptz not null default now(),
   created_at  timestamptz not null default now(),
   constraint user_state_doc_is_object check (jsonb_typeof(doc) = 'object'),
@@ -61,10 +67,10 @@ create table if not exists public.user_state (
 );
 
 comment on table public.user_state is
-  'One owned JSON document per user: habits, checkins, routines, projects, assignments, moods, preferences.';
+  'One owned JSON document per user: profile, habits, checkins, work, goals, moods.';
 
 -- Additive columns, so re-running against an older deployment upgrades it.
-alter table public.user_state add column if not exists schema_version integer not null default 4;
+alter table public.user_state add column if not exists schema_version integer not null default 5;
 alter table public.user_state add column if not exists created_at timestamptz not null default now();
 alter table public.profiles   add column if not exists avatar_url text;
 
@@ -77,12 +83,18 @@ alter table public.user_state
   generated always as (coalesce(jsonb_array_length(doc -> 'habits'), 0)) stored;
 
 alter table public.user_state
-  add column if not exists project_count integer
-  generated always as (coalesce(jsonb_array_length(doc -> 'projects'), 0)) stored;
+  add column if not exists work_count integer
+  generated always as (coalesce(jsonb_array_length(doc -> 'work'), 0)) stored;
 
 alter table public.user_state
-  add column if not exists assignment_count integer
-  generated always as (coalesce(jsonb_array_length(doc -> 'assignments'), 0)) stored;
+  add column if not exists goal_count integer
+  generated always as (coalesce(jsonb_array_length(doc -> 'goals'), 0)) stored;
+
+-- Dropped in v5: `projects` and `assignments` became one `work` collection.
+-- Removing the stale generated columns keeps the table honest about the
+-- document it actually stores.
+alter table public.user_state drop column if exists project_count;
+alter table public.user_state drop column if exists assignment_count;
 
 -- ============================================================
 -- INDEXES
@@ -258,10 +270,8 @@ grant execute on function public.delete_own_account() to authenticated;
 -- FUTURE: relational entities
 -- ============================================================
 -- Deliberately not created. Splitting the document into habits /
--- habit_completions / habit_notes / projects / project_tasks /
--- project_milestones / assignments / assignment_tasks / goals / mood_entries
--- / daily_reflections / achievements / routines / preferences / notifications
--- would require rewriting the store, the sync engine and the merge rules.
+-- habit_checkins / work / work_tasks / goals / mood_entries would require
+-- rewriting the store, the sync engine and the merge rules.
 --
 -- Creating those tables now, with no code reading or writing them, would put
 -- an empty schema in the database that misrepresents how the app works. When

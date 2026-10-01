@@ -1,0 +1,130 @@
+/* ============================================================
+   LAYOUT — the page frame, the surface vocabulary, and the
+   spacing rhythm.
+
+   There is no perspective camera and no pointer tilt. Depth is
+   communicated by a border and, for things that genuinely float
+   above the page (menus, sheets), a shadow.
+   ============================================================ */
+
+.stage { position: relative; min-height: 100%; }
+
+/* Route change gets one short fade. It exists so the content
+   doesn't snap, not as an effect. Nothing animates on scroll. */
+.route { animation: fade-in var(--d-mid) var(--e-out) both; }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Retained so screens can mark reading order, but deliberately
+   inert: staggered entrances made every page feel slow. */
+.rise { }
+
+/* Depth classes from the previous design, now no-ops. Kept so a
+   stray usage can't break a layout; new code should not add them. */
+.d0, .d1, .d2, .d3, .d4 { }
+
+/* ============================================================
+   SURFACES
+   ============================================================ */
+
+.surface {
+  position: relative;
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+}
+
+/* Flat: the default list/panel container, flush with the page. */
+.surface--flat { background: var(--raised); }
+
+/* Raised: a card that should read as a discrete object. */
+.surface--raised { box-shadow: var(--shadow-1); }
+
+/* Float: overlays only. */
+.surface--float { box-shadow: var(--shadow-3); }
+
+/* Plate: a well. Inputs, tracks, and insets sit in these. */
+.surface--plate {
+  background: var(--sunken);
+  border-color: transparent;
+}
+
+/* The single emphasised surface on a screen. A left rule in the
+   accent, not a glow: it marks the item without recolouring it. */
+.surface--lit {
+  border-color: var(--rule-firm);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Interactive cards. A border darkening and a 1px rise, which is
+   enough to read as "this responds" without theatre. */
+.lift {
+  transition:
+    border-color var(--d-fast) var(--e-out),
+    box-shadow var(--d-fast) var(--e-out),
+    transform var(--d-fast) var(--e-out);
+}
+@media (hover: hover) {
+  .lift:hover {
+    border-color: var(--rule-firm);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-1px);
+  }
+}
+.lift:active { transform: none; box-shadow: var(--shadow-1); }
+
+/* Previously a pointer-tracked specular highlight. Removed. */
+.sheen { }
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail) 1fr;
+  min-height: 100dvh;
+}
+.shell[data-rail='open'] { grid-template-columns: var(--rail-open) 1fr; }
+
+.shell__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--s6) var(--s5) var(--s8);
+}
+
+@media (max-width: 900px) {
+  .shell,
+  .shell[data-rail='open'] { grid-template-columns: 1fr; }
+  .page {
+    padding: var(--s5) var(--s4)
+             calc(var(--dock) + env(safe-area-inset-bottom) + var(--s6));
+  }
+}
+
+/* ---- Rhythm ------------------------------------------------ */
+.stack { display: flex; flex-direction: column; gap: var(--s6); }
+.stack--tight { gap: var(--s3); }
+.stack--loose { gap: var(--s7); }
+/* The wide editorial rhythm needs a wide page to read as rhythm. On a phone
+   the same 48px just pushes content off the screen, so the scale steps down
+   with the viewport. */
+@media (max-width: 700px) { .stack--loose { gap: var(--s6); } }
+
+/* Cells stretch so sibling cards share a baseline at the bottom as well as
+   the top; a row of tiles with ragged lower edges looks unconsidered. */
+.grid { display: grid; gap: var(--s4); align-items: stretch; }
+.grid--2 { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+.grid--3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.grid--4 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }

@@ -1,135 +1,120 @@
-# Supabase setup — making cloud accounts real
+# Supabase setup
 
-The app ships with a **local-only** fallback. It becomes a genuine multi-user
-cloud app only after the steps below are completed against a real Supabase
-project. Until then the UI honestly reports "Local only" and does not offer
-accounts.
+Habit OS works with no account at all. Everything in this document is about
+the optional half: backing a user's data up to their own account so it follows
+them to a second device.
+
+If you skip this, the app still builds and runs — it just reports
+"This device only" and never offers a sign-in form.
 
 ---
 
 ## 1. Create the project
 
-1. Go to <https://supabase.com/dashboard> → **New project**.
-2. Pick a name, a strong database password (store it in a password manager —
-   it is **never** needed by this app), and a region near your users.
-3. Wait for provisioning to finish.
+1. Create a project at <https://supabase.com/dashboard>.
+2. Note the **Project URL** and the **publishable** (anon) key from
+   *Project Settings → API*.
+
+The publishable key is designed to be public. It ends up compiled into the
+JavaScript bundle that every visitor downloads, and that is fine: its entire
+authority is bounded by the row level security policies in `schema.sql`.
+
+> The **service_role** key is the opposite of that. It bypasses RLS entirely.
+> It must never appear in a `VITE_` variable, in this repository, or anywhere
+> near the frontend.
 
 ## 2. Apply the schema
 
-1. Open **SQL Editor → New query**.
-2. Paste the entire contents of [`schema.sql`](./schema.sql) and click **Run**.
-3. Confirm success. The script is idempotent — re-running it is safe.
+Open *SQL Editor → New query*, paste the whole of [`schema.sql`](./schema.sql),
+and run it. It is idempotent, so re-running it after an edit is safe.
 
-This creates `profiles` and `user_state`, enables **and forces** Row Level
-Security on both, adds `auth.uid()`-scoped policies for
-select/insert/update/delete (8 in total, `authenticated` role only), revokes
-all table access from the `anon` role, adds the supporting indexes, installs
-the signup trigger, and creates `delete_own_account()`.
+It creates:
 
-> The exact same file is executed against a real PostgreSQL engine in CI by
-> `npm run test:schema`, which asserts that User B cannot read, update or
-> delete User A's rows. If that job is green, the SQL in this repo is known
-> to parse, run, and isolate correctly.
+| Object | Purpose |
+| --- | --- |
+| `public.profiles` | One row per auth user, created automatically on signup. |
+| `public.user_state` | The user's app document as a single owned `jsonb` row. |
+| `handle_new_user()` | Trigger that creates the profile row. |
+| `touch_updated_at()` | Keeps `updated_at` server-authoritative and `created_at` immutable. |
+| `delete_own_account()` | Lets a signed-in user erase their own account. Acts only on `auth.uid()`. |
 
-## 3. Verify RLS is actually on
+Row level security is **enabled and forced** on both tables, with four
+`auth.uid()`-scoped policies each, and the `anon` role is explicitly revoked
+from both. The database enforces isolation; the frontend is not trusted to.
 
-**Database → Tables** → for both `profiles` and `user_state` the
-**RLS enabled** badge must be present. If it is not, the schema did not apply.
+Verify it took, with the queries at the bottom of `schema.sql`. You should see
+`rls_enabled` and `rls_forced` true for both tables, and eight policies, all
+scoped to `authenticated`.
 
-You can also confirm in SQL:
+## 3. Configure auth
 
-```sql
-select c.relname,
-       c.relrowsecurity      as rls_enabled,
-       c.relforcerowsecurity as rls_forced
-  from pg_class c
-  join pg_namespace n on n.oid = c.relnamespace
- where n.nspname = 'public'
-   and c.relname in ('profiles', 'user_state');
--- both rows must show rls_enabled = true AND rls_forced = true
+In *Authentication → Providers*, keep **Email** enabled.
 
-select tablename, policyname, cmd, roles
-  from pg_policies
- where schemaname = 'public'
- order by tablename, cmd;
--- expect 8 rows (4 per table), every one with roles = {authenticated}
+In *Authentication → URL Configuration*, add every origin the app is served
+from to **Redirect URLs**, including the trailing path if you deploy to a
+subdirectory:
+
+```
+http://localhost:5173/
+https://<your-custom-domain>/
+https://<user>.github.io/<repo>/
 ```
 
-## 4. Collect the two public values
+The app derives its own redirect target from `window.location` (see
+`src/cloud/config.js`), so it works on all three without a rebuild — but
+Supabase will refuse any origin not on this list.
 
-**Project Settings → API**:
+**Google sign-in is off by default.** Enabling the button is a separate,
+deliberate step: configure the Google provider in Supabase, then build with
+`VITE_SUPABASE_GOOGLE=true`. The button is hidden otherwise, because offering
+a sign-in method that is not configured just sends people to an error page.
 
-| Value | Where it goes |
-| --- | --- |
-| Project URL | `VITE_SUPABASE_URL` |
-| `anon` / `publishable` key | `VITE_SUPABASE_PUBLISHABLE_KEY` |
+## 4. Build with the config
 
-> **Never** copy the `service_role` key into this project. Anything prefixed
-> `VITE_` is compiled into the public JavaScript bundle. The publishable key is
-> designed to be public; its power is limited entirely by the RLS policies
-> applied in step 2.
-
-## 5. Configure redirect URLs
-
-**Authentication → URL Configuration**:
-
-- **Site URL**: `https://aaru1yg.github.io/habbit-trackerrr/`
-- **Redirect URLs** — add both:
-  - `https://aaru1yg.github.io/habbit-trackerrr/`
-  - `http://localhost:5173/`
-
-Email confirmation and password-reset links will refuse to work if the
-deployed origin is missing here.
-
-## 6. Email settings
-
-**Authentication → Providers → Email**:
-
-- Keep **Confirm email** ON for a real production app. The UI handles the
-  unverified state and offers a resend action.
-- If you want frictionless testing first, you may temporarily turn it OFF.
-
-> Supabase's built-in SMTP is rate-limited to a few emails per hour and is not
-> intended for production. For real users, configure a custom SMTP provider
-> under **Project Settings → Auth → SMTP Settings**.
-
-## 7. Google OAuth (optional)
-
-**Authentication → Providers → Google** → enable, then paste the client ID and
-secret from a Google Cloud OAuth consent screen. Set the authorised redirect
-URI to the value Supabase displays on that page.
-
-## 8. Local development
+Locally, copy `.env.example` to `.env.local` and fill it in. `.env.local` is
+gitignored.
 
 ```bash
-cp .env.example .env
-# fill in the two values from step 4
+cp .env.example .env.local
 npm run dev
 ```
 
-`.env` is gitignored. Do not commit it.
+In CI, the values come from repository secrets `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY`. `.github/workflows/deploy.yml` injects them at
+build time and then **asserts that the real host and key are present in the
+emitted bundle**, so a misconfigured secret fails the deploy instead of
+shipping a login screen that cannot work.
 
-## 9. GitHub Pages / CI
+`.github/workflows/verify-supabase.yml` goes further and performs a genuine
+round-trip against the live project: sign up, write a document, read it back,
+confirm another user cannot see it, then delete the account.
 
-The Pages workflow reads the same two values from repository secrets.
+---
 
-**Repo → Settings → Secrets and variables → Actions → New repository secret**:
+## How sync behaves
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
+| Situation | What happens |
+| --- | --- |
+| No account | Status reads "This device only". Nothing is sent anywhere. |
+| Sign in, account empty | This device's data seeds the account. |
+| Sign in, device empty | The account's data is adopted. |
+| Sign in, both hold data, identical | Nothing is written and nothing is asked. |
+| Sign in, both hold data, different | The user is asked once: combine, keep this device, or keep the account. The answer is remembered per account per device. |
+| Edit while signed in | Debounced write, 1.2 s after the last change. |
+| Two devices write at once | The second write fails its compare-and-swap on `revision`, re-reads, merges, and writes again. Neither side's edits are dropped. |
+| Offline | Status reads "Offline". Edits stay local and are sent on reconnect. |
+| Tab regains focus | The document is re-read, so a change made on another device shows up. |
 
-The deploy workflow fails the build if either is missing, and additionally
-asserts that no `service_role` reference reached the bundle — so a
-misconfigured deploy is never published silently.
+Deletions are recorded as tombstones in the document (`deleted`), because a
+merge unions by id and would otherwise resurrect anything another device still
+remembered. Tombstones are pruned after 180 days.
 
-## 10. Verify it is genuinely live
+## What is stored
 
-After deploying, in a clean browser profile:
+The `doc` column holds exactly what the app holds: profile (display name,
+theme, motion preference, week start), habits, check-ins, work items and their
+tasks, goals, mood entries, and the tombstone map. No analytics, no device
+fingerprints, no behavioural logs.
 
-1. Create account A → confirm email if enabled → sign in.
-2. Create a habit. Reload. It must still be there.
-3. Sign out. Create account B. B must see **none** of A's data.
-4. Sign in as A in a second browser. A's habit must appear.
-
-Isolation can also be checked directly in the dashboard: **Table Editor →
-user_state** should contain one row per user, each with a distinct `user_id`.
+The only other personal data is what Supabase Auth keeps in `auth.users`: the
+email address, a password hash, and timestamps.

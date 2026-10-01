@@ -1,172 +1,293 @@
-# 🔥 Aaru · Next-Level Habit Tracker
+# Habit OS
 
-> **V4 spatial release:** Habit OS is now a 3D-first *environment* — a boot cinematic on entry, a camera that travels between screens, floating depth planes on Today/Projects/Goals/Insights/Achievements, and a lazy WebGL world layer — while every V2/V3 system (auth, Supabase, RLS, sync, offline, PWA) stays untouched. See [the V4 audit](docs/V4-AUDIT.md) and [release notes](docs/V4-RELEASE.md) for architecture, budgets and QA. The live build identifies itself at [`release.json`](https://aaru1yg.github.io/habbit-trackerrr/release.json).
+A habit tracker that also holds the work and the goals those habits are *for*.
 
-Aaru's personal, next-level habit tracker. Dark, glassy, heavily animated, and packed with more graphs and features than any ordinary habit app. Your data lives entirely in your browser (localStorage) — no account, no server, just *you* and your streak.
+Local-first: it opens straight into today's habits and works fully offline with
+no account. Signing in is optional, and adds encrypted-in-transit backup and
+sync across your devices. [Live app](https://aaru1yg.github.io/habbit-trackerrr/)
 
-## ✨ The vibe
+---
 
-- Quiet glass cards over a slowly drifting aurora + noise background
-- Springy framer-motion animations with one unified motion language (cards, toggles, gauges)
-- Animated counters, animated circular gauges, animated dash-offset donuts
-- Celebrations reserved for moments that matter — a project reaching 100%, a streak
-  milestone — never confetti per checkbox
+## What it is
 
-## 🆕 What's new (v2)
+Most habit trackers make you check boxes and then leave you to guess what the
+boxes were for. Habit OS keeps three things in one place and wires them
+together:
 
-- **Zero fake data.** The app starts completely empty — no seeded habits, no invented check-ins. Every number on screen is yours. (Storage key bumped to `v2`; the old demo data is simply ignored.)
-- **Auto monthly calendar** 🗓️ — a Google-Sheets-style grid that builds itself for any month: colour-coded **Week 1…Week 5** bands, weekday + date headers, one glowing checkbox per habit per day, a per-day **Progress / Done / Not Done** roll-up, an animated completion sparkline and an **Analysis** panel with per-habit consistency bars (e.g. `56.67%`). Future days are locked; use the arrows to browse months.
-- **Weekly Task Tracker board** — *Week Start Date* pill, a bar chart of done-per-day, a big overall donut (`7 / 44 Completed`) and one card per weekday with its own animated donut + task list you can tick straight from the board.
-- **Mental State** 🧠 — log **Mood** and **Motivation** (1–10) daily → animated dual-line graph for the month + weekly **Mindset Score** bars.
-- **Adding stuff is now obvious**: a Quick-Add bar at the top (type a name → Enter), one-tap preset chips (Wake up at 05:00, Gym, Cold Shower, …), **📅 New habit / 🚀 New project** buttons, and a floating **＋** button that follows you down the page.
+| Noun | What it is | Example |
+| --- | --- | --- |
+| **Habit** | Something you repeat on a cadence | *Read 20 pages, daily* |
+| **Work** | Something you finish once | *Dissertation ch. 3, due Friday* |
+| **Goal** | The outcome the other two serve | *Submit the thesis* |
 
-## 📈 Graphs & visualizations
+A goal's progress is computed from the habits and work linked to it, so the
+number is earned rather than typed in. **Today** reads across all three and
+ranks what to do next by deadline pressure and by which streaks are at risk.
 
-| Panel | What it shows |
-|---|---|
-| **Auto monthly calendar** | Self-building habit grid with weekly colour bands, per-day roll-ups, sparkline & per-habit analysis bars |
-| **Task Tracker (week board)** | Weekly overview: bar chart, overall donut, one donut + checklist per weekday |
-| **Mental State** | Mood vs Motivation line graph + weekly mindset score bars |
-| **Today's completion** | Animated circular gauge + count of habits done |
-| **Last 7 days** | Animated completion bar chart |
-| **Consistency heatmap** | GitHub-style week grid (starts on Sunday), hover for details, 12/16/24-week toggle |
-| **Master graph** | Every habit over time (per-habit lines or overall area), auto date-range select (7/14/30/90d), **auto date select** |
-| **Master project pie** | Donut of all projects + big center average; click a slice for detail |
-| **Custom project tracker** | Each project card has 10→20→30→…→100% step buttons, **plus its own graph and its own pie** |
-| **Life balance radar** | Radar chart bucketing your habits into fitness/mind/learning/health/creative/social |
-| **Habit types ring** | Pie of forever vs one-day vs short-term |
+## The five screens
 
-## 🎯 Added features
+- **Today**: the date, the day's completion as a figure and a cell per habit, a
+  ranked "Next up" queue, today's habits, priority work, your week, and a
+  one-tap mood log.
+- **Habits**: split into due and not due today, with 30-day consistency scored
+  only against the days a habit was actually scheduled.
+- **Work**: projects and one-off tasks in one list, sorted by urgency, with
+  pace tracking against the deadline.
+- **Goals**: outcomes with their linked habits and work, and honest progress.
+- **Insights**: a heatmap, weekday profile, streaks, mood correlation and
+  milestones. Statistics refuse to appear until there is enough data to support
+  them.
 
-- **Daily habit OR project/activity** — choose at creation time.
-- **Duration mode for every habit**: `♾️ forever`, `📍 one-day`, `📆 short-term` (with start & end dates).
-- **One-day mode** for a single event (exam, deadline, one-off thing) — done/not-done on that day only.
-- **Short-term project** with a deadline and a 0→100% progress slider in steps of 10.
-- **Multi-value habits** (e.g. 8 glasses of water / 60 min of code) with −/＋ steppers and progress bars.
-- **Streaks & best streaks 🔥** with achievement badges (3-day, 7-day, 30-day, perfect day, etc.).
-- **Habit library** — manage, edit, delete, and inspect every tracker; per-habit sparkline chart + metrics.
-- **Search / filter** daily vs projects in the library tab.
-- **Export / Import** your data as JSON, and **🔄 reset** wipes everything for a fresh start (no demo data).
-- Everything persists automatically to `localStorage`.
+Plus **⌘K / Ctrl-K**, which searches everything and quick-adds with a prefix:
+`h` habit, `w` work, `g` goal.
 
-## 🏗️ The work layer — Projects & Assignments
+## Design
 
-Habits are what you repeat. **Projects and Assignments are what you finish** — two separate,
-first-class systems with their own nav entries, dashboards, detail screens and analytics.
+Light-first, editorial and typographic. Warm paper, ink, hairline rules, and
+colour used only where it carries meaning.
 
-- **Projects** — milestones on a stepper, tasks (TODO / IN PROGRESS / BLOCKED / DONE),
-  progress in honest steps (4 of 10 tasks = 40%), optional deadline with a pace line
-  ("behind the pace by 17 points"), burndown + velocity + time-vs-work charts, and linked habits
-  whose 30-day consistency is shown next to project progress (*correlation, not cause*).
-- **Assignments** — deadline-first cards with a live countdown and a computed status engine:
-  ON TRACK / AT RISK / URGENT / OVERDUE / COMPLETED, derived from real progress vs. time left.
-  An assignment can optionally belong to a project.
-- **Workload** — due-by-day bars so tomorrow's pile is visible today.
-- **Deadlines** — one timeline of every project and assignment, soonest first.
-- **Record** — log progress % and time spent on any project or assignment; every entry feeds the
-  charts. No invented numbers anywhere: empty states until you log something real.
-- **Celebrations** — a full-screen moment when a project hits 100%, a light toast for assignments.
-  Never per checkbox.
-- Today surfaces a small **Priority work** card (most urgent first) under your habits — work never
-  takes over the habit screen.
+- **One accent.** A deep pine-teal marks the active view, a completed check and
+  a progress fill. Nothing else is tinted, so the accent always means
+  something.
+- **A status ramp, not a palette.** Brick, terracotta, ochre and the accent run
+  overdue to urgent to at-risk to on-track, in that order, and appear nowhere
+  else.
+- **Serif for figures, sans for interface.** Source Serif 4 sets page titles,
+  percentages and headline numbers; Inter does the work.
+- **One icon system.** `src/ui/icons.jsx` holds every glyph, drawn on a 24-unit
+  grid at a single stroke weight. There are no emoji anywhere in the product,
+  and there is a test that fails if one reappears.
+- **Charts state their ceiling.** A percentage series is plotted against 0–100
+  with the top edge drawn, never auto-scaled to its own tallest bar. A flat
+  week has to look flat.
+- **Two themes**, light and dark, plus a transitions switch. The system
+  `prefers-reduced-motion` setting overrides both.
 
-## 🛠️ Tech
+What the interface deliberately does not do: gradients as decoration, glass,
+perspective tilt, pointer-tracking effects, scroll-triggered animation, or
+pill-shaped buttons applied by default. Nothing is invented for the user
+either, so there are no scores, grades, levels or encouragement the data does
+not support.
 
-- React 18 + Vite 5
-- Framer Motion (animations)
-- Hand-rolled SVG charts (no chart library) — every pixel is real data
-- date-fns (dates)
-- Inter + Manrope (variable, self-hosted)
-- vitest + Testing Library (unit/render suite) and a puppeteer-driven real-browser QA pass
-
-## 🚀 Run it
+## Running it
 
 ```bash
 npm install
-npm run dev      # start the dev server
-npm run build    # production build
-npm run preview  # preview the production build
-npm run test     # run the smoke tests
+npm run dev        # http://localhost:5173
 ```
 
-Made for Aaru 💜 — now go keep the streak alive. 🔥
+| Script | Does |
+| --- | --- |
+| `npm run dev` | Vite dev server |
+| `npm run build` | Production build + artifact proof |
+| `npm run preview` | Serve the built artifact |
+| `npm test` | Vitest (engine + store + render) |
+| `npm run lint` | ESLint |
+| `npm run test:visual` | Headless screenshots into `qa/shots/` |
 
-## 📲 Install it like a real app (PWA)
+Node 22 (`.nvmrc`).
 
-Aaru's tracker is a full **Progressive Web App**. On your phone (or any device):
+## Architecture
 
-- Open the site in Chrome/Safari/Edge.
-- Use **"Add to Home screen"** (or tap **📲 Install app** in the header on the web).
-- It launches full-screen, works **offline**, and saves all your data **on the device** (localStorage).
-- Use **📤 Export / 📥 Import** to back up or move your data between devices.
+```
+src/
+  main.jsx App.jsx index.css
+  core/      date.js  schema.js  compute.js  store.jsx
+  design/    tokens · base · stage · ui · shell · features (.css)
+  ui/        icons.jsx  index.jsx          every primitive, one file
+  app/       router.jsx  nav.js  Shell.jsx  CommandPalette.jsx
+  features/  today/ habits/ work/ goals/ insights/ settings/ legal/
+```
 
-## 🚀 Host it for free (GitHub Pages)
+Three rules this codebase holds to:
 
-A ready-made **GitHub Actions** deploy workflow (`.github/workflows/deploy.yml`) builds the site with the correct base path and publishes it to `https://aaru1yg.github.io/habbit-trackerrr/`.
+1. **`core/` computes, `features/` renders.** Every statistic in the UI comes
+   from a pure function in `src/core/compute.js` that is unit-tested in
+   isolation. No screen does its own arithmetic.
+2. **One primitive library.** `src/ui/index.jsx` is the only place a `Button`,
+   `Surface` or `Sheet` is defined.
+3. **One source of truth per value.** A project's progress comes from its tasks
+   *or* its manual dial, never both: adding a task clears the dial.
 
-**To go live (one-time, ~30 seconds):**
+State is a `useReducer` in `src/core/store.jsx`, persisted to `localStorage`
+under `aaru.os.v5` and validated on every read.
 
-1. Open the repo → **Settings → Pages**.
-2. Under **Build and deployment → Source**, pick **GitHub Actions**.
-3. That's it — the site deploys automatically (or push any change / run the "Deploy to GitHub Pages" workflow manually).
+### Data and migration
 
-Because the repo is **public**, the site is free and live over the internet with no hosting bill.
+The schema (`src/core/schema.js`) is version 5. Older saves are migrated on
+load: projects and assignments fold into one **work** list, milestones flatten
+into the task checklist, and `routines`, `signals` and `focusLog` (scaffolding
+nothing ever read back) are dropped.
 
-> ⚠️ If your GitHub account ever changes, just enable Pages the same way — the workflow handles the rest.
+Settings has **Export** (a JSON file you own) and **Import**. Import accepts
+v4 backups and migrates them. An account is a convenience, not a substitute for
+a backup you hold yourself.
 
-### Alternative (no GitHub)
+## Accounts and sync
 
-Build once with `GH_PAGES=true npm run build`, then drag the `dist/` folder into **Netlify Drop** or **Cloudflare Pages** for an instant free URL.
+Optional, and off until you sign in. The app is fully usable without one.
 
-## 🎨 Design system
+Setting the backend up, or working out why sign-in is failing, is in
+[`docs/backend.md`](docs/backend.md).
 
-- Deep-space dark base (`#0B0F1A`) with a slow aurora drift + fine noise grain — the only
-  background ornament; content sits on quiet glass cards
-- Inter for UI, Manrope for display numbers; `tabular-nums` everywhere digits align
-- 8pt spacing scale, 16/20/24px radii, one unified motion language (respects
-  `prefers-reduced-motion`)
-- Five themes: **Aurora** (default), **Midnight**, **Ember**, **Verdant** and a WCAG-AA
-  **Daylight** mode
-- Mobile-first: bottom tab bar, swipe actions on habit rows, and a floating **+ Add habit**
-  button that stays reachable at every width from 320px up (P0, regression-tested)
-- Offline/online indicator + install button (PWA)
+| | No account | Signed in |
+| --- | --- | --- |
+| Where data lives | This browser | This browser **and** your account |
+| Works offline | Yes | Yes; changes sync on reconnect |
+| Second device | Export and import a file | Automatic |
+| Who can read it | You | You. Row level security scopes every row to one user id |
 
-## 🧪 Tests & browser QA
+The whole surface is six files in `src/cloud/`:
+
+| File | Responsibility |
+| --- | --- |
+| `config.js` | Reads the build-time config. The one honest answer to "can this build sync?" Imports nothing. |
+| `client.js` | Dynamic-imports the SDK on first use, so it stays out of the first chunk. |
+| `AuthProvider.jsx` | Sessions, sign-up, sign-in, recovery, account deletion. |
+| `SyncProvider.jsx` | Pull on sign-in and on focus, debounced push, conflict retry. |
+| `syncEngine.js` | The only code that touches `user_state`. Compare-and-swap writes. |
+| `merge.js` | Reconciles two copies of the document. |
+
+Three design decisions worth knowing:
+
+**Writes are compare-and-swap, not last-write-wins.** Each write is conditional
+on the `revision` it was based on. A write that lost the race matches zero rows,
+and the client re-reads, merges and retries, so two devices editing at once
+cannot silently drop one side's work.
+
+**Deletions leave tombstones.** A merge unions by id, so without a record of
+what was deleted, a device that still remembered a habit would resurrect it.
+Deletions are recorded as `{ id: instant }` in the document and pruned after
+180 days. An edit made *after* the deletion wins, because that is the later
+deliberate act.
+
+**The prompt only appears when there is a real choice.** If this device and the
+account both hold data and the two documents differ, you are asked once whether
+to combine, keep the device, or keep the account, with the real counts shown.
+Any other case resolves itself silently, and the answer is remembered per
+account per device.
+
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are injected at build
+time; both are public-safe. Without them the app builds into an honest
+local-only mode that never renders a sign-in form. Setup, the SQL schema and
+the RLS policies are in [`supabase/SETUP.md`](./supabase/SETUP.md).
+
+## Testing
+
+```
+test/compute.test.js   38 tests — scheduling, streaks, pace, correlation
+test/store.test.js     23 tests — reducer invariants, normalisation, v4 → v5
+test/app.test.jsx      18 tests — first run, check-in, navigation, ⌘K, legal
+                                  pages, design invariants, a11y
+test/sync.test.js      37 tests — merge rules, tombstones, compare-and-swap
+test/account.test.jsx  14 tests — both builds, and the promises each makes
+```
+
+Sync has two further layers of proof, because unit tests cannot establish
+either one:
+
+- `qa/verify-sync.mjs` drives the **real** Supabase SDK over real HTTP, in a
+  real browser, against `qa/supabase-stub.mjs`. Two browser contexts act as two
+  devices, so sign-up, adoption, concurrent edits and tombstone propagation are
+  exercised end to end rather than asserted. Runs in CI on every pull request,
+  with no credentials needed.
+- `qa/verify-supabase.mjs` runs against the **real project** and is the only
+  thing that can prove row level security is actually enforced, by attempting
+  cross-user reads and writes that the database must refuse. Runs from
+  `verify-supabase.yml`, which needs the repository secrets.
+- `qa/live-smoke.mjs` checks the **deployed public site** in a real browser:
+  that it is served, boots without console errors, is the commit that was just
+  pushed, still offers the account system, and ships no `service_role` key. It
+  never signs in, so it needs no credentials. It runs inside `deploy.yml`
+  immediately after deployment, and weekly from `verify-live-site.yml`.
+
+That last one exists for a specific reason. Building an artifact correctly and
+serving it are different claims, and the gap between them is where this project
+already lost its auth once. Checking that a build *contains* the credentials
+cannot tell you the published site still offers a sign-in form.
+
+```
+SITE=https://aaru1yg.github.io/habbit-trackerrr/ node qa/live-smoke.mjs
+EXPECT_ACCOUNTS=0   # for a deliberately local-only deployment
+```
+
+### Accessibility
+
+`qa/audit-a11y.mjs` measures the built interface in a real browser rather than
+trusting the token palette. Tokens are what we intended; this is what shipped.
+
+| Check | Scope |
+| --- | --- |
+| Contrast | Every text node against its real rendered background, 11 routes x 2 themes, AA thresholds with the large-text rule |
+| Focus | The actual tab order, asserting a visible indicator on anything matching `:focus-visible` |
+| Touch targets | WCAG 2.2 AA 2.5.8 at 390px, applying the inline and spacing exceptions, plus a hit test for anything painted over |
+| Overflow | Horizontal overflow at 320px and 390px, which is how an unbreakable string gets caught |
+
+```
+node qa/audit-a11y.mjs        # needs the dev server on :5173
+```
+
+Current result: 1018 text nodes, 44 tab stops, 96 interactive targets and 22
+route/width combinations, with no failures. It runs in CI.
+
+Two notes on reading it. The touch-target check implements 2.5.8's exceptions,
+because a version that does not reports twenty findings where four are real and
+then stops being read. And it scrolls each candidate into view before measuring:
+without that, the fixed mobile dock appears to cover the footer links, which it
+does not once the page is scrolled to the end.
+
+The tests assert behaviour that is easy to get wrong and easy to regress: that
+a streak doesn't break on an unfinished *today*, that consistency ignores days a
+habit wasn't due, that deleting a habit also removes its check-ins and unlinks
+it from goals, and that an empty app shows an invitation rather than a row of
+confident zeroes.
+
+`npm run test:visual` drives a headless browser over every route at desktop and
+mobile widths plus a dark-theme pass, writes PNGs to `qa/shots/`, and fails on
+any console error.
+
+## Deploying
+
+The default build targets GitHub Pages at a project path:
 
 ```bash
-npm run test                 # vitest unit + render suite (store, analytics, work engine, import/export)
-node qa/e2e.mjs [base-url]   # real headless-Chromium pass: 300+ checks + screenshots into qa/shots/
+GH_PAGES=true npm run build     # base = /habbit-trackerrr/
 ```
 
-The QA pass covers the full spec matrix: onboarding, habit recording, schedule-aware streaks,
-reminders, mood, insights, the projects/assignments/workload/deadlines/record screens,
-celebrations, export/import round-trips, persistence across reloads, navigation, horizontal
-overflow at 320–414px, tap-target sizes and text contrast.
+### A custom domain
 
-### ☁️ Cloud sync — the migration prompt contract
-
-On first sign-in, if **both** this device and the account hold data, the app asks once how to
-combine them (`src/components/auth/MigrationDialog.jsx`). The contract, enforced by
-`test/migration.test.jsx` and `qa/live-migration.mjs`:
-
-- the prompt only appears when a **genuine choice** is needed — both documents hold data *and
-  actually differ* — and this device has never resolved that choice for this account;
-- a resolved choice is **remembered per account, per device** (`aaru.habits.migration.v1`), so
-  refreshes, reloads and sign-out/sign-in cycles never re-ask;
-- identical documents (already reconciled) never prompt and never trigger a redundant write;
-- if the two sides diverge again later (offline edits vs another device), the remembered choice
-  is honoured silently — merge keeps both, "keep local"/"use cloud" keep winning as chosen;
-- two accounts on one browser stay independent: each remembers its own decision.
+Set `SITE_DOMAIN` and the build configures itself for a root-hosted site:
 
 ```bash
-node qa/live-migration.mjs            # real browser vs the PUBLIC site (see .github/workflows/verify-live-site.yml)
+SITE_DOMAIN=habits.example.com npm run build
 ```
 
-`verify-live-site.yml` runs a real-browser production health check on every PR
-that touches sync code, and a full pinned verification after each deploy of
-`main` (waits until Pages serves that exact commit, then checks: prompt at most
-once, silent across 10 reloads and a re-login, user B independently scoped),
-reporting the exact live build ID it verified against. Before the fix shipped,
-the same journey in `reproduce` mode failed loudly on build `b9640e6`
-(dialog on 10/10 reloads and on re-login) — the control that proved the test
-can detect the bug.
+That one variable does five things, so there is no second place to keep in
+sync:
+
+| It writes | Why |
+| --- | --- |
+| `dist/CNAME` | What GitHub Pages reads to serve the domain |
+| `base = '/'` | Assets resolve from the root, not a project subpath |
+| `<link rel="canonical">` and `og:url` | One canonical address instead of two |
+| `dist/robots.txt` with a `Sitemap:` line | Crawlers find the sitemap |
+| `dist/sitemap.xml` | Lists `/`, `/privacy` and `/terms` |
+
+A scheme or a trailing slash in the value is stripped, so
+`https://habits.example.com/` and `habits.example.com` behave identically.
+`SITE_DOMAIN` overrides `GH_PAGES`. With neither set the build is root-relative
+and still writes a `robots.txt`.
+
+`public/CNAME` is deliberately **not** committed: a stale or placeholder CNAME
+takes a live Pages site offline, so the domain has to be stated at build time
+by whoever owns it.
+
+## Privacy and terms
+
+`/#/privacy` and `/#/terms` are real pages, reachable from the footer on every
+screen and from Settings. The privacy policy describes what the app actually
+does, down to the `localStorage` key and the individual fields stored under it.
+If the app ever gains a network call, an account or an analytics script, that
+page has to change in the same commit. It did, when sync landed: the policy now
+covers both configurations, and reads `cloudConfigured` so a build published
+without credentials does not describe an account system it does not have.

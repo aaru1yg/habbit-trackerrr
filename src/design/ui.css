@@ -1,0 +1,658 @@
+/* ============================================================
+   COMPONENTS
+
+   Shape is used to say what a thing is:
+     rectangle, 5px radius ....... a control you can press
+     rectangle, 3px radius ....... a label or a data cell
+     pill ........................ nothing, by default
+     circle ...................... a radio-like single choice
+
+   Buttons are not pills. The only rounded-to-the-end element in
+   the interface is a progress track, where the shape describes
+   the thing being measured.
+   ============================================================ */
+
+/* ---------------- Section heading -------------------------- */
+.sechead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s4);
+  margin-bottom: var(--s4);
+}
+.sechead__t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* A subtitle can carry user-supplied text with no spaces in it, such as an
+   email address. Break it rather than let it widen the page. */
+.sechead__sub { font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+
+/* An eyebrow marks a page title. Without one this is a heading
+   inside the page, and it must not compete with the page title. */
+.sechead__t:has(.eyebrow) h2 { font-size: var(--fs-3xl); }
+.sechead__t:not(:has(.eyebrow)) h2 {
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--strong);
+}
+
+@media (max-width: 620px) {
+  .sechead { flex-direction: column; align-items: stretch; gap: var(--s3); }
+  .sechead__a { display: flex; gap: var(--s2); }
+  .sechead__a > * { flex: 1; }
+  .sechead__a .seg { display: flex; width: auto; }
+  .sechead__a .seg__btn { flex: 1; white-space: nowrap; padding: 0 var(--s2); }
+}
+
+/* ---------------- Button ----------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  height: 36px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule-firm);
+  background: var(--raised);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  white-space: nowrap;
+  transition:
+    background var(--d-fast) var(--e-out),
+    border-color var(--d-fast) var(--e-out),
+    color var(--d-fast) var(--e-out);
+}
+@media (hover: hover) {
+  .btn:hover:not(:disabled) { background: var(--sunken); border-color: var(--muted); }
+}
+.btn:active:not(:disabled) { background: var(--pressed); }
+.btn:disabled { opacity: .45; }
+
+/* The primary action is ink on paper. It does not need a colour
+   to be the most prominent control on the screen. */
+.btn--primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .btn--primary:hover:not(:disabled) { background: #000; border-color: #000; }
+}
+[data-theme='dark'] .btn--primary { background: var(--ink); color: #15150f; }
+[data-theme='dark'] .btn--primary:hover:not(:disabled) { background: #fff; border-color: #fff; }
+
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--strong);
+}
+@media (hover: hover) {
+  .btn--ghost:hover:not(:disabled) { background: var(--hover); color: var(--ink); border-color: transparent; }
+}
+
+.btn--danger { color: var(--danger); border-color: var(--rule-firm); }
+@media (hover: hover) {
+  .btn--danger:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); }
+}
+
+.btn--sm   { height: 30px; padding: 0 var(--s3); font-size: var(--fs-xs); }
+.btn--lg   { height: 42px; padding: 0 var(--s5); font-size: var(--fs-md); }
+.btn--block{ width: 100%; }
+.btn--icon { width: 36px; padding: 0; }
+.btn--icon.btn--sm { width: 30px; }
+.btn--icon.btn--lg { width: 42px; }
+
+/* ---------------- Chip (filter toggle) ---------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule);
+  background: var(--raised);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 550;
+  white-space: nowrap;
+  transition: background var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out),
+              border-color var(--d-fast) var(--e-out);
+}
+@media (hover: hover) { .chip:hover { color: var(--ink); border-color: var(--rule-firm); } }
+/* Selected, not primary. A solid ink fill here would put two identical
+   black blocks on the same row as the primary action and flatten the
+   hierarchy, so selection uses the single accent, as it does in the nav. */
+.chip[aria-pressed='true'], .chip--on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.chip__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------------- Badge (status label) ----------------------
+   Not a button, so not a pill: a small rectangle with a status
+   dot, which reads as a data label and leaves the pill shape
+   free to mean something else. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--r-xs);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .005em;
+  white-space: nowrap;
+}
+.badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.badge--neutral { background: var(--sunken);      color: var(--muted); }
+.badge--accent  { background: var(--accent-soft); color: var(--accent-ink); }
+.badge--good    { background: var(--ok-soft);     color: var(--accent-ink); }
+.badge--warn    { background: var(--warn-soft);   color: var(--warn); }
+.badge--risk    { background: var(--urgent-soft); color: var(--urgent); }
+.badge--bad     { background: var(--danger-soft); color: var(--danger); }
+.badge--plain::before,
+.badge:has(svg)::before { display: none; }
+
+/* ---------------- Segmented control ------------------------- */
+.seg {
+  /* Equal-width segments: the control reads as one object rather than as
+     three buttons of accidental widths, and it survives being stretched to
+     the full column on a phone instead of leaving a dead gap at the end. */
+  display: flex;
+  width: fit-content;
+  padding: 2px;
+  gap: 2px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule);
+  background: var(--sunken);
+  position: relative;
+}
+.seg__btn {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  white-space: nowrap;
+  height: 28px;
+  padding: 0 var(--s3);
+  border-radius: var(--r-xs);
+  font-size: var(--fs-xs);
+  font-weight: 550;
+  color: var(--muted);
+  transition: color var(--d-fast) var(--e-out);
+}
+.seg__btn:hover { color: var(--ink); }
+.seg__btn[aria-selected='true'] { color: var(--ink); font-weight: 600; }
+.seg__pill {
+  position: absolute;
+  top: 2px; bottom: 2px;
+  border-radius: var(--r-xs);
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  transition: left var(--d-mid) var(--e-out), width var(--d-mid) var(--e-out);
+}
+
+/* ---------------- Field / input ----------------------------- */
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > .seg, .field > .pill-row { align-self: start; }
+.field__label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--strong);
+}
+.field__hint { font-size: var(--fs-xs); color: var(--muted); }
+.field__err  { font-size: var(--fs-xs); color: var(--danger); font-weight: 550; }
+
+.input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule-firm);
+  background: var(--raised);
+  color: var(--ink);
+  font-size: var(--fs-md);
+  transition: border-color var(--d-fast) var(--e-out), box-shadow var(--d-fast) var(--e-out);
+}
+.input::placeholder { color: var(--faint); }
+.input:hover { border-color: var(--muted); }
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .14);
+}
+.input[aria-invalid='true'] { border-color: var(--danger); }
+textarea.input { min-height: 76px; resize: vertical; line-height: 1.5; }
+.input::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .55; }
+[data-theme='dark'] .input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: .5; }
+
+/* ---------------- Switch ------------------------------------ */
+.switch {
+  position: relative;
+  width: 38px; height: 22px;
+  flex: none;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--rule-firm);
+  background: var(--sunken);
+  transition: background var(--d-fast) var(--e-out), border-color var(--d-fast) var(--e-out);
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--raised);
+  border: 1px solid var(--rule-firm);
+  transition: transform var(--d-fast) var(--e-out);
+}
+.switch[aria-checked='true'] { background: var(--accent); border-color: var(--accent); }
+.switch[aria-checked='true']::after { transform: translateX(16px); border-color: transparent; }
+
+.switchrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+/* ---------------- Check ------------------------------------- */
+.check {
+  width: 26px; height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--rule-firm);
+  background: var(--raised);
+  color: transparent;
+  transition: background var(--d-fast) var(--e-out), border-color var(--d-fast) var(--e-out),
+              color var(--d-fast) var(--e-out);
+}
+@media (hover: hover) { .check:hover { border-color: var(--accent); } }
+.check[aria-checked='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+[data-theme='dark'] .check[aria-checked='true'] { color: #10211f; }
+.check svg { width: 15px; height: 15px; }
+
+/* Partially complete: the border fills clockwise in the accent so
+   a half-done counter is visible without reading the number. */
+.check[data-partial='1'] { border-color: var(--accent); }
+.check__pop { display: none; }
+
+/* ---------------- Bar --------------------------------------- */
+.bar {
+  width: 100%;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--sunken);
+  overflow: hidden;
+}
+.bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--d-mid) var(--e-out);
+}
+.bar--thin  { height: 4px; }
+.bar--thick { height: 10px; }
+.bar__fill--good  { background: var(--accent); }
+.bar__fill--warn  { background: var(--warn); }
+.bar__fill--risk  { background: var(--urgent); }
+.bar__fill--bad   { background: var(--danger); }
+.bar__fill--ghost { background: var(--rule-firm); }
+
+/* ---------------- Ring -------------------------------------- */
+.ring { position: relative; display: grid; place-items: center; }
+.ring svg { transform: rotate(-90deg); overflow: visible; }
+.ring__track { stroke: var(--sunken); }
+.ring__fill {
+  stroke: var(--accent);
+  stroke-linecap: butt;
+  transition: stroke-dashoffset var(--d-mid) var(--e-out);
+}
+.ring__label {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+/* ---------------- Stat -------------------------------------- */
+.stat { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.stat__v {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-2xl);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+.stat__k {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stat__sub { font-size: var(--fs-xs); color: var(--faint); }
+.stat--sm .stat__v { font-size: var(--fs-xl); }
+
+.tile {
+  padding: var(--s4);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--raised);
+}
+
+/* ---------------- Empty state ------------------------------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s7) var(--s5);
+  text-align: center;
+}
+.empty__icon {
+  width: 40px; height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: var(--sunken);
+  color: var(--muted);
+}
+.empty__t {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--ink);
+}
+.empty__d { max-width: 44ch; font-size: var(--fs-sm); color: var(--muted); }
+
+/* ---------------- Overlays ---------------------------------- */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: var(--s4);
+  background: #19191866;
+  animation: fade var(--d-fast) var(--e-out) both;
+}
+[data-theme='dark'] .scrim { background: #00000099; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(540px, 100%);
+  max-height: min(86dvh, 760px);
+  background: var(--raised);
+  border: 1px solid var(--rule-firm);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3);
+  animation: sheet-in var(--d-mid) var(--e-out) both;
+  overflow: hidden;
+}
+.sheet--wide { width: min(820px, 100%); }
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to   { opacity: 1; transform: none; }
+}
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  border-bottom: 1px solid var(--rule);
+}
+.sheet__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -.014em;
+}
+.sheet__body { padding: var(--s5); overflow-y: auto; flex: 1; }
+.sheet__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+  padding: var(--s4) var(--s5);
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+}
+
+@media (max-width: 640px) {
+  .scrim { padding: 0; align-items: flex-end; }
+  .sheet, .sheet--wide {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    border-bottom: 0;
+    animation: sheet-up var(--d-mid) var(--e-out) both;
+  }
+  @keyframes sheet-up {
+    from { transform: translateY(100%); }
+    to   { transform: none; }
+  }
+  .sheet__foot { padding-bottom: calc(var(--s4) + env(safe-area-inset-bottom)); }
+}
+
+/* ---------------- Toast ------------------------------------- */
+.toaster {
+  position: fixed;
+  z-index: 80;
+  right: var(--s5);
+  bottom: var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  pointer-events: none;
+}
+@media (max-width: 900px) {
+  .toaster {
+    left: var(--s4); right: var(--s4);
+    bottom: calc(var(--dock) + var(--s3) + env(safe-area-inset-bottom));
+  }
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 10px var(--s4);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule-firm);
+  background: var(--raised);
+  box-shadow: var(--shadow-2);
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  animation: toast-in var(--d-mid) var(--e-out) both;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.toast__dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--muted); }
+.toast--good .toast__dot { background: var(--accent); }
+.toast--warn .toast__dot { background: var(--warn); }
+.toast--bad  .toast__dot { background: var(--danger); }
+
+/* ---------------- Columns ----------------------------------- */
+.cols { display: flex; align-items: flex-end; gap: 3px; height: 68px; }
+/* A hairline at the top of the plot: states the 100% ceiling the bars are
+   measured against, so a short bar reads as short rather than as missing. */
+.cols[data-ceiling='1'] { border-top: 1px solid var(--rule); padding-top: 1px; }
+.cols__col {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--r-xs) var(--r-xs) 0 0;
+  background: var(--accent);
+  opacity: .85;
+}
+.cols__col[data-empty='1'] { background: var(--sunken); opacity: 1; }
+
+/* ---------------- Heatmap -----------------------------------
+   A real calendar: seven rows = Sun..Sat, one column per week.
+   Cells grow to share the panel width but stop at 30px, past
+   which they stop reading as a grid. Long ranges scroll. */
+.heat-wrap {
+  /* A 30-day range is only five week-columns wide, so the grid can never
+     fill a half-width panel. Centre it instead of leaving a tall column of
+     dead space to its right. `safe` keeps the left edge reachable once a
+     six-month range does overflow. */
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: safe center;
+  gap: var(--s2);
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.heat-rows {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+  font-size: 9.5px;
+  color: var(--faint);
+  height: 100%;
+}
+.heat-rows span { display: flex; align-items: center; min-height: 13px; }
+.heat {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, auto);
+  grid-auto-columns: minmax(13px, 1fr);
+  gap: 3px;
+  justify-content: start;
+  min-width: calc(var(--cols) * 16px);
+  max-width: calc(var(--cols) * 31px);
+}
+.heat__cell {
+  aspect-ratio: 1;
+  min-height: 13px;
+  border-radius: var(--r-xs);
+  background: var(--sunken);
+}
+.heat__cell--pad { background: none; }
+/* Four steps of one hue. Ordered, perceptually even, and legible
+   on paper: a sequential scale, not a rainbow. */
+.heat__cell[data-lv='1'] { background: #cfe3e0; }
+.heat__cell[data-lv='2'] { background: #94c4bd; }
+.heat__cell[data-lv='3'] { background: #4e9890; }
+.heat__cell[data-lv='4'] { background: var(--accent); }
+/* On paper, --sunken sits clearly below --raised, so an empty cell reads as
+   an empty cell. In the dark theme it falls below the panel instead of above
+   it and the grid dissolves, so level 0 gets its own lifted value. */
+[data-theme='dark'] .heat__cell { background: #2c2c29; }
+[data-theme='dark'] .heat__cell--pad { background: none; }
+[data-theme='dark'] .heat__cell[data-lv='1'] { background: #1e3b38; }
+[data-theme='dark'] .heat__cell[data-lv='2'] { background: #2f6058; }
+[data-theme='dark'] .heat__cell[data-lv='3'] { background: #43887e; }
+[data-theme='dark'] .heat__cell[data-lv='4'] { background: var(--accent); }
+.heat__cell[data-today='1'] { outline: 1.5px solid var(--ink); outline-offset: 1px; }
+
+/* ---------------- Loading ----------------------------------- */
+.skel {
+  border-radius: var(--r-sm);
+  background: var(--sunken);
+  animation: pulse 1.4s var(--e-inout) infinite;
+}
+@keyframes pulse { 50% { opacity: .55; } }
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--rule-firm);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------------- Rules ------------------------------------- */
+.hr { height: 1px; background: var(--rule); border: 0; margin: 0; }
+.hr--fade { background: var(--rule); }
+
+/* ---------------- Stepper ----------------------------------- */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--rule-firm);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  overflow: hidden;
+}
+.stepper__btn {
+  width: 30px; height: 30px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  transition: background var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out);
+}
+.stepper__btn:hover:not(:disabled) { background: var(--sunken); color: var(--ink); }
+/* .stepper clips to its rounded ends, which swallowed the 2px-offset focus
+   ring on the two buttons. Draw it inside the button instead of outside. */
+.stepper__btn:focus-visible { outline-offset: -2px; border-radius: var(--r-xs); }
+.stepper--wide { width: 100%; }
+.stepper--wide .stepper__btn { flex: 1; }
+.stepper--wide .stepper__v { flex: 0 0 auto; padding: 0 var(--s3); }
+.stepper__btn:disabled { opacity: .35; }
+.stepper__v {
+  min-width: 40px;
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+}
+
+/* ---------------- Icon picker --------------------------------
+   A grid of the drawn habit glyphs. Square cells, because the
+   thing being chosen is square. */
+.iconpick {
+  width: 34px; height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule);
+  background: var(--raised);
+  color: var(--muted);
+  transition: border-color var(--d-fast) var(--e-out), color var(--d-fast) var(--e-out),
+              background var(--d-fast) var(--e-out);
+}
+.iconpick:hover { color: var(--ink); border-color: var(--rule-firm); }
+.iconpick[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+[data-theme='dark'] .iconpick[aria-pressed='true'] { color: #10211f; }
+/* 34px is a comfortable mouse target and a poor finger one. On touch
+   pointers the grid steps up past the 44px guideline. */
+@media (pointer: coarse) {
+  .iconpick { width: 44px; height: 44px; }
+}

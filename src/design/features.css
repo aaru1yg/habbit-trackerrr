@@ -146,7 +146,8 @@
   .erow[data-counted='true'] .erow__main { grid-area: main; }
   .erow[data-counted='true'] .erow__side { grid-area: side; }
   .erow[data-counted='true'] .erow__step { grid-area: step; }
-  .erow[data-counted='true'] .erow__step > * { width: 100%; justify-content: space-between; }
+  .erow[data-counted='true'] .erow__step > * { width: 100%; }
+  .erow[data-counted='true'] .erow__step .stepper__btn { flex: 1; }
 }
 
 .erow__streak {

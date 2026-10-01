@@ -163,7 +163,8 @@
 .badge--warn    { background: var(--warn-soft);   color: var(--warn); }
 .badge--risk    { background: var(--urgent-soft); color: var(--urgent); }
 .badge--bad     { background: var(--danger-soft); color: var(--danger); }
-.badge--plain::before { display: none; }
+.badge--plain::before,
+.badge:has(svg)::before { display: none; }
 
 /* ---------------- Segmented control ------------------------- */
 .seg {
@@ -610,6 +611,9 @@ textarea.input { min-height: 76px; resize: vertical; line-height: 1.5; }
 /* .stepper clips to its rounded ends, which swallowed the 2px-offset focus
    ring on the two buttons. Draw it inside the button instead of outside. */
 .stepper__btn:focus-visible { outline-offset: -2px; border-radius: var(--r-xs); }
+.stepper--wide { width: 100%; }
+.stepper--wide .stepper__btn { flex: 1; }
+.stepper--wide .stepper__v { flex: 0 0 auto; padding: 0 var(--s3); }
 .stepper__btn:disabled { opacity: .35; }
 .stepper__v {
   min-width: 40px;

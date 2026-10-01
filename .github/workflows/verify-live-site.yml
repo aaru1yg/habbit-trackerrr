@@ -1,0 +1,69 @@
+name: Verify live site
+
+# Deploy-time verification already runs inside deploy.yml, where the Pages
+# URL is in hand. This is the other half: a site can break without anyone
+# deploying anything. A Supabase project paused for inactivity, a custom
+# domain whose DNS lapsed, a Pages setting changed in the UI — none of these
+# produce a failed build, and all of them are invisible until a user reports
+# it.
+#
+# No credentials, no sign-in, no database writes. It only looks at what the
+# public is being served.
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Site URL to check (blank = the repository Pages URL)'
+        required: false
+        default: ''
+  schedule:
+    # Monday morning, so a quietly broken weekend is caught before the week.
+    - cron: '41 6 * * 1'
+
+permissions:
+  contents: read
+  pages: read
+  id-token: write
+
+jobs:
+  smoke:
+    name: Real browser vs the public site
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve the site URL
+        id: site
+        env:
+          OVERRIDE: ${{ github.event.inputs.site }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -n "${OVERRIDE}" ]; then
+            echo "url=${OVERRIDE}" >> "$GITHUB_OUTPUT"
+          else
+            # Ask the API rather than hardcoding, so a custom domain is
+            # followed automatically once it is configured.
+            URL=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.html_url' 2>/dev/null || true)
+            if [ -z "${URL}" ]; then
+              echo "::error::Could not resolve the Pages URL. Pass one via workflow_dispatch."
+              exit 1
+            fi
+            echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify
+        env:
+          SITE: ${{ steps.site.outputs.url }}
+          EXPECT_ACCOUNTS: ${{ secrets.VITE_SUPABASE_URL != '' && '1' || '0' }}
+        run: node qa/live-smoke.mjs

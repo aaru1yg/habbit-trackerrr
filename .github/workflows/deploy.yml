@@ -121,3 +121,36 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # Verifying the artifact is not the same as verifying the deployment.
+      # The build job proves the credentials reached dist/. This proves the
+      # site that is actually being served boots, still offers the account
+      # system, and is this commit. Losing auth silently is not hypothetical:
+      # it already happened once, and nothing noticed.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify the deployed site
+        env:
+          SITE: ${{ steps.deployment.outputs.page_url }}
+          EXPECT_BUILD: ${{ github.sha }}
+          # A deployment without credentials is a legitimate configuration,
+          # but it must be the declared one, not an accident.
+          EXPECT_ACCOUNTS: ${{ secrets.VITE_SUPABASE_URL != '' && '1' || '0' }}
+        run: |
+          # Pages can serve the previous version for a moment after the API
+          # reports success, so allow the new build id to appear.
+          for i in $(seq 1 10); do
+            if node qa/live-smoke.mjs; then exit 0; fi
+            echo "Attempt $i did not pass; waiting for propagation."
+            sleep 15
+          done
+          echo "::error::The deployed site failed verification."
+          exit 1

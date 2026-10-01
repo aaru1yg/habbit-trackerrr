@@ -192,6 +192,21 @@ either one:
   thing that can prove row level security is actually enforced, by attempting
   cross-user reads and writes that the database must refuse. Runs from
   `verify-supabase.yml`, which needs the repository secrets.
+- `qa/live-smoke.mjs` checks the **deployed public site** in a real browser:
+  that it is served, boots without console errors, is the commit that was just
+  pushed, still offers the account system, and ships no `service_role` key. It
+  never signs in, so it needs no credentials. It runs inside `deploy.yml`
+  immediately after deployment, and weekly from `verify-live-site.yml`.
+
+That last one exists for a specific reason. Building an artifact correctly and
+serving it are different claims, and the gap between them is where this project
+already lost its auth once. Checking that a build *contains* the credentials
+cannot tell you the published site still offers a sign-in form.
+
+```
+SITE=https://aaru1yg.github.io/habbit-trackerrr/ node qa/live-smoke.mjs
+EXPECT_ACCOUNTS=0   # for a deliberately local-only deployment
+```
 
 The tests assert behaviour that is easy to get wrong and easy to regress: that
 a streak doesn't break on an unfinished *today*, that consistency ignores days a

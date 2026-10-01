@@ -65,13 +65,18 @@ jobs:
       # are exercised rather than asserted. Row level security is the one thing
       # a stub cannot prove; verify-supabase.yml does that against the real
       # database.
+      # Each wait fails loudly if the service never answers, so a broken
+      # harness cannot masquerade as a passing verification.
       - name: Start the Supabase stub
         run: |
-          node qa/supabase-stub.mjs 54321 &
+          node qa/supabase-stub.mjs 54321 > /tmp/stub.log 2>&1 &
           for i in $(seq 1 40); do
-            curl -fsS http://127.0.0.1:54321/auth/v1/settings > /dev/null && break
+            curl -fsS http://127.0.0.1:54321/auth/v1/settings > /dev/null && exit 0
             sleep 0.25
           done
+          echo "::error::The Supabase stub never became reachable."
+          cat /tmp/stub.log
+          exit 1
 
       - name: Start the app against the stub
         env:
@@ -81,9 +86,18 @@ jobs:
         run: |
           npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/dev.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -fsS http://127.0.0.1:5173/ > /dev/null && break
+            curl -fsS http://127.0.0.1:5173/ > /dev/null && exit 0
             sleep 0.5
           done
+          echo "::error::The dev server never became reachable."
+          cat /tmp/dev.log
+          exit 1
 
       - name: Verify sign-up, sync, merge and deletion
         run: node qa/verify-sync.mjs
+
+      - name: Server logs on failure
+        if: failure()
+        run: |
+          echo "--- dev server ---";  cat /tmp/dev.log  || true
+          echo "--- stub ---";        cat /tmp/stub.log || true

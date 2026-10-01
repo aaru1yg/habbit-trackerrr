@@ -37,6 +37,7 @@ export default function AuthForm({ initialMode = 'signin', onDone }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [offline, setOffline] = useState(false)
 
   const copy = MODES[mode]
 
@@ -58,7 +59,14 @@ export default function AuthForm({ initialMode = 'signin', onDone }) {
       : await auth.resetPassword(email)
 
     setBusy(false)
-    if (res.error) { setError(res.error); return }
+    if (res.error) {
+      setError(res.error)
+      /* Sticky: a request that never reached a server will not start
+         reaching one because the person tries a different password. */
+      setOffline(Boolean(res.unreachable))
+      return
+    }
+    setOffline(false)
 
     if (mode === 'reset') {
       setNotice(`If an account exists for ${email.trim()}, a reset link is on its way.`)
@@ -110,7 +118,17 @@ export default function AuthForm({ initialMode = 'signin', onDone }) {
           </Field>
         )}
 
-        {error && (
+        {offline && (
+          <p className="authmsg authmsg--warn">
+            <IconAlert size={16} />
+            <span>
+              The account service for this build could not be reached, so
+              signing in is not possible right now. Everything on this device
+              keeps working, and nothing has been lost.
+            </span>
+          </p>
+        )}
+        {error && !offline && (
           <p className="authmsg authmsg--bad" role="alert">
             <IconAlert size={16} /><span>{error}</span>
           </p>
@@ -125,7 +143,7 @@ export default function AuthForm({ initialMode = 'signin', onDone }) {
           <Button type="submit" variant="primary" disabled={busy}>
             {busy ? 'Working…' : copy.submit}
           </Button>
-          {auth.googleEnabled && mode !== 'reset' && (
+          {auth.googleEnabled && mode !== 'reset' && !offline && (
             <Button type="button" onClick={() => auth.signInWithGoogle()} disabled={busy}>
               Continue with Google
             </Button>

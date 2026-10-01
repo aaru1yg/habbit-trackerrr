@@ -5,7 +5,7 @@
    rather than their patience, so they are tested on behaviour
    ("the deleted habit stays deleted") rather than on shape.
    ============================================================ */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { emptyState, normalize, pruneTombstones, TOMBSTONE_TTL_DAYS } from '../src/core/schema.js'
 import { reducer } from '../src/core/store.jsx'
 import {
@@ -13,7 +13,7 @@ import {
 } from '../src/cloud/merge.js'
 import { pull, push, clearCloud } from '../src/cloud/syncEngine.js'
 import { __setSupabaseForTests } from '../src/cloud/client.js'
-import { friendlyError } from '../src/cloud/errors.js'
+import { friendlyError, isUnreachable } from '../src/cloud/errors.js'
 import { habit, goal, work, state as mkState, D } from './fixtures.js'
 
 /* Relative to now, because tombstones are pruned after TOMBSTONE_TTL_DAYS and
@@ -381,12 +381,64 @@ describe('error messages', () => {
   it('turns backend strings into something a person can act on', () => {
     expect(friendlyError({ message: 'Invalid login credentials' })).toMatch(/don’t match/i)
     expect(friendlyError({ message: 'User already registered' })).toMatch(/already exists/i)
-    expect(friendlyError({ message: 'Failed to fetch' })).toMatch(/connection/i)
+    // A dead host used to produce "check your connection", which sends a
+    // person with working internet to debug their router. Asserted properly
+    // in the absent-backend block below.
+    expect(friendlyError({ message: 'Failed to fetch' })).toMatch(/did not respond/i)
   })
 
   it('never leaks a raw technical string', () => {
     const msg = friendlyError({ message: 'PGRST301 JWSError JWSInvalidSignature' })
     expect(msg).not.toMatch(/PGRST|JWS/)
     expect(msg).toBe('Something went wrong. Please try again.')
+  })
+})
+
+/* ============================================================
+   ERROR COPY — what the app says when the backend is absent.
+
+   The deployed build pointed at a Supabase project whose host
+   stopped resolving. The browser reports that as a bare
+   "Failed to fetch", indistinguishable from the device being
+   offline, and the old copy guessed wrong: it told people to
+   check a connection that was working.
+   ============================================================ */
+describe('error messages for an absent backend', () => {
+  const online = (v) => {
+    Object.defineProperty(globalThis.navigator, 'onLine', { value: v, configurable: true })
+  }
+  afterEach(() => online(true))
+
+  it('recognises every shape a dead host arrives as', () => {
+    for (const raw of ['Failed to fetch', 'NetworkError when attempting to fetch resource',
+      'TypeError: Load failed', 'fetch failed', 'getaddrinfo ENOTFOUND abc.supabase.co',
+      'connect ECONNREFUSED', 'net::ERR_NAME_NOT_RESOLVED']) {
+      expect(isUnreachable(new Error(raw)), raw).toBe(true)
+    }
+  })
+
+  it('does not mistake a refusal by the server for an absent server', () => {
+    for (const raw of ['Invalid login credentials', 'Email not confirmed',
+      'new row violates row-level security policy']) {
+      expect(isUnreachable(new Error(raw)), raw).toBe(false)
+    }
+  })
+
+  it('blames the connection only when the device really is offline', () => {
+    online(false)
+    expect(friendlyError(new Error('Failed to fetch'))).toMatch(/offline/i)
+  })
+
+  it('never tells a connected person to check their connection', () => {
+    online(true)
+    const msg = friendlyError(new Error('Failed to fetch'))
+    expect(msg).not.toMatch(/check your connection/i)
+    expect(msg).toMatch(/did not respond/i)
+    expect(msg).toMatch(/nothing on it has been lost/i)
+  })
+
+  it('still explains a wrong password as a wrong password', () => {
+    expect(friendlyError(new Error('Invalid login credentials'))).toMatch(/don’t match/i)
+    expect(isUnreachable(new Error('Invalid login credentials'))).toBe(false)
   })
 })

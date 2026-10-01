@@ -554,6 +554,9 @@
 }
 .authmsg svg { flex: none; margin-top: 1px; }
 .authmsg--bad { background: var(--danger-soft); color: var(--danger); }
+/* Not an error the person made, so not red. The service is absent;
+   their data is fine, and the tone should say so. */
+.authmsg--warn { background: var(--warn-soft); color: var(--warn); }
 
 .authalt {
   display: flex;

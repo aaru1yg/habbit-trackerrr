@@ -137,7 +137,7 @@ export default function PrivacyScreen() {
                   sign-up it is stored with the account.
                 </p>
                 <p>
-                  Hosting is provided by Supabase{host ? <> on the project at <strong>{host}</strong></> : null},
+                  Hosting is provided by Supabase{host ? <> on the project at <strong data-project-host>{host}</strong></> : null},
                   acting as a data processor. Supabase operates the database and authentication
                   service; it does not use your data for its own purposes. Their infrastructure
                   necessarily processes the IP address your requests come from, as any web

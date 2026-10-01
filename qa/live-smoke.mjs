@@ -39,6 +39,14 @@ const check = (name, ok, detail = '') => {
   results.push({ name, ok, detail })
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  — ${detail}` : ''}`)
 }
+/* A check that could not be performed. Recorded and printed, but it
+   does not pass and does not fail, because claiming either would be
+   a guess. The summary counts these separately. */
+const skipped = []
+const skip = (name, why) => {
+  skipped.push({ name, why })
+  console.log(`SKIP  ${name}  — ${why}`)
+}
 
 const browser = await launch()
 const ctx = await browser.createBrowserContext()
@@ -126,6 +134,57 @@ if (EXPECT_ACCOUNTS) {
   check('the deployed build is honestly local-only', acct.localOnly && !acct.hasEmail)
 }
 
+/* ---- 5b. The backend the build points at actually exists ----
+   The failure this check exists for: a deployment can be perfect
+   in every respect above and still be useless, because the
+   Supabase project it points at has been paused or deleted. The
+   bundle is correct, the site serves, the sign-in form renders,
+   and every request dies at DNS.
+
+   The privacy page already names the project host, deliberately,
+   so there is nothing to extract from a bundle. A no-cors probe
+   distinguishes the two cases that matter: a host that answers
+   returns an opaque response, a host that no longer resolves
+   throws. No key, no credentials, no sign-in attempt.          */
+if (EXPECT_ACCOUNTS) {
+  await page.goto(SITE + '#/privacy', { waitUntil: 'networkidle2' })
+  await sleep(1500)
+  /* Selected by an explicit marker, not by guessing which bold text
+     looks like a hostname. The first version of this matched the
+     session storage key and reported a failure for the wrong reason,
+     which is only marginally better than missing the real one. */
+  const host = await page.evaluate(() => {
+    const el = document.querySelector('[data-project-host]')
+    return el ? el.textContent.trim() : null
+  })
+  check('the privacy page names the project host', !!host, host || 'not found')
+
+  if (host) {
+    const probe = (h) => page.evaluate(async (u) => {
+      try {
+        await fetch(u, { mode: 'no-cors', cache: 'no-store' })
+        return { ok: true }
+      } catch (e) { return { ok: false, why: String(e && e.message).slice(0, 80) } }
+    }, h)
+
+    /* Control first. A sandbox with no outbound network fails every
+       request identically, which would report a healthy backend as
+       dead. Without this the check once failed against supabase.com
+       itself. If the control cannot get out, we report that we don't
+       know, rather than inventing a verdict. */
+    const control = await probe('https://supabase.com/favicon.ico')
+    const reach = await probe(`https://${host}/auth/v1/health`)
+
+    if (!control.ok) {
+      skip('the account backend is reachable',
+        `no outbound network from this runner, cannot tell (${control.why})`)
+    } else {
+      check('the account backend is reachable', reach.ok,
+        reach.ok ? host : `${host} does not respond; the project is paused or deleted`)
+    }
+  }
+}
+
 /* ---- 6. Nothing privileged was shipped ---------------------
    A publishable key in the bundle is fine and expected. A
    service_role key is a full database bypass.                  */
@@ -161,6 +220,9 @@ await browser.close()
 
 const failed = results.filter((r) => !r.ok)
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`)
+if (skipped.length) {
+  console.log(`${skipped.length} skipped: ${skipped.map((x) => x.name).join(', ')}`)
+}
 if (failed.length) {
   console.log('\nFailures:')
   for (const f of failed) console.log(`  - ${f.name}${f.detail ? `: ${f.detail}` : ''}`)

@@ -12,7 +12,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getSupabase } from './client.js'
 import { cloudConfigured, googleEnabled, redirectTo } from './config.js'
-import { friendlyError } from './errors.js'
+import { friendlyError, isUnreachable } from './errors.js'
 
 const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -63,10 +63,14 @@ export default function AuthProvider({ children }) {
     try {
       const sb = await getSupabase()
       const { data, error } = await fn(sb)
-      if (error) return { error: friendlyError(error) }
+      /* `unreachable` distinguishes "the server said no" from "there was no
+       * server to ask". The UI needs that difference: one is the person's
+       * mistake to correct, the other is not their fault and not fixable by
+       * retyping a password. */
+      if (error) return { error: friendlyError(error), unreachable: isUnreachable(error) }
       return { data }
     } catch (e) {
-      return { error: friendlyError(e) }
+      return { error: friendlyError(e), unreachable: isUnreachable(e) }
     }
   }, [])
 

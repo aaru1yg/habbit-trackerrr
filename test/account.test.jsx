@@ -21,11 +21,30 @@ vi.mock('../src/cloud/config.js', () => ({
   redirectTo: () => 'http://localhost/',
 }))
 
-/* No network, ever, from a unit test. */
+/* No network, ever, from a unit test. `fake.client` lets a test stand in
+   a backend that behaves badly in a specific, chosen way. */
+const fake = { client: null }
 vi.mock('../src/cloud/client.js', () => ({
-  getSupabase: async () => null,
+  getSupabase: async () => fake.client,
   __setSupabaseForTests: () => {},
 }))
+
+/* A project whose host no longer resolves. This is not hypothetical: it is
+   what the deployed build hit, and the browser reports it as a plain
+   TypeError with no status code to inspect. */
+function deadBackend() {
+  const boom = async () => { throw new TypeError('Failed to fetch') }
+  return {
+    auth: {
+      getSession: async () => ({ data: { session: null } }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+      signInWithPassword: boom,
+      signUp: boom,
+      resetPasswordForEmail: boom,
+      signInWithOAuth: boom,
+    },
+  }
+}
 
 const { default: App } = await import('../src/App.jsx')
 const { StoreProvider } = await import('../src/core/store.jsx')
@@ -55,7 +74,7 @@ beforeEach(() => {
   localStorage.clear()
   window.location.hash = ''
 })
-afterEach(() => { cfg.cloudConfigured = false; cfg.googleEnabled = false })
+afterEach(() => { cfg.cloudConfigured = false; cfg.googleEnabled = false; fake.client = null })
 
 describe('a build with no cloud credentials', () => {
   beforeEach(() => { cfg.cloudConfigured = false })
@@ -154,5 +173,58 @@ describe('a build with cloud credentials', () => {
     await waitFor(() => expect(container.querySelector('.acctrow')).toBeTruthy())
     expect(container.querySelector('.acctrow').getAttribute('href')).toBe('#/account')
     expect(container.querySelector('.acctrow').textContent).toMatch(/sign in to sync/i)
+  })
+})
+
+describe('when the configured backend cannot be reached', () => {
+  beforeEach(() => { cfg.cloudConfigured = true; fake.client = deadBackend() })
+
+  it('does not blame the person’s connection when their connection is fine', async () => {
+    const user = userEvent.setup()
+    mount('account')
+    await user.type(await screen.findByLabelText(/^Email$/i), 'someone@example.com')
+    await user.type(screen.getByLabelText(/^Password$/i), 'a-password-value')
+    await user.click(screen.getByRole('button', { name: /^Sign in$/i }))
+
+    const msg = await screen.findByText(/could not be reached/i)
+    expect(msg).toBeTruthy()
+    expect(document.body.textContent).not.toMatch(/check your connection/i)
+  })
+
+  it('says the data on the device is unaffected, because it is', async () => {
+    const user = userEvent.setup()
+    mount('account')
+    await user.type(await screen.findByLabelText(/^Email$/i), 'someone@example.com')
+    await user.type(screen.getByLabelText(/^Password$/i), 'a-password-value')
+    await user.click(screen.getByRole('button', { name: /^Sign in$/i }))
+    expect(await screen.findByText(/nothing has been lost/i)).toBeTruthy()
+  })
+
+  it('withdraws Google sign-in, which cannot complete either', async () => {
+    cfg.googleEnabled = true
+    const user = userEvent.setup()
+    mount('account')
+    await screen.findByLabelText(/^Email$/i)
+    // Offered before we know the backend is missing...
+    expect(screen.getByRole('button', { name: /continue with google/i })).toBeTruthy()
+
+    await user.type(screen.getByLabelText(/^Email$/i), 'someone@example.com')
+    await user.type(screen.getByLabelText(/^Password$/i), 'a-password-value')
+    await user.click(screen.getByRole('button', { name: /^Sign in$/i }))
+    await screen.findByText(/could not be reached/i)
+
+    // ...and withdrawn once we do, rather than left as a dead option.
+    expect(screen.queryByRole('button', { name: /continue with google/i })).toBeNull()
+  })
+
+  it('keeps the form on screen rather than pretending anything succeeded', async () => {
+    const user = userEvent.setup()
+    const { container } = mount('account')
+    await user.type(await screen.findByLabelText(/^Email$/i), 'someone@example.com')
+    await user.type(screen.getByLabelText(/^Password$/i), 'a-password-value')
+    await user.click(screen.getByRole('button', { name: /^Sign in$/i }))
+    await screen.findByText(/could not be reached/i)
+    expect(container.querySelector('form')).toBeTruthy()
+    expect(container.querySelector('.syncbadge').textContent).toMatch(/This device only/i)
   })
 })

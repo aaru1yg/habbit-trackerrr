@@ -208,6 +208,31 @@ SITE=https://aaru1yg.github.io/habbit-trackerrr/ node qa/live-smoke.mjs
 EXPECT_ACCOUNTS=0   # for a deliberately local-only deployment
 ```
 
+### Accessibility
+
+`qa/audit-a11y.mjs` measures the built interface in a real browser rather than
+trusting the token palette. Tokens are what we intended; this is what shipped.
+
+| Check | Scope |
+| --- | --- |
+| Contrast | Every text node against its real rendered background, 11 routes x 2 themes, AA thresholds with the large-text rule |
+| Focus | The actual tab order, asserting a visible indicator on anything matching `:focus-visible` |
+| Touch targets | WCAG 2.2 AA 2.5.8 at 390px, applying the inline and spacing exceptions, plus a hit test for anything painted over |
+| Overflow | Horizontal overflow at 320px and 390px, which is how an unbreakable string gets caught |
+
+```
+node qa/audit-a11y.mjs        # needs the dev server on :5173
+```
+
+Current result: 1018 text nodes, 44 tab stops, 96 interactive targets and 22
+route/width combinations, with no failures. It runs in CI.
+
+Two notes on reading it. The touch-target check implements 2.5.8's exceptions,
+because a version that does not reports twenty findings where four are real and
+then stops being read. And it scrolls each candidate into view before measuring:
+without that, the fixed mobile dock appears to cover the footer links, which it
+does not once the page is scrolled to the end.
+
 The tests assert behaviour that is easy to get wrong and easy to regress: that
 a streak doesn't break on an unfinished *today*, that consistency ignores days a
 habit wasn't due, that deleting a habit also removes its check-ins and unlinks

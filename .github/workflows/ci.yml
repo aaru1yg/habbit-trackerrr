@@ -46,7 +46,7 @@ jobs:
           echo "Production artifact serves and carries its build identity."
 
   sync:
-    name: Auth and sync, end to end
+    name: 'Browser checks: sync and accessibility'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -95,6 +95,12 @@ jobs:
 
       - name: Verify sign-up, sync, merge and deletion
         run: node qa/verify-sync.mjs
+
+      # Reuses the server already running above, which has credentials
+      # configured, so the account screens are audited in their real
+      # signed-out state rather than as "not available in this build".
+      - name: Accessibility audit
+        run: node qa/audit-a11y.mjs
 
       - name: Server logs on failure
         if: failure()

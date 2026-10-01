@@ -23,7 +23,7 @@ export const NAV = [
 const PARENT = { habit: 'habits', work: 'work', goal: 'goals' }
 
 /* Pages reachable from the footer rather than the nav. */
-const EXTRA_TITLES = { privacy: 'Privacy', terms: 'Terms' }
+const EXTRA_TITLES = { privacy: 'Privacy', terms: 'Terms', account: 'Account' }
 
 export const parentOf = (name) => PARENT[name] || name
 

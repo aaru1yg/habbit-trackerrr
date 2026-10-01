@@ -2,8 +2,9 @@
 
 A habit tracker that also holds the work and the goals those habits are *for*.
 
-Everything lives in your browser. No account, no server, no sync: open it and
-start. [Live app](https://aaru1yg.github.io/habbit-trackerrr/)
+Local-first: it opens straight into today's habits and works fully offline with
+no account. Signing in is optional, and adds encrypted-in-transit backup and
+sync across your devices. [Live app](https://aaru1yg.github.io/habbit-trackerrr/)
 
 ---
 
@@ -119,14 +120,54 @@ into the task checklist, and `routines`, `signals` and `focusLog` (scaffolding
 nothing ever read back) are dropped.
 
 Settings has **Export** (a JSON file you own) and **Import**. Import accepts
-v4 backups and migrates them.
+v4 backups and migrates them. An account is a convenience, not a substitute for
+a backup you hold yourself.
 
-> **Note on cloud sync.** Earlier versions shipped a Supabase client, but it
-> only ever activated with build-time credentials that were never set, so the
-> deployed app was always local-only. Rather than keep dead auth UI, v5 states
-> the truth plainly: this is browser storage, and Export is your backup. The
-> previous SQL schema and RLS policies remain in git history if sync is ever
-> wanted for real.
+## Accounts and sync
+
+Optional, and off until you sign in. The app is fully usable without one.
+
+| | No account | Signed in |
+| --- | --- | --- |
+| Where data lives | This browser | This browser **and** your account |
+| Works offline | Yes | Yes; changes sync on reconnect |
+| Second device | Export and import a file | Automatic |
+| Who can read it | You | You. Row level security scopes every row to one user id |
+
+The whole surface is six files in `src/cloud/`:
+
+| File | Responsibility |
+| --- | --- |
+| `config.js` | Reads the build-time config. The one honest answer to "can this build sync?" Imports nothing. |
+| `client.js` | Dynamic-imports the SDK on first use, so it stays out of the first chunk. |
+| `AuthProvider.jsx` | Sessions, sign-up, sign-in, recovery, account deletion. |
+| `SyncProvider.jsx` | Pull on sign-in and on focus, debounced push, conflict retry. |
+| `syncEngine.js` | The only code that touches `user_state`. Compare-and-swap writes. |
+| `merge.js` | Reconciles two copies of the document. |
+
+Three design decisions worth knowing:
+
+**Writes are compare-and-swap, not last-write-wins.** Each write is conditional
+on the `revision` it was based on. A write that lost the race matches zero rows,
+and the client re-reads, merges and retries, so two devices editing at once
+cannot silently drop one side's work.
+
+**Deletions leave tombstones.** A merge unions by id, so without a record of
+what was deleted, a device that still remembered a habit would resurrect it.
+Deletions are recorded as `{ id: instant }` in the document and pruned after
+180 days. An edit made *after* the deletion wins, because that is the later
+deliberate act.
+
+**The prompt only appears when there is a real choice.** If this device and the
+account both hold data and the two documents differ, you are asked once whether
+to combine, keep the device, or keep the account, with the real counts shown.
+Any other case resolves itself silently, and the answer is remembered per
+account per device.
+
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are injected at build
+time; both are public-safe. Without them the app builds into an honest
+local-only mode that never renders a sign-in form. Setup, the SQL schema and
+the RLS policies are in [`supabase/SETUP.md`](./supabase/SETUP.md).
 
 ## Testing
 
@@ -135,7 +176,22 @@ test/compute.test.js   38 tests — scheduling, streaks, pace, correlation
 test/store.test.js     23 tests — reducer invariants, normalisation, v4 → v5
 test/app.test.jsx      18 tests — first run, check-in, navigation, ⌘K, legal
                                   pages, design invariants, a11y
+test/sync.test.js      37 tests — merge rules, tombstones, compare-and-swap
+test/account.test.jsx  14 tests — both builds, and the promises each makes
 ```
+
+Sync has two further layers of proof, because unit tests cannot establish
+either one:
+
+- `qa/verify-sync.mjs` drives the **real** Supabase SDK over real HTTP, in a
+  real browser, against `qa/supabase-stub.mjs`. Two browser contexts act as two
+  devices, so sign-up, adoption, concurrent edits and tombstone propagation are
+  exercised end to end rather than asserted. Runs in CI on every pull request,
+  with no credentials needed.
+- `qa/verify-supabase.mjs` runs against the **real project** and is the only
+  thing that can prove row level security is actually enforced, by attempting
+  cross-user reads and writes that the database must refuse. Runs from
+  `verify-supabase.yml`, which needs the repository secrets.
 
 The tests assert behaviour that is easy to get wrong and easy to regress: that
 a streak doesn't break on an unfinished *today*, that consistency ignores days a
@@ -189,4 +245,6 @@ by whoever owns it.
 screen and from Settings. The privacy policy describes what the app actually
 does, down to the `localStorage` key and the individual fields stored under it.
 If the app ever gains a network call, an account or an analytics script, that
-page has to change in the same commit.
+page has to change in the same commit. It did, when sync landed: the policy now
+covers both configurations, and reads `cloudConfigured` so a build published
+without credentials does not describe an account system it does not have.

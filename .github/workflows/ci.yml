@@ -31,9 +31,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      # The app must still boot with JavaScript's heavy dependency (WebGL)
-      # unavailable — that is the path every phone and every reduced-motion
-      # user takes. Serve the real artifact and assert it renders.
+      # Serve the real artifact and assert it renders and carries its stamp.
       - name: Smoke-test the production artifact
         run: |
           set -euo pipefail
@@ -46,3 +44,46 @@ jobs:
           grep -q '<div id="root"></div>' /tmp/index.html
           grep -q '<meta name="build-id"' /tmp/index.html
           echo "Production artifact serves and carries its build identity."
+
+  sync:
+    name: Auth and sync, end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Drives the real @supabase/supabase-js client over real HTTP, in a real
+      # browser, against a local stub standing in for the project. Two browser
+      # contexts act as two devices, so the merge, conflict and tombstone paths
+      # are exercised rather than asserted. Row level security is the one thing
+      # a stub cannot prove; verify-supabase.yml does that against the real
+      # database.
+      - name: Start the Supabase stub
+        run: |
+          node qa/supabase-stub.mjs 54321 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:54321/auth/v1/settings > /dev/null && break
+            sleep 0.25
+          done
+
+      - name: Start the app against the stub
+        env:
+          SUPABASE_STUB: '1'
+          VITE_SUPABASE_URL: /supabase-stub
+          VITE_SUPABASE_PUBLISHABLE_KEY: local-stub-publishable-key
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/dev.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:5173/ > /dev/null && break
+            sleep 0.5
+          done
+
+      - name: Verify sign-up, sync, merge and deletion
+        run: node qa/verify-sync.mjs

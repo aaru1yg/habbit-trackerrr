@@ -127,6 +127,19 @@ export default defineConfig({
     // Allow the sandbox preview host (e2b.app) to reach the dev server.
     allowedHosts: ['.e2b.app', 'localhost', '127.0.0.1'],
     watch: { usePolling: true },
+    /* Verification only. With SUPABASE_STUB=1 the dev server proxies the
+       local stub (qa/supabase-stub.mjs) onto its own origin, so the real
+       Supabase SDK can be driven through real HTTP in a browser. Never
+       enabled in a production build. */
+    proxy: process.env.SUPABASE_STUB
+      ? {
+          '/supabase-stub': {
+            target: `http://127.0.0.1:${process.env.SUPABASE_STUB_PORT || 54321}`,
+            changeOrigin: true,
+            rewrite: (p) => p.replace(/^\/supabase-stub/, ''),
+          },
+        }
+      : undefined,
   },
   preview: {
     host: '0.0.0.0',

@@ -1,11 +1,12 @@
 /* ============================================================
-   TERMS — short, accurate, and specific to a local-only app.
-   No clauses about accounts, billing or uptime, because there
-   are no accounts, no billing and no server to be up.
+   TERMS — short, accurate, and specific to this app.
+   Still no clauses about billing, because there is none. There
+   are now optional accounts, so there is an account section.
    ============================================================ */
 import { Link } from '../../app/router.jsx'
 import { IconBack } from '../../ui/icons.jsx'
 import { LEGAL_UPDATED } from './PrivacyScreen.jsx'
+import { cloudConfigured } from '../../cloud/config.js'
 
 export default function TermsScreen() {
   return (
@@ -23,6 +24,7 @@ export default function TermsScreen() {
       <nav className="legal__toc" aria-label="On this page">
         <span className="legal__toch">Contents</span>
         <a href="#use">Using the app</a>
+        {cloudConfigured && <a href="#account">Accounts</a>}
         <a href="#data">Your data is your responsibility</a>
         <a href="#warranty">No warranty</a>
         <a href="#liability">Liability</a>
@@ -36,30 +38,59 @@ export default function TermsScreen() {
       <section id="use">
         <h2>Using the app</h2>
         <p>
-          Habit OS is free to use. There is no account to register, nothing to buy,
-          no subscription and no usage limit. You do not need permission to use it
-          for anything, including work.
+          Habit OS is free to use. There is nothing to buy, no subscription and no
+          usage limit. You do not need permission to use it for anything, including
+          work.
         </p>
         <p>
-          Because the app runs entirely in your browser, using it does not create a
-          relationship with any service provider. There is nothing to sign up for
-          and nothing to cancel.
+          The app runs in your browser and does not require an account.
+          {cloudConfigured
+            ? ' Signing in is optional, and exists only to back your data up and reach your other devices.'
+            : ' This build has no account system at all.'}
         </p>
       </section>
+
+      {cloudConfigured && (
+      <section id="account">
+        <h2>Accounts</h2>
+        <p>
+          An account is optional and free. You are responsible for keeping your
+          password to yourself; anyone who has it can read and change everything in
+          your account.
+        </p>
+        <p>
+          Use a real email address you control. It is the only way to reset a
+          password, and without it an account cannot be recovered. One person, one
+          account: do not share credentials or create accounts for other people.
+        </p>
+        <p>
+          You can delete your account at any time from the account page, which
+          erases it and its contents immediately and permanently. We may remove an
+          account that is being used to attack the service or to store content that
+          is unlawful. There is no other reason we would touch it.
+        </p>
+        <p>
+          Sync is provided on a best-effort basis. It is not a guaranteed backup
+          service, and the warranty and liability sections below apply to it in
+          full. Keep your own exports.
+        </p>
+      </section>
+      )}
 
       <section id="data">
         <h2>Your data is your responsibility</h2>
         <p>
-          Everything you record is stored in your browser and nowhere else. No copy
-          exists anywhere we can reach, which means we cannot restore anything for
-          you.
+          Everything you record is stored in your browser.
+          {cloudConfigured
+            ? ' If you sign in, a copy is also stored in your account. We do not keep snapshots, version history or deleted-item archives, so once something is deleted from both, it is gone and we cannot restore it for you.'
+            : ' No copy exists anywhere we can reach, which means we cannot restore anything for you.'}
         </p>
         <p>
           Data can be lost in ordinary ways: clearing site data, browsing in a
           private window, a browser evicting storage under pressure, uninstalling
           the browser, or losing the device. If your history matters to you, use
           <strong> Export</strong> in Settings and keep the file somewhere safe.
-          That is the only backup there is.
+          {cloudConfigured && ' An account reduces the risk but is not a substitute for a backup you hold yourself.'}
         </p>
       </section>
 

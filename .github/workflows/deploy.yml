@@ -33,12 +33,64 @@ jobs:
           npm run lint
           npm test
 
-      # Habit OS stores everything in the browser. There are no build-time
-      # secrets to inject, and nothing here should ever need one.
+      # The public Supabase client config must be injected at BUILD time: Vite
+      # inlines VITE_* into the bundle and CI has no .env file. Both values are
+      # public-safe (the publishable key's authority is bounded by RLS). The
+      # service_role key must never appear here.
+      #
+      # Absent secrets are NOT a failure: the app is local-first and builds
+      # into an honest local-only mode that never offers a sign-in form.
       - name: Build (Pages subpath base)
         run: npm run build
         env:
           GH_PAGES: 'true'
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_GOOGLE: ${{ vars.VITE_SUPABASE_GOOGLE }}
+
+      # Deploying a sign-in screen that cannot reach a server would be worse
+      # than deploying no sign-in screen at all, so when the secrets ARE set we
+      # assert the real values actually reached the bundle. Compared inside
+      # node; never echoed to the log.
+      - name: Verify the Supabase config matches the build
+        env:
+          SUPA_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPA_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPA_URL}" ] || [ -z "${SUPA_KEY}" ]; then
+            echo "::warning::Supabase secrets are not set. Deploying in local-only mode: the app will report 'This device only' and will not offer accounts."
+            exit 0
+          fi
+          node -e '
+            const fs = require("fs");
+            const dir = "dist/assets";
+            const js = fs.readdirSync(dir).filter(f => f.endsWith(".js"))
+              .map(f => fs.readFileSync(dir + "/" + f, "utf8")).join("");
+            // Do NOT grep for a bare "supabase.co": the SDK hardcodes that
+            // string internally, so it matches even with no config at all.
+            const host = new URL(process.env.SUPA_URL).host;
+            if (!js.includes(host)) {
+              console.error("::error::The injected Supabase URL host is absent from the bundle.");
+              process.exit(1);
+            }
+            if (!js.includes(process.env.SUPA_KEY)) {
+              console.error("::error::The injected publishable key is absent from the bundle.");
+              process.exit(1);
+            }
+            console.log("Verified: the Supabase host and publishable key are both present in the bundle.");
+          '
+
+      # A service_role key in a public bundle would hand every visitor full
+      # database access. Guard against it reaching production, ever.
+      - name: Assert no service-role key in the bundle
+        run: |
+          set -euo pipefail
+          if grep -rlE '"role" *: *"service_role"|service_role' dist/ 2>/dev/null | grep -q .; then
+            echo "::error::A service_role reference was found in the deployed bundle."
+            exit 1
+          fi
+          echo "No service-role key in the bundle."
 
       # Chain-of-evidence guard: the artifact must provably be built from the
       # checked-out commit, with the Pages subpath base applied. Fails loudly

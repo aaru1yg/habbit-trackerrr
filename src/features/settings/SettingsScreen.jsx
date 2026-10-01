@@ -9,13 +9,18 @@ import { lifetime } from '../../core/compute.js'
 import {
   Panel, Button, Field, Input, Segmented, SwitchRow, Confirm, SectionHead, useToast, Badge,
 } from '../../ui/index.jsx'
-import { IconDownload, IconUpload, IconTrash } from '../../ui/icons.jsx'
+import { IconDownload, IconUpload, IconTrash, IconUser, IconChevron } from '../../ui/icons.jsx'
 import { Link } from '../../app/router.jsx'
+import { useAuth } from '../../cloud/AuthProvider.jsx'
+import { useSync } from '../../cloud/SyncProvider.jsx'
+import { syncCopy } from '../account/SyncState.jsx'
 
 export default function SettingsScreen() {
   const state = useStore()
   const actions = useActions()
   const toast = useToast()
+  const auth = useAuth()
+  const sync = useSync()
   const fileRef = useRef(null)
   const [resetting, setResetting] = useState(false)
   const [importErr, setImportErr] = useState('')
@@ -49,7 +54,15 @@ export default function SettingsScreen() {
 
   return (
     <div className="stack stack--loose">
-      <SectionHead eyebrow="Yours" title="Settings" sub="This app has no account and no server. Everything lives in this browser." />
+      <SectionHead
+        eyebrow="Yours"
+        title="Settings"
+        sub={auth?.configured
+          ? 'How the app looks, where your data lives, and how to get it out.'
+          : 'This build has no account and no server. Everything lives in this browser.'}
+      />
+
+      {auth?.configured && <AccountRow auth={auth} sync={sync} />}
 
       <Panel title="You" className="rise" style={{ '--i': 0 }}>
         <Field label="Name" hint="Used in the greeting on Today. Leave it blank if you’d rather not.">
@@ -113,7 +126,8 @@ export default function SettingsScreen() {
           {importErr && <p className="small" style={{ color: 'var(--danger)' }}>{importErr}</p>}
 
           <p className="tiny faint">
-            Importing replaces everything currently in the app. Export first if you are not sure.
+            Importing replaces everything currently in the app{auth?.user ? ', on this device and in your account' : ''}.
+            Export first if you are not sure.
           </p>
 
           {hasLegacy && (
@@ -141,11 +155,15 @@ export default function SettingsScreen() {
           <div className="row row--between"><span>Build</span><span className="num dim">{__BUILD_ID__}</span></div>
           <div className="row row--between"><span>Data format</span><span className="num dim">v{state.version}</span></div>
           <div className="row row--between"><span>Storage key</span><span className="num dim">{STORAGE_KEY}</span></div>
-          <div className="row row--between"><span>Storage</span><span className="dim">This browser only</span></div>
+          <div className="row row--between">
+            <span>Storage</span>
+            <span className="dim">{auth?.user ? 'This browser and your account' : 'This browser only'}</span>
+          </div>
         </div>
         <p className="tiny faint" style={{ marginTop: 'var(--s4)' }}>
-          No analytics, no telemetry, no network requests for your data. The only way anything leaves this
-          device is the export button above.
+          {auth?.user
+            ? 'No analytics and no telemetry. Your data is sent to your own account and nowhere else, and you can remove that copy at any time from the account page.'
+            : 'No analytics, no telemetry, no network requests for your data. The only way anything leaves this device is the export button above, or signing in.'}
         </p>
         <div className="row" style={{ gap: 'var(--s2)', marginTop: 'var(--s4)' }}>
           <Link to="privacy" className="btn btn--sm">Privacy</Link>
@@ -156,11 +174,33 @@ export default function SettingsScreen() {
       <Confirm
         open={resetting}
         title="Erase everything?"
-        body="This wipes all of your data from this browser immediately. If you might want it back, cancel and export a backup first."
+        body={auth?.user
+          ? 'This wipes all of your data from this browser immediately, and the empty result then syncs to your account. If you might want it back, cancel and export a backup first.'
+          : 'This wipes all of your data from this browser immediately. If you might want it back, cancel and export a backup first.'}
         confirmLabel="Erase it all"
         onConfirm={() => { actions.reset(); toast('Everything erased') }}
         onClose={() => setResetting(false)}
       />
     </div>
+  )
+}
+
+/* A one-line account summary that links through, rather than a second
+   copy of the account page living inside settings. */
+function AccountRow({ auth, sync }) {
+  const { label } = syncCopy(sync?.status)
+  return (
+    <Link to="account" className="acctrow">
+      <span className="acctrow__ico" aria-hidden="true"><IconUser size={18} /></span>
+      <span className="acctrow__body">
+        <span className="acctrow__t">{auth.user ? auth.email : 'Sign in to sync'}</span>
+        <span className="acctrow__d">
+          {auth.user
+            ? `${label} · manage your account, sync and sign-out`
+            : 'Back your data up and use it on another device. Optional.'}
+        </span>
+      </span>
+      <IconChevron size={16} aria-hidden="true" />
+    </Link>
   )
 }

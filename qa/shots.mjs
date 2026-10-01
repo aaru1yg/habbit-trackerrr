@@ -73,6 +73,7 @@ const SHOTS = [
   ['goal-detail', '#/goal/g1'],
   ['insights', '#/insights'],
   ['settings', '#/settings'],
+  ['account', '#/account'],
   ['privacy', '#/privacy'],
   ['terms', '#/terms'],
 ]

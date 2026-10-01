@@ -1,0 +1,70 @@
+name: Verify Supabase
+
+# The real proof that auth and sync work.
+#
+# Unit tests run the merge rules against a fake backend, and qa/verify-sync.mjs
+# drives the real SDK against a local stub. Neither can prove that row level
+# security is actually enforced by Postgres, because only the real database can
+# refuse a cross-user read. That is what this job is for.
+#
+# It never prints a key, a token or a password, and it never needs the
+# service_role key.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, so a policy quietly disabled in the dashboard gets noticed
+    # rather than discovered by a user.
+    - cron: '17 6 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'src/cloud/**'
+      - 'qa/verify-supabase.mjs'
+      - '.github/workflows/verify-supabase.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: Live round-trip and RLS isolation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check the credentials are present
+        env:
+          SUPA_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPA_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPA_URL}" ] || [ -z "${SUPA_KEY}" ]; then
+            echo "::error::VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY are not set."
+            echo "Add them under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "Credentials present."
+
+      # Two pre-confirmed accounts let the isolation matrix run unattended even
+      # with email confirmation enabled (the secure default). Without them the
+      # script still runs, but reports the cross-user checks as skipped rather
+      # than claiming a pass it did not earn.
+      - name: Live verification
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          TEST_A_EMAIL: ${{ secrets.TEST_A_EMAIL }}
+          TEST_A_PASSWORD: ${{ secrets.TEST_A_PASSWORD }}
+          TEST_B_EMAIL: ${{ secrets.TEST_B_EMAIL }}
+          TEST_B_PASSWORD: ${{ secrets.TEST_B_PASSWORD }}
+        run: node qa/verify-supabase.mjs

@@ -42,6 +42,18 @@ export const IconDownload = (p) => <S {...p}><path d="M12 4v10" /><path d="m8 10
 export const IconUpload   = (p) => <S {...p}><path d="M12 15V5" /><path d="m8 8.5 4-4 4 4" /><path d="M4.5 18.5h15" /></S>
 export const IconMenu     = (p) => <S {...p}><path d="M4 7h16M4 12h16M4 17h10" /></S>
 export const IconRocket   = (p) => <S {...p}><path d="M13.5 4.5c3.3-1.3 6 1.4 4.7 4.7-.9 2.3-3.3 5-6.2 6.3L9 17l-2-2 1.5-3c1.3-2.9 3.9-5.3 6.2-6.2z" /><path d="M8.5 15.5 6 18M9.5 18.5 7 21M5.5 14.5 3 17" /><circle cx="14.5" cy="9.5" r="1.4" /></S>
+/* ---- account and sync ---- */
+export const IconCloud    = (p) => <S {...p}><path d="M7.2 19h9.6a4.2 4.2 0 0 0 .5-8.37 6 6 0 0 0-11.63 1.2A3.9 3.9 0 0 0 7.2 19Z" /></S>
+export const IconCloudOff = (p) => <S {...p}><path d="M6.6 10.1A3.9 3.9 0 0 0 7.2 19h8.3" /><path d="M9.3 6.6a6 6 0 0 1 8.1 4.1 4.2 4.2 0 0 1 2.1 7.1" /><path d="M3.5 3.5l17 17" /></S>
+export const IconCloudUp  = (p) => <S {...p}><path d="M7.2 18h9.6a4.2 4.2 0 0 0 .5-8.37 6 6 0 0 0-11.63 1.2A3.9 3.9 0 0 0 7.2 18Z" /><path d="M12 20.5v-6" /><path d="m9.7 16.4 2.3-2.3 2.3 2.3" /></S>
+export const IconRefresh  = (p) => <S {...p}><path d="M20 12a8 8 0 1 1-2.4-5.7" /><path d="M20.5 4v4.5H16" /></S>
+export const IconLock     = (p) => <S {...p}><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.2" /><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7" /><circle cx="12" cy="15.2" r="1.2" fill="currentColor" stroke="none" /></S>
+export const IconMail     = (p) => <S {...p}><rect x="3" y="5.5" width="18" height="13" rx="2.2" /><path d="m3.6 7 7.3 5.3a2 2 0 0 0 2.2 0L20.4 7" /></S>
+export const IconSignOut  = (p) => <S {...p}><path d="M14.5 4.5h3A2 2 0 0 1 19.5 6.5v11a2 2 0 0 1-2 2h-3" /><path d="M11 16.5 15 12l-4-4.5" /><path d="M15 12H4.5" /></S>
+export const IconUser     = (p) => <S {...p}><circle cx="12" cy="8.5" r="3.8" /><path d="M4.8 20a7.4 7.4 0 0 1 14.4 0" /></S>
+export const IconMerge    = (p) => <S {...p}><path d="M7 20.5V13l5-4.5V3.5" /><path d="M17 20.5V13l-5-4.5" /><path d="m8.6 5.2 3.4-3 3.4 3" /></S>
+export const IconAlert    = (p) => <S {...p}><path d="M12 4.5 21 19.5H3z" /><path d="M12 10v4" /><circle cx="12" cy="16.8" r="1" fill="currentColor" stroke="none" /></S>
+
 export const IconLayers   = (p) => <S {...p}><path d="m12 3.5 8.5 4.5L12 12.5 3.5 8z" /><path d="m3.5 12.5 8.5 4.5 8.5-4.5" /><path d="m3.5 16.5 8.5 4.5 8.5-4.5" /></S>
 export const IconMoon     = (p) => <S {...p}><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5" /></S>
 export const IconSun      = (p) => <S {...p}><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" /></S>

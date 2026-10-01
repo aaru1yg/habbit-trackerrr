@@ -56,6 +56,16 @@ const momentOrNull = (v) => {
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) ? v.slice(0, 16) : null
 }
 
+/* Full-precision UTC instant. `momentOrNull` truncates to the minute, which
+   is fine for "when did I log this" but useless for deciding which of two
+   edits is newer — two devices editing the same record inside one minute
+   would tie. Sync timestamps keep their milliseconds. */
+const stampOrNull = (v) => {
+  if (typeof v !== 'string' || !v) return null
+  const t = Date.parse(v)
+  return Number.isFinite(t) ? new Date(t).toISOString() : null
+}
+
 /* ---- Factories ------------------------------------------- */
 
 export function makeHabit(p = {}) {
@@ -75,6 +85,7 @@ export function makeHabit(p = {}) {
     notes: str(p.notes, 600),
     createdAt: dayOrNull(p.createdAt),
     archivedAt: dayOrNull(p.archivedAt),
+    updatedAt: stampOrNull(p.updatedAt),
     order: int(p.order, 0, 9999, 0),
   }
 }
@@ -107,6 +118,7 @@ export function makeWork(p = {}) {
     createdAt: dayOrNull(p.createdAt),
     doneAt: momentOrNull(p.doneAt),
     archivedAt: dayOrNull(p.archivedAt),
+    updatedAt: stampOrNull(p.updatedAt),
     order: int(p.order, 0, 9999, 0),
   }
 }
@@ -139,6 +151,7 @@ export function makeGoal(p = {}) {
     habitIds: Array.isArray(p.habitIds) ? [...new Set(p.habitIds.filter((x) => typeof x === 'string'))].slice(0, 30) : [],
     createdAt: dayOrNull(p.createdAt),
     doneAt: dayOrNull(p.doneAt),
+    updatedAt: stampOrNull(p.updatedAt),
     order: int(p.order, 0, 9999, 0),
   }
 }
@@ -150,6 +163,7 @@ export const DEFAULT_PROFILE = {
   motion: 'full',       // 'full' | 'calm'
   weekStart: 1,
   lastExport: null,
+  updatedAt: null,
 }
 
 export function makeProfile(p = {}) {
@@ -161,6 +175,7 @@ export function makeProfile(p = {}) {
     motion: p.motion === 'calm' ? 'calm' : 'full',
     weekStart: int(p.weekStart, 0, 1, 1),
     lastExport: momentOrNull(p.lastExport),
+    updatedAt: stampOrNull(p.updatedAt),
   }
 }
 
@@ -172,7 +187,36 @@ export const emptyState = () => ({
   work: [],
   goals: [],
   moods: {},      // day -> { mood, energy, note }
+  deleted: {},    // id -> ISO instant; see TOMBSTONES below
 })
+
+/* ---- Tombstones ------------------------------------------
+   Deleting a habit really does remove it from `habits`. But a
+   second device that still holds the record would otherwise put
+   it straight back on the next merge, because a merge unions by
+   id and an absent record is indistinguishable from one that was
+   never there.
+
+   So deletions are recorded here as id -> instant. The merge
+   consults the map, and a record older than its tombstone stays
+   deleted. Entries are pruned after TOMBSTONE_TTL_DAYS, which is
+   far longer than any plausible offline gap and keeps the map
+   from growing without bound. Nothing outside sync reads it. */
+
+export const TOMBSTONE_TTL_DAYS = 180
+
+export function pruneTombstones(map, nowMs = Date.now()) {
+  const out = {}
+  if (!map || typeof map !== 'object') return out
+  const cutoff = nowMs - TOMBSTONE_TTL_DAYS * 86400000
+  for (const [id, at] of Object.entries(map)) {
+    if (typeof id !== 'string' || !id || id.length > 24) continue
+    const t = Date.parse(at)
+    if (!Number.isFinite(t) || t < cutoff) continue
+    out[id] = new Date(t).toISOString()
+  }
+  return out
+}
 
 /* ---- Normalisation (every load passes through here) ------ */
 
@@ -192,7 +236,7 @@ export function normalize(raw) {
         if (!isDay(d)) continue
         const value = int(c?.value ?? (c?.done ? 1 : 0), 0, 99999, 0)
         if (value <= 0) continue
-        clean[d] = { value, at: momentOrNull(c?.at) }
+        clean[d] = { value, at: momentOrNull(c?.at), updatedAt: stampOrNull(c?.updatedAt) }
       }
       if (Object.keys(clean).length) checkins[hid] = clean
     }
@@ -212,9 +256,11 @@ export function normalize(raw) {
       const mood = int(m.mood, 1, 5, null)
       const energy = int(m.energy, 1, 5, null)
       if (mood == null && energy == null) continue
-      moods[d] = { mood, energy, note: str(m.note, 200) }
+      moods[d] = { mood, energy, note: str(m.note, 200), updatedAt: stampOrNull(m.updatedAt) }
     }
   }
+
+  const deleted = pruneTombstones(raw.deleted)
 
   return {
     version: VERSION,
@@ -224,6 +270,7 @@ export function normalize(raw) {
     work: reorder(work),
     goals: reorder(goals),
     moods,
+    deleted,
   }
 }
 

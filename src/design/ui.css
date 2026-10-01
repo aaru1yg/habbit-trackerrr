@@ -21,7 +21,9 @@
   margin-bottom: var(--s4);
 }
 .sechead__t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.sechead__sub { font-size: var(--fs-sm); color: var(--muted); }
+/* A subtitle can carry user-supplied text with no spaces in it, such as an
+   email address. Break it rather than let it widen the page. */
+.sechead__sub { font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
 
 /* An eyebrow marks a page title. Without one this is a heading
    inside the page, and it must not compete with the page title. */

@@ -9,7 +9,7 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
 import {
   STORAGE_KEY, LEGACY_KEYS, VERSION, emptyState, normalize, migrate,
-  makeHabit, makeWork, makeSubtask, makeGoal, uid,
+  makeHabit, makeWork, makeSubtask, makeGoal, uid, pruneTombstones,
 } from './schema.js'
 import { today, now, moment } from './date.js'
 
@@ -38,7 +38,21 @@ function load() {
 /* ---------------- Reducer --------------------------------- */
 
 const reorder = (list) => list.map((x, i) => ({ ...x, order: i }))
-const replace = (list, id, fn) => list.map((x) => (x.id === id ? fn(x) : x))
+
+/* Every record edit carries the instant it happened. Cloud sync needs it to
+   decide which of two divergent copies of the same row is the newer one; with
+   no account it is simply an unread field. */
+const stamp = () => new Date().toISOString()
+const replace = (list, id, fn) =>
+  list.map((x) => (x.id === id ? { ...fn(x), updatedAt: stamp() } : x))
+
+/* Record a deletion so another device cannot resurrect the row on merge. */
+const bury = (state, ...ids) => {
+  const deleted = { ...state.deleted }
+  const at = stamp()
+  for (const id of ids) deleted[id] = at
+  return pruneTombstones(deleted)
+}
 
 function reducer(state, action) {
   switch (action.type) {
@@ -47,11 +61,11 @@ function reducer(state, action) {
     case 'reset':   return emptyState()
 
     case 'profile':
-      return { ...state, profile: { ...state.profile, ...action.patch } }
+      return { ...state, profile: { ...state.profile, ...action.patch, updatedAt: stamp() } }
 
     /* ---- habits ---- */
     case 'habit/add': {
-      const habit = makeHabit({ ...action.habit, createdAt: today(), order: state.habits.length })
+      const habit = makeHabit({ ...action.habit, createdAt: today(), updatedAt: stamp(), order: state.habits.length })
       return { ...state, habits: [...state.habits, habit] }
     }
     case 'habit/update':
@@ -67,7 +81,12 @@ function reducer(state, action) {
         ...state,
         habits: reorder(state.habits.filter((h) => h.id !== action.id)),
         checkins,
-        goals: state.goals.map((g) => ({ ...g, habitIds: g.habitIds.filter((x) => x !== action.id) })),
+        goals: state.goals.map((g) =>
+          g.habitIds.includes(action.id)
+            ? { ...g, habitIds: g.habitIds.filter((x) => x !== action.id), updatedAt: stamp() }
+            : g
+        ),
+        deleted: bury(state, action.id),
       }
     }
     case 'habit/move': {
@@ -76,7 +95,12 @@ function reducer(state, action) {
       if (from < 0) return state
       const to = Math.max(0, Math.min(list.length - 1, from + action.by))
       list.splice(to, 0, list.splice(from, 1)[0])
-      return { ...state, habits: reorder(list) }
+      const at = stamp()
+      const lo = Math.min(from, to); const hi = Math.max(from, to)
+      return {
+        ...state,
+        habits: reorder(list).map((h, i) => (i >= lo && i <= hi ? { ...h, updatedAt: at } : h)),
+      }
     }
 
     /* ---- check-ins: one entry point for every way to log ---- */
@@ -87,7 +111,7 @@ function reducer(state, action) {
       const days = { ...(state.checkins[habitId] || {}) }
       const v = Math.max(0, Math.round(value))
       if (v <= 0) delete days[day]
-      else days[day] = { value: v, at: days[day]?.at || (day === today() ? now() : `${day}T12:00`) }
+      else days[day] = { value: v, at: days[day]?.at || (day === today() ? now() : `${day}T12:00`), updatedAt: stamp() }
       const checkins = { ...state.checkins }
       if (Object.keys(days).length) checkins[habitId] = days
       else delete checkins[habitId]
@@ -96,7 +120,7 @@ function reducer(state, action) {
 
     /* ---- work ---- */
     case 'work/add': {
-      const item = makeWork({ ...action.work, createdAt: today(), startedAt: today(), order: state.work.length })
+      const item = makeWork({ ...action.work, createdAt: today(), startedAt: today(), updatedAt: stamp(), order: state.work.length })
       return { ...state, work: [...state.work, item] }
     }
     case 'work/update':
@@ -116,7 +140,11 @@ function reducer(state, action) {
       return { ...state, work: replace(state.work, action.id, (w) => ({ ...w, archivedAt: w.archivedAt ? null : today() })) }
 
     case 'work/remove':
-      return { ...state, work: reorder(state.work.filter((w) => w.id !== action.id)) }
+      return {
+        ...state,
+        work: reorder(state.work.filter((w) => w.id !== action.id)),
+        deleted: bury(state, action.id),
+      }
 
     /* ---- subtasks ---- */
     case 'task/add':
@@ -175,7 +203,7 @@ function reducer(state, action) {
 
     /* ---- goals ---- */
     case 'goal/add':
-      return { ...state, goals: [...state.goals, makeGoal({ ...action.goal, createdAt: today(), order: state.goals.length })] }
+      return { ...state, goals: [...state.goals, makeGoal({ ...action.goal, createdAt: today(), updatedAt: stamp(), order: state.goals.length })] }
     case 'goal/update':
       return { ...state, goals: replace(state.goals, action.id, (g) => makeGoal({ ...g, ...action.patch, id: g.id })) }
     case 'goal/complete':
@@ -184,7 +212,10 @@ function reducer(state, action) {
       return {
         ...state,
         goals: reorder(state.goals.filter((g) => g.id !== action.id)),
-        work: state.work.map((w) => (w.goalId === action.id ? { ...w, goalId: null } : w)),
+        work: state.work.map((w) =>
+          w.goalId === action.id ? { ...w, goalId: null, updatedAt: stamp() } : w
+        ),
+        deleted: bury(state, action.id),
       }
     case 'goal/link': {
       // One action links a habit OR a work item, so the two sides
@@ -218,6 +249,7 @@ function reducer(state, action) {
         mood: mood === undefined ? prev.mood ?? null : mood,
         energy: energy === undefined ? prev.energy ?? null : energy,
         note: note === undefined ? prev.note || '' : String(note).slice(0, 200),
+        updatedAt: stamp(),
       }
       if (next.mood == null && next.energy == null && !next.note) delete moods[day]
       else moods[day] = next

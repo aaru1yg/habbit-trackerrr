@@ -17,6 +17,7 @@ const GoalsScreen    = lazy(() => import('./features/goals/GoalsScreen.jsx'))
 const GoalDetail     = lazy(() => import('./features/goals/GoalDetail.jsx'))
 const InsightsScreen = lazy(() => import('./features/insights/InsightsScreen.jsx'))
 const SettingsScreen = lazy(() => import('./features/settings/SettingsScreen.jsx'))
+const AccountScreen  = lazy(() => import('./features/account/AccountScreen.jsx'))
 const PrivacyScreen  = lazy(() => import('./features/legal/PrivacyScreen.jsx'))
 const TermsScreen    = lazy(() => import('./features/legal/TermsScreen.jsx'))
 
@@ -29,6 +30,7 @@ const ROUTES = {
   goal:     GoalDetail,
   insights: InsightsScreen,
   settings: SettingsScreen,
+  account:  AccountScreen,
   privacy:  PrivacyScreen,
   terms:    TermsScreen,
 }

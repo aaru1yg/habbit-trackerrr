@@ -8,12 +8,18 @@ import { useEffect, useState } from 'react'
 import { useRoute, Link } from './router.jsx'
 import { NAV, DOCK, titleFor, parentOf } from './nav.js'
 import { useStore } from '../core/store.jsx'
-import { IconSearch, IconSettings, Wordmark } from '../ui/icons.jsx'
+import { IconSearch, IconSettings, IconUser, Wordmark } from '../ui/icons.jsx'
 import CommandPalette from './CommandPalette.jsx'
+import { useAuth } from '../cloud/AuthProvider.jsx'
+import { useSync } from '../cloud/SyncProvider.jsx'
+import { SyncBadge } from '../features/account/SyncState.jsx'
+import MigrationDialog from '../features/account/MigrationDialog.jsx'
 
 export default function Shell({ children }) {
   const route = useRoute()
   const { profile } = useStore()
+  const auth = useAuth()
+  const sync = useSync()
   const [railOpen, setRailOpen] = useState(() => localStorage.getItem('aaru.rail') === 'open')
   const [cmd, setCmd] = useState(false)
 
@@ -72,10 +78,23 @@ export default function Shell({ children }) {
             <span>Search or add</span>
             <kbd className="topbar__kbd">⌘K</kbd>
           </button>
+          {auth?.configured && <SyncBadge status={sync?.status} error={sync?.error} />}
+          {auth?.configured && (
+            <Link
+              to="account"
+              className="btn btn--ghost btn--icon btn--sm"
+              aria-label={auth.user ? 'Account' : 'Sign in'}
+              aria-current={route.name === 'account' ? 'page' : undefined}
+              style={{ display: 'grid', placeItems: 'center' }}
+            >
+              <IconUser size={17} />
+            </Link>
+          )}
           <Link
             to="settings"
             className="btn btn--ghost btn--icon btn--sm"
             aria-label="Settings"
+            aria-current={route.name === 'settings' ? 'page' : undefined}
             style={{ display: 'grid', placeItems: 'center' }}
           >
             <IconSettings size={17} />
@@ -104,6 +123,7 @@ export default function Shell({ children }) {
       </nav>
 
       <CommandPalette open={cmd} onClose={() => setCmd(false)} />
+      <MigrationDialog migration={sync?.migration} onResolve={(c) => sync?.resolveMigration(c)} />
       {profile.motion === 'calm' && <style>{'.route{animation:none!important}'}</style>}
     </div>
   )
@@ -125,10 +145,17 @@ function NavItem({ item, active, showLabel }) {
 }
 
 function SiteFooter() {
+  const auth = useAuth()
+  const sync = useSync()
+  // Say what is actually true of this build and this session, not a slogan.
+  const where = !auth?.configured || !auth.user
+    ? 'Your data stays in this browser.'
+    : 'Your data is synced to your account.'
   return (
     <footer className="foot">
       <span className="foot__legal">
-        Habit OS. Your data stays in this browser.
+        Habit OS. {where}
+        {sync?.status === 'offline' && ' Offline right now.'}
       </span>
       <nav className="foot__links" aria-label="Legal">
         <Link to="privacy">Privacy</Link>

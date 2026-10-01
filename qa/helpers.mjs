@@ -12,9 +12,6 @@ const BASE_ARGS = [
   '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
   '--force-color-profile=srgb', '--disable-lcd-text',
   '--enable-features=OverlayScrollbar',
-  // Software WebGL so browser QA can exercise the real 3D layer on
-  // GPU-less CI runners. Real devices use their own GPU.
-  '--enable-unsafe-swiftshader',
 ]
 
 /** Look for a usable system chromium first (CHROMIUM_PATH or common installs). */

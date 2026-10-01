@@ -3,17 +3,23 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import { StoreProvider } from './core/store.jsx'
 import { RouterProvider } from './app/router.jsx'
+import AuthProvider from './cloud/AuthProvider.jsx'
+import SyncProvider from './cloud/SyncProvider.jsx'
 import { ToastHost } from './ui/index.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <StoreProvider>
-      <RouterProvider>
-        <ToastHost>
-          <App />
-        </ToastHost>
-      </RouterProvider>
+      <AuthProvider>
+        <SyncProvider>
+          <RouterProvider>
+            <ToastHost>
+              <App />
+            </ToastHost>
+          </RouterProvider>
+        </SyncProvider>
+      </AuthProvider>
     </StoreProvider>
   </React.StrictMode>
 )

@@ -1,0 +1,151 @@
+/* ============================================================
+   BASE — reset, document, typography, the living backdrop.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--t1);
+  background: var(--void);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 650;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+}
+h1 { font-size: var(--fs-2xl); }
+h2 { font-size: var(--fs-xl); }
+h3 { font-size: var(--fs-lg); }
+h4 { font-size: var(--fs-md); }
+p  { margin: 0; }
+
+a { color: inherit; text-decoration: none; }
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+}
+button { background: none; border: 0; cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+
+svg { display: block; }
+img { max-width: 100%; display: block; }
+
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+::selection { background: rgb(var(--accent-rgb) / 0.3); color: var(--t1); }
+
+/* Thin, unobtrusive scrollbars that match the glass. */
+* { scrollbar-width: thin; scrollbar-color: #ffffff1f transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: #ffffff1a;
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: #ffffff33; background-clip: content-box; }
+
+/* ---- Utility ------------------------------------------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+/* ============================================================
+   BACKDROP — three parallax layers of light behind everything.
+   Pure CSS, GPU-composited, zero JS per frame.
+   ============================================================ */
+
+.backdrop {
+  position: fixed;
+  inset: -12vmax;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: radial-gradient(130% 100% at 50% 0%, var(--abyss) 0%, var(--void) 62%);
+}
+
+.backdrop__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: .5;
+  will-change: transform;
+  transition: background var(--d-slow) var(--e-out);
+}
+.backdrop__orb--a {
+  width: 62vmax; height: 62vmax; top: -22vmax; left: -14vmax;
+  background: radial-gradient(circle, rgb(var(--accent-rgb) / .55), transparent 68%);
+  animation: drift-a 34s var(--e-inout) infinite alternate;
+}
+.backdrop__orb--b {
+  width: 48vmax; height: 48vmax; bottom: -18vmax; right: -12vmax;
+  background: radial-gradient(circle, #4c6bff80, transparent 68%);
+  animation: drift-b 46s var(--e-inout) infinite alternate;
+}
+.backdrop__orb--c {
+  width: 36vmax; height: 36vmax; top: 38%; left: 48%;
+  background: radial-gradient(circle, #ff4ca855, transparent 70%);
+  opacity: .3;
+  animation: drift-c 58s var(--e-inout) infinite alternate;
+}
+
+@keyframes drift-a { to { transform: translate3d(14vmax, 10vmax, 0) scale(1.14); } }
+@keyframes drift-b { to { transform: translate3d(-12vmax, -8vmax, 0) scale(1.2); } }
+@keyframes drift-c { to { transform: translate3d(-18vmax, 12vmax, 0) scale(.84); } }
+
+/* A faint grid on the floor plane — reads as "depth" instantly. */
+.backdrop__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right,  #ffffff07 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff07 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(90% 70% at 50% 42%, #000 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(90% 70% at 50% 42%, #000 0%, transparent 75%);
+}
+
+/* Film grain kills banding in the big gradients. */
+.backdrop__grain {
+  position: absolute;
+  inset: 0;
+  opacity: .035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+[data-theme='daylight'] .backdrop__orb { opacity: .3; }
+[data-theme='daylight'] .backdrop__grain { opacity: .02; mix-blend-mode: multiply; }

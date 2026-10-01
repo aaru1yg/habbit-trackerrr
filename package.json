@@ -1,33 +1,25 @@
 {
-  "name": "aaru-habit-tracker",
+  "name": "habit-os",
   "private": true,
-  "version": "1.0.0",
+  "version": "5.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node qa/build-proof.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:schema": "node qa/schema-check.mjs",
-    "test:e2e": "node qa/e2e.mjs",
-    "test:e2e:work": "node qa/workspace-e2e.mjs",
-    "test:e2e:habits": "node qa/habits-e2e.mjs",
-    "test:e2e:goals": "node qa/goals-browser.mjs",
-    "test:release": "node qa/release.mjs",
-    "lint": "eslint src test qa --max-warnings 40"
+    "lint": "eslint src test qa --max-warnings 40",
+    "test:visual": "node qa/shots.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/manrope": "^5.3.0",
-    "@supabase/supabase-js": "^2.115.0",
     "date-fns": "^3.6.0",
-    "framer-motion": "^11.3.28",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.185.1"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.2.17",
     "@eslint/js": "^10.0.1",
     "@sparticuz/chromium": "^149.0.0",
     "@testing-library/dom": "^10.4.1",
@@ -39,8 +31,8 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^30.0.1",
     "puppeteer-core": "^25.10.0",
-    "sharp": "^0.35.4",
     "vite": "^5.4.2",
     "vitest": "^2.1.9"
-  }
+  },
+  "description": "Habits, work and goals in one 3D-first local app."
 }

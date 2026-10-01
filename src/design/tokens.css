@@ -1,0 +1,147 @@
+/* ============================================================
+   TOKENS — one file, one source of truth.
+   The old build had seven overlapping token/theme layers. This
+   replaces all of them.
+   ============================================================ */
+
+:root {
+  /* ---- Palette: deep space base -------------------------- */
+  --void:        #05060c;
+  --abyss:       #080a14;
+  --ink:         #0b0e1b;
+  --slate-900:   #10142580;
+  --slate-800:   #151a2e;
+  --slate-700:   #1e2440;
+
+  /* ---- Accents: one per pillar, used for light + glow ----- */
+  --a-today:   #7c5cff;
+  --a-habits:  #2fd6a6;
+  --a-work:    #ff8a4c;
+  --a-goals:   #ffd24c;
+  --a-insight: #4cc9ff;
+  --a-danger:  #ff5a72;
+
+  /* Live accent — the shell rewrites this per route so every
+     surface, glow and ring re-tints together. */
+  --accent:     var(--a-today);
+  --accent-rgb: 124 92 255;
+
+  /* ---- Text ---------------------------------------------- */
+  --t1: #f2f4ff;
+  --t2: #b4bbd8;
+  --t3: #7c849f;
+  --t4: #545b74;
+
+  /* ---- Glass surfaces ------------------------------------ */
+  --glass-1: linear-gradient(145deg, #ffffff14, #ffffff05 42%, #ffffff02);
+  --glass-2: linear-gradient(150deg, #ffffff0f, #ffffff03);
+  --glass-hi: #ffffff2e;   /* top rim light */
+  --glass-lo: #00000055;   /* bottom shade */
+  --stroke:   #ffffff14;
+  --stroke-2: #ffffff24;
+
+  /* ---- Depth: the 3D stack ------------------------------- */
+  /* Each level = a real z position + the shadow that sells it. */
+  --z-0: 0px;
+  --z-1: 14px;
+  --z-2: 34px;
+  --z-3: 64px;
+  --z-4: 110px;
+
+  --shadow-1:
+    0 1px 0 var(--glass-hi) inset,
+    0 -1px 0 var(--glass-lo) inset,
+    0 2px 8px -2px #00000070;
+  --shadow-2:
+    0 1px 0 var(--glass-hi) inset,
+    0 -1px 0 var(--glass-lo) inset,
+    0 8px 20px -8px #000000a0,
+    0 2px 6px -2px #00000060;
+  --shadow-3:
+    0 1px 0 var(--glass-hi) inset,
+    0 -1px 0 var(--glass-lo) inset,
+    0 24px 50px -18px #000000c0,
+    0 8px 18px -8px #00000080;
+  --shadow-4:
+    0 1px 0 var(--glass-hi) inset,
+    0 40px 90px -30px #000000d8,
+    0 14px 32px -14px #00000090;
+
+  --glow:  0 0 0 1px rgb(var(--accent-rgb) / 0.26),
+           0 10px 44px -12px rgb(var(--accent-rgb) / 0.42);
+  --glow-s: 0 0 22px -4px rgb(var(--accent-rgb) / 0.55);
+
+  /* ---- Geometry ------------------------------------------ */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-xl: 34px;
+  --r-pill: 999px;
+
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 22px; --s6: 30px; --s7: 42px; --s8: 60px;
+
+  --perspective: 1400px;
+
+  /* ---- Type ---------------------------------------------- */
+  --font: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Manrope Variable', var(--font);
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+  --fs-xs: 11px; --fs-sm: 12.5px; --fs-md: 14px;
+  --fs-lg: 16px; --fs-xl: 20px;  --fs-2xl: 28px;
+  --fs-3xl: 40px; --fs-4xl: 58px;
+
+  /* ---- Motion -------------------------------------------- */
+  --e-out:    cubic-bezier(.16, 1, .3, 1);
+  --e-inout:  cubic-bezier(.65, 0, .35, 1);
+  --e-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --d-fast: 140ms;
+  --d-mid:  280ms;
+  --d-slow: 560ms;
+
+  /* ---- Layout -------------------------------------------- */
+  --rail: 76px;
+  --rail-open: 232px;
+  --topbar: 62px;
+  --dock: 68px;
+  --page-max: 1180px;
+}
+
+/* Accent is swapped by the shell via [data-accent]. Keeping it a
+   data attribute (not inline style) means CSS owns the palette. */
+[data-accent='today']   { --accent: var(--a-today);   --accent-rgb: 124 92 255; }
+[data-accent='habits']  { --accent: var(--a-habits);  --accent-rgb: 47 214 166; }
+[data-accent='work']    { --accent: var(--a-work);    --accent-rgb: 255 138 76; }
+[data-accent='goals']   { --accent: var(--a-goals);   --accent-rgb: 255 210 76; }
+[data-accent='insights']{ --accent: var(--a-insight); --accent-rgb: 76 201 255; }
+
+/* ---- Daylight theme: same geometry, inverted light ------- */
+[data-theme='daylight'] {
+  --void:  #eef1f8;
+  --abyss: #f4f6fb;
+  --ink:   #ffffff;
+  --glass-1: linear-gradient(145deg, #ffffffee, #ffffffb0);
+  --glass-2: linear-gradient(150deg, #ffffffcc, #ffffff80);
+  --glass-hi: #ffffff;
+  --glass-lo: #0b122018;
+  --stroke:   #0b12201a;
+  --stroke-2: #0b122030;
+  --t1: #0d1222; --t2: #495270; --t3: #767f9c; --t4: #9aa2bb;
+  --shadow-1: 0 1px 0 #fff inset, 0 2px 8px -2px #0b122018;
+  --shadow-2: 0 1px 0 #fff inset, 0 10px 24px -10px #0b122033, 0 2px 6px -2px #0b12201a;
+  --shadow-3: 0 1px 0 #fff inset, 0 26px 54px -20px #0b122040, 0 8px 18px -8px #0b122026;
+  --shadow-4: 0 1px 0 #fff inset, 0 44px 92px -32px #0b12204d, 0 14px 32px -14px #0b12202e;
+}
+
+/* Respect the OS. Users who ask for less motion get a flat,
+   still, perfectly usable app — not a broken one. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --perspective: none; --d-fast: 1ms; --d-mid: 1ms; --d-slow: 1ms; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}

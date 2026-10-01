@@ -17,7 +17,7 @@ coverage
 qa/shots/
 qa/gen/
 
-qa/v3-final/
 
-# Raw generated art sources (optimised WebP is committed instead)
+
+# Raw generated art sources
 public/art/gen/

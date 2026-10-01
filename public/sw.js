@@ -4,7 +4,7 @@
    same-origin fonts. Old caches are evicted on activate.
    NOTE: the cache name is stamped per build by vite.config (aaru-build-identity),
    so every deployment installs a fresh worker that evicts the previous build. */
-const CACHE = 'aaru-habits-v7-__BUILD_ID__'
+const CACHE = 'habit-os-v8-__BUILD_ID__'
 const CORE = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './icon-192.png', './icon-512.png', './icon-512-maskable.png']
 
 self.addEventListener('install', (e) => {
